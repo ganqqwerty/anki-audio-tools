@@ -106,6 +106,42 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Best-effort browser refresh path must not fail an already-completed batch.",
     ),
     BroadExceptionAllowance(
+        "trigger_integration",
+        "_schedule",
+        1,
+        "Anki trigger hook boundary records diagnostics instead of letting hook failures escape.",
+    ),
+    BroadExceptionAllowance(
+        "trigger_scheduler",
+        "schedule_trigger_event",
+        1,
+        "Trigger config parsing boundary disables scheduling on malformed config while recording diagnostics.",
+    ),
+    BroadExceptionAllowance(
+        "trigger_scheduler",
+        "_dispatch_selected_jobs",
+        1,
+        "Trigger dispatch boundary marks synchronously rejected task dispatches as failed state.",
+    ),
+    BroadExceptionAllowance(
+        "trigger_executor",
+        "run_trigger_job",
+        1,
+        "Per-note trigger job boundary converts unexpected processing or write failures into failed trigger state.",
+    ),
+    BroadExceptionAllowance(
+        "trigger_result_application",
+        "publish_trigger_changes",
+        1,
+        "Best-effort Anki refresh path must not fail an already-completed trigger update.",
+    ),
+    BroadExceptionAllowance(
+        "trigger_dispatch",
+        "dispatch_trigger_job.done",
+        1,
+        "Anki background-task callback boundary records unexpected worker failures and marks trigger state failed.",
+    ),
+    BroadExceptionAllowance(
         "diagnostics",
         "build_deep_filter_health",
         1,

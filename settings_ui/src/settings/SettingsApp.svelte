@@ -36,6 +36,7 @@
   import GeneralSettingsPanel from "./GeneralSettingsPanel.svelte";
   import PresetSettingsPanel from "./PresetSettingsPanel.svelte";
   import SettingsFooter from "./SettingsFooter.svelte";
+  import TriggerSettingsPanel from "./TriggerSettingsPanel.svelte";
   import {
     cloneConfig,
     initialSettingsState,
@@ -209,6 +210,17 @@
       </button>
       <button
         class="settings-tab"
+        class:active={activeTab === "triggers"}
+        data-testid="settings-tab-triggers"
+        role="tab"
+        aria-selected={activeTab === "triggers"}
+        type="button"
+        onclick={() => (activeTab = "triggers")}
+      >
+        {t("settings.tab.triggers")}
+      </button>
+      <button
+        class="settings-tab"
         class:active={activeTab === "diagnostics"}
         data-testid="settings-tab-diagnostics"
         role="tab"
@@ -225,6 +237,8 @@
         <GeneralSettingsPanel bind:config />
       {:else if activeTab === "presets"}
         <PresetSettingsPanel bind:config />
+      {:else if activeTab === "triggers"}
+        <TriggerSettingsPanel bind:config metadata={initialState.triggers} />
       {:else}
         <DiagnosticsPanel
           bind:config

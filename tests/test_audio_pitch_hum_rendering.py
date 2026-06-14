@@ -25,9 +25,9 @@ from anki_audio_quick_editor.audio_pitch_hum import (
     render_pitch_hum_audio,
     render_pitch_tier_hum_audio,
 )
+from anki_audio_quick_editor.audio_processor import find_ffmpeg, probe_duration_ms
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.audio_types import AudioProcessingResult
-from anki_audio_quick_editor.audio_processor import find_ffmpeg, probe_duration_ms
 from anki_audio_quick_editor.errors import AudioProcessingError
 from tests.audio_fixtures import FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
 
@@ -397,9 +397,7 @@ def _upper_harmonic_ratio(samples: list[int], start_s: float, end_s: float) -> f
 
 @pytest.mark.allow_managed_runtime
 def test_pitch_hum_algorithms_keep_unvoiced_regions_silent(tmp_path: Path) -> None:
-    if not FFMPEG_AVAILABLE:
-        pytest.skip(FFMPEG_SKIP_REASON)
-
+    assert FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
     __import__("parselmouth")
 
     source = tmp_path / "voiced-silence-voiced.wav"
@@ -425,9 +423,7 @@ def test_pitch_hum_algorithms_keep_unvoiced_regions_silent(tmp_path: Path) -> No
 
 @pytest.mark.allow_managed_runtime
 def test_pitch_tier_hum_removes_original_harmonic_timbre(tmp_path: Path) -> None:
-    if not FFMPEG_AVAILABLE:
-        pytest.skip(FFMPEG_SKIP_REASON)
-
+    assert FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
     __import__("parselmouth")
 
     source = tmp_path / "rich-harmonic-source.wav"

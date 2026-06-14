@@ -293,6 +293,14 @@ def _setup_reviewer_integration() -> None:
     )
 
 
+def _setup_trigger_integration() -> None:
+    """Register hooks for automatic trigger processing."""
+    import_module(f"{__name__}.trigger_integration").register_trigger_hooks(
+        gui_hooks,
+        mw_provider=lambda: mw,
+    )
+
+
 def _setup_menu() -> None:
     """Register the add-on submenu under Tools."""
     from .i18n import t
@@ -337,6 +345,7 @@ gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_managed_runtime
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_editor_integration", _setup_editor_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_browser_integration", _setup_browser_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_reviewer_integration", _setup_reviewer_integration))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_trigger_integration", _setup_trigger_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_menu", _setup_menu))
 gui_hooks.addon_manager_will_install_addon.append(_release_install_blocking_files)
 gui_hooks.addon_manager_did_install_addon.append(_restore_install_logging)

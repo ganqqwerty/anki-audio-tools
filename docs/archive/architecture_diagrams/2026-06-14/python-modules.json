@@ -3413,6 +3413,7 @@
         "anki_audio_quick_editor.frontend_logs",
         "anki_audio_quick_editor.i18n",
         "anki_audio_quick_editor.settings.async_commands",
+        "anki_audio_quick_editor.trigger_rules",
         "anki_audio_quick_editor.webview_bridge"
       ],
       "stdlib": [
@@ -3533,6 +3534,298 @@
       "third_party": [
         "datetime",
         "shlex"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_batch_adapter",
+    "file": "addon/anki_audio_quick_editor/trigger_batch_adapter.py",
+    "layer": "import_safe_core",
+    "summary": "One-note batch operation adapter for trigger automation",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operation_processing",
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.batch_operations",
+        "anki_audio_quick_editor.batch_operations_helpers",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.sound_refs",
+        "anki_audio_quick_editor.trigger_operation_support",
+        "anki_audio_quick_editor.trigger_rules"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_dispatch",
+    "file": "addon/anki_audio_quick_editor/trigger_dispatch.py",
+    "layer": "ui_adapter",
+    "summary": "Dispatch trigger jobs through Anki's background task manager",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processing_presets",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.trigger_executor",
+        "anki_audio_quick_editor.trigger_jobs",
+        "anki_audio_quick_editor.trigger_result_application"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_executor",
+    "file": "addon/anki_audio_quick_editor/trigger_executor.py",
+    "layer": "ui_adapter",
+    "summary": "Execute queued trigger jobs against one note",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processing_presets",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.browser_batch_runner",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.trigger_batch_adapter",
+        "anki_audio_quick_editor.trigger_jobs",
+        "anki_audio_quick_editor.trigger_preset_adapter",
+        "anki_audio_quick_editor.trigger_result_application",
+        "anki_audio_quick_editor.trigger_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_integration",
+    "file": "addon/anki_audio_quick_editor/trigger_integration.py",
+    "layer": "ui_adapter",
+    "summary": "Anki hook integration for trigger automation",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.trigger_jobs",
+        "anki_audio_quick_editor.trigger_scheduler"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_jobs",
+    "file": "addon/anki_audio_quick_editor/trigger_jobs.py",
+    "layer": "import_safe_core",
+    "summary": "Shared trigger job and result types",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.trigger_rules",
+        "anki_audio_quick_editor.trigger_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_operation_support",
+    "file": "addon/anki_audio_quick_editor/trigger_operation_support.py",
+    "layer": "import_safe_core",
+    "summary": "Shared helpers for one-note trigger operation adapters",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.batch_operation_processing",
+        "anki_audio_quick_editor.batch_operations_helpers",
+        "anki_audio_quick_editor.prosody_cache"
+      ],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": [
+        "html"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_preset_adapter",
+    "file": "addon/anki_audio_quick_editor/trigger_preset_adapter.py",
+    "layer": "import_safe_core",
+    "summary": "One-note processing preset adapter for trigger automation",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.audio_processing_presets",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.batch_operations",
+        "anki_audio_quick_editor.batch_operations_helpers",
+        "anki_audio_quick_editor.batch_processing_presets",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.sound_refs",
+        "anki_audio_quick_editor.trigger_operation_support",
+        "anki_audio_quick_editor.trigger_rules"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_result_application",
+    "file": "addon/anki_audio_quick_editor/trigger_result_application.py",
+    "layer": "ui_adapter",
+    "summary": "Apply trigger results to notes and persist completion state",
+    "imports": {
+      "anki": [
+        "aqt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.trigger_jobs",
+        "anki_audio_quick_editor.trigger_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_rules",
+    "file": "addon/anki_audio_quick_editor/trigger_rules.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe trigger rule model, validation, and matching helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operation_params",
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.audio_processing_presets",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_runner",
+    "file": "addon/anki_audio_quick_editor/trigger_runner.py",
+    "layer": "ui_adapter",
+    "summary": "Compatibility facade for trigger automation runtime entrypoints",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.trigger_dispatch",
+        "anki_audio_quick_editor.trigger_executor",
+        "anki_audio_quick_editor.trigger_jobs",
+        "anki_audio_quick_editor.trigger_result_application",
+        "anki_audio_quick_editor.trigger_scheduler"
+      ],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_scheduler",
+    "file": "addon/anki_audio_quick_editor/trigger_scheduler.py",
+    "layer": "ui_adapter",
+    "summary": "Schedule matching trigger rules for Anki notes",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processing_presets",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.browser_batch_runner",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.trigger_dispatch",
+        "anki_audio_quick_editor.trigger_jobs",
+        "anki_audio_quick_editor.trigger_rules",
+        "anki_audio_quick_editor.trigger_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.trigger_state",
+    "file": "addon/anki_audio_quick_editor/trigger_state.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe sidecar state for trigger automation",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib",
+        "typing",
+        "uuid"
+      ],
+      "third_party": [
+        "datetime"
       ]
     }
   },

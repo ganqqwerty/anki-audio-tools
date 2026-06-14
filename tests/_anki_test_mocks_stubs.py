@@ -226,6 +226,7 @@ _GUI_HOOK_NAMES = (
     "browser_menus_did_init",
     "browser_will_show_context_menu",
     "operation_did_execute",
+    "add_cards_did_add_note",
     "reviewer_will_show_context_menu",
     "deck_browser_will_show_options_menu",
 )

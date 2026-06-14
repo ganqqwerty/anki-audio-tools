@@ -24,7 +24,6 @@ from e2e.helpers import (
 from e2e.test_editor_processing_split_buttons_workflow import _split_menu_selector
 
 
-
 def _wait_for_generated_audio(
     note,
     media_dir: Path,

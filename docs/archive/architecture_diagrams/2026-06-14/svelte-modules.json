@@ -2862,6 +2862,7 @@
         "src/settings/GeneralSettingsPanel.svelte",
         "src/settings/PresetSettingsPanel.svelte",
         "src/settings/SettingsFooter.svelte",
+        "src/settings/TriggerSettingsPanel.svelte",
         "src/settings/async-jobs.js",
         "src/settings/bridge.js",
         "src/settings/settings-state.js"
@@ -2988,6 +2989,20 @@
     }
   },
   {
+    "module": "src/settings/TriggerSettingsPanel.svelte",
+    "file": "src/settings/TriggerSettingsPanel.svelte",
+    "category": "component",
+    "summary": "TriggerSettingsPanel",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/trigger-settings-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
     "module": "src/settings/async-jobs.ts",
     "file": "src/settings/async-jobs.ts",
     "category": "logic",
@@ -3036,6 +3051,18 @@
     "imports": {
       "internal": [
         "src/lib/editor-toolbar-buttons.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/trigger-settings-state.ts",
+    "file": "src/settings/trigger-settings-state.ts",
+    "category": "state",
+    "summary": "trigger-settings-state",
+    "imports": {
+      "internal": [
         "src/lib/types.js"
       ],
       "external": []

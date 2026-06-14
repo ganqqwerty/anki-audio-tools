@@ -9,7 +9,7 @@ from e2e.browser_workflow_helpers import (
     wait_for_batch_dialog_ready,
 )
 from e2e.conftest import import_runtime_addon_module
-from e2e.helpers import run_js, wait_for_js_condition
+from e2e.helpers import wait_for_js_condition
 
 
 def test_batch_dialog_running_controls_explain_disabled_tooltip(anki_mw, monkeypatch) -> None:

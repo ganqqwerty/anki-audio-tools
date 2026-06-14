@@ -213,11 +213,14 @@ def test_hidden_default_repeat_ended_replays_browser_audio_with_stale_field_stat
 
         with _record_fake_playback(media_dir, {source.name: 600}, ffmpeg_config=ffmpeg_config) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
-            _wait_for_html_playback(
+            _state(
                 editor,
                 lambda state: state["hidden"] is True
                 and state["hasTrack"] is False
                 and state["repeatEnabled"] is True
+                and state["playbackState"] == "playing"
+                and state["playbackEngine"] == "html"
+                and state["progressClockMode"] == "audio"
                 and state["progressMs"] >= 250,
             )
             assert _lagging_audio_play_calls(editor) == 1

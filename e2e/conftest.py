@@ -250,6 +250,7 @@ def ffmpeg_config(anki_mw):
 @pytest.fixture(autouse=True)
 def _fail_on_unfaked_native_playback(monkeypatch):
     from aqt.sound import av_player
+
     from e2e.editor_playback_helpers import fake_playback_active
 
     original_play_tags = av_player.play_tags

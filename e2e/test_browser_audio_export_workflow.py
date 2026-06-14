@@ -12,7 +12,12 @@ from e2e.browser_workflow_helpers import (
     wait_for_dialog_finished,
 )
 from e2e.conftest import import_runtime_addon_module
-from e2e.helpers import click_selector, generate_tone, wait_for_condition, wait_for_js_condition
+from e2e.helpers import (
+    click_selector,
+    generate_tone,
+    wait_for_condition,
+    wait_for_js_condition,
+)
 
 
 def test_browser_audio_export_zip_leaves_note_fields_unchanged(

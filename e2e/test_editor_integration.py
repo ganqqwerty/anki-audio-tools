@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 from PyQt6.QtWidgets import QApplication
 
 from e2e.conftest import import_runtime_addon_module

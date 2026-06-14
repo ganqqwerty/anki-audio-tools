@@ -26,6 +26,7 @@ from ..editor_button_visibility import (
 from ..error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
 from ..external_links import open_trusted_external_url_from_payload
 from ..frontend_logs import handle_frontend_log_payload
+from ..trigger_rules import trigger_rules_from_raw
 from ..webview_bridge import (
     WebviewBridgeCommand,
     decode_webview_bridge_command,
@@ -127,7 +128,8 @@ def _handle_settings_save(
 
 
 def _validate_settings_config(config: dict[str, Any]) -> None:
-    presets_from_raw(config.get("audio_processing_presets"))
+    presets = presets_from_raw(config.get("audio_processing_presets"))
+    trigger_rules_from_raw(config.get("audio_trigger_rules"), presets=presets)
 
 
 def _emit_settings_save_error(eval_fn: Callable[[str], None], message: str) -> None:

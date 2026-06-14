@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from anki_audio_quick_editor.editor_history import undo
 from anki_audio_quick_editor.editor_session import (
     AudioEditState,
     EditorSession,
@@ -12,7 +13,6 @@ from anki_audio_quick_editor.editor_session import (
     is_current_processing_guard,
     reset_for_note_load,
 )
-from anki_audio_quick_editor.editor_history import undo
 
 
 def test_undo_during_busy_processing_is_blocked_and_shows_processing_status() -> None:

@@ -16,7 +16,7 @@ import {
 import { DEFAULT_EDITOR_BUTTON_MODES } from "$lib/editor-toolbar-buttons.js";
 import type { Config, InitialState } from "$lib/types.js";
 
-export type SettingsTab = "general" | "presets" | "diagnostics";
+export type SettingsTab = "general" | "presets" | "triggers" | "diagnostics";
 
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqePlay,
@@ -69,6 +69,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     graph_connect_short_dropouts_ms: 240,
     graph_voice_lock: GraphVoiceLock.Balanced,
     audio_processing_presets: [],
+    audio_trigger_rules: [],
     speed_step: 1.5,
     min_speed: 0.2,
     max_speed: 5.0,
@@ -116,6 +117,9 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
       error: "",
     },
   },
+  triggers: {
+    note_types: [],
+  },
   locale: "en",
   direction: Direction.LTR,
   messages: {},
@@ -130,7 +134,7 @@ export function cloneConfig(config: Config): Config {
 }
 
 export function saveConfigPayload(config: Config): Config {
-  return { ...config, enabled: true };
+  return { ...config, enabled: true, audio_trigger_rules: config.audio_trigger_rules ?? [] };
 }
 
 export function messageFromError(error: unknown): string {

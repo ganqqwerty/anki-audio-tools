@@ -28,6 +28,7 @@
     "graph_connect_short_dropouts_ms",
     "graph_voice_lock",
     "audio_processing_presets",
+    "audio_trigger_rules",
     "speed_step",
     "min_speed",
     "max_speed",
@@ -222,6 +223,10 @@
     "audio_processing_presets": {
       "type": "array",
       "items": { "$ref": "#/definitions/AudioProcessingPreset" }
+    },
+    "audio_trigger_rules": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/AudioTriggerRule" }
     },
     "speed_step": {
       "type": "number",
@@ -455,6 +460,212 @@
         "graph_voice_lock"
       ],
       "properties": {
+        "graph_voice_range": {
+          "type": "string",
+          "enum": ["bass", "low", "general", "high", "child"]
+        },
+        "graph_recording_condition": {
+          "type": "string",
+          "enum": ["auto", "very_noisy", "noisy", "normal", "clean", "studio"]
+        },
+        "graph_smoothness": {
+          "type": "string",
+          "enum": ["raw", "balanced", "smooth", "very_smooth"]
+        },
+        "graph_connect_short_dropouts_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "graph_voice_lock": {
+          "type": "string",
+          "enum": ["loose", "balanced", "stable"]
+        }
+      }
+    },
+    "AudioTriggerRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "enabled",
+        "event",
+        "note_type",
+        "source_field",
+        "action_type",
+        "operation",
+        "preset_id",
+        "target_field",
+        "parameters"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "event": {
+          "type": "string",
+          "enum": ["add", "edit"]
+        },
+        "note_type": { "$ref": "#/definitions/AudioTriggerNoteTypeRef" },
+        "source_field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_type": {
+          "type": "string",
+          "enum": ["operation", "preset"]
+        },
+        "operation": {
+          "type": ["string", "null"],
+          "enum": [
+            "graph",
+            "convert",
+            "reduce_size",
+            "denoise",
+            "remove_pauses",
+            "slower",
+            "faster",
+            "volume_down",
+            "volume_up",
+            null
+          ]
+        },
+        "preset_id": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "target_field": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "parameters": { "$ref": "#/definitions/AudioTriggerRuleParameters" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action_type": { "const": "operation" },
+              "operation": { "const": "graph" }
+            },
+            "required": ["action_type", "operation"]
+          },
+          "then": {
+            "properties": {
+              "target_field": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action_type": { "const": "preset" }
+            },
+            "required": ["action_type"]
+          },
+          "then": {
+            "properties": {
+              "operation": { "type": "null" },
+              "preset_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "AudioTriggerNoteTypeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": ["integer", "null"] },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "AudioTriggerRuleParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speed_step": {
+          "type": "number",
+          "minimum": 1.01,
+          "maximum": 5
+        },
+        "volume_step_db": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "pause_aggressiveness": {
+          "type": "string",
+          "enum": ["gentle", "normal", "aggressive"]
+        },
+        "pause_detection_algorithm": {
+          "type": "string",
+          "enum": ["silencedetect", "silero_vad"]
+        },
+        "pause_threshold": {
+          "type": "number"
+        },
+        "pause_min_silence_seconds": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10
+        },
+        "pause_min_speech_seconds": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10
+        },
+        "pause_preprocess_denoise": {
+          "type": "boolean"
+        },
+        "denoise_algorithm": {
+          "type": "string",
+          "enum": ["standard", "rnnoise", "dpdfnet", "voice_only"]
+        },
+        "dpdfnet_attn_limit_db": {
+          "type": "number",
+          "enum": [6.0, 12.0, 18.0]
+        },
+        "target_format": {
+          "type": "string",
+          "enum": ["source", "mp3", "m4a", "wav", "flac"]
+        },
+        "size_reduction_mode": {
+          "type": "string",
+          "enum": ["gentle", "normal", "aggressive"]
+        },
+        "size_reduction_bitrate_kbps": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 320
+        },
+        "size_reduction_sample_rate_hz": {
+          "type": "integer",
+          "enum": [8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000]
+        },
+        "size_reduction_channels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
         "graph_voice_range": {
           "type": "string",
           "enum": ["bass", "low", "general", "high", "child"]

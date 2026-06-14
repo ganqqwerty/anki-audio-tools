@@ -18,6 +18,8 @@ ALLOWED_PERSISTENCE_FILES = {
     "browser_result_application.py",
     "editor_processing.py",
     "reviewer_integration.py",
+    "trigger_executor.py",
+    "trigger_result_application.py",
 }
 PERSISTENCE_PATTERNS = [
     r"\.media\.write_data\(",
@@ -86,6 +88,12 @@ def test_direct_media_and_note_persistence_are_isolated_to_ui_adapters() -> None
         {SideEffect.MEDIA_WRITE, SideEffect.NOTE_UPDATE, SideEffect.UNDO_MERGE}
     )
     assert MODULE_CONTRACTS["browser_result_application"].allowed_side_effects >= frozenset(
+        {SideEffect.NOTE_UPDATE}
+    )
+    assert MODULE_CONTRACTS["trigger_executor"].allowed_side_effects >= frozenset(
+        {SideEffect.MEDIA_WRITE}
+    )
+    assert MODULE_CONTRACTS["trigger_result_application"].allowed_side_effects >= frozenset(
         {SideEffect.NOTE_UPDATE}
     )
     export_text = BROWSER_AUDIO_EXPORT_RUNNER.read_text(encoding="utf-8")

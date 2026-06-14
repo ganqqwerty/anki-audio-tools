@@ -4481,6 +4481,13 @@
   },
   {
     "source": "anki_audio_quick_editor.settings.commands",
+    "target": "anki_audio_quick_editor.trigger_rules",
+    "type": "python_import",
+    "source_layer": "settings_backend",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.settings.commands",
     "target": "anki_audio_quick_editor.webview_bridge",
     "type": "python_import",
     "source_layer": "settings_backend",
@@ -4554,6 +4561,552 @@
     "target": "anki_audio_quick_editor.support_reporting",
     "type": "python_import",
     "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.audio_operations",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.audio_state",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.batch_operation_processing",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.batch_operation_types",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.batch_operations",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.batch_operations_helpers",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.diagnostics_runtime",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.error_codes",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.errors",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.media_paths",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.sound_refs",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.trigger_operation_support",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_batch_adapter",
+    "target": "anki_audio_quick_editor.trigger_rules",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_dispatch",
+    "target": "anki_audio_quick_editor.audio_processing_presets",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_dispatch",
+    "target": "anki_audio_quick_editor.audio_state",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_dispatch",
+    "target": "anki_audio_quick_editor.batch_operation_types",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_dispatch",
+    "target": "anki_audio_quick_editor.diagnostics_runtime",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_dispatch",
+    "target": "anki_audio_quick_editor.trigger_executor",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_dispatch",
+    "target": "anki_audio_quick_editor.trigger_jobs",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_dispatch",
+    "target": "anki_audio_quick_editor.trigger_result_application",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.audio_processing_presets",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.audio_state",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.batch_operation_types",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.browser_batch_runner",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.diagnostics_runtime",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.error_codes",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.trigger_batch_adapter",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.trigger_jobs",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.trigger_preset_adapter",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.trigger_result_application",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_executor",
+    "target": "anki_audio_quick_editor.trigger_state",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_integration",
+    "target": "anki_audio_quick_editor.diagnostics_runtime",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_integration",
+    "target": "anki_audio_quick_editor.trigger_jobs",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_integration",
+    "target": "anki_audio_quick_editor.trigger_scheduler",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_jobs",
+    "target": "anki_audio_quick_editor.batch_operation_types",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_jobs",
+    "target": "anki_audio_quick_editor.trigger_rules",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_jobs",
+    "target": "anki_audio_quick_editor.trigger_state",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_operation_support",
+    "target": "anki_audio_quick_editor.audio_processor",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_operation_support",
+    "target": "anki_audio_quick_editor.batch_operation_processing",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_operation_support",
+    "target": "anki_audio_quick_editor.batch_operations_helpers",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_operation_support",
+    "target": "anki_audio_quick_editor.prosody_cache",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.audio_operations",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.audio_processing_presets",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.audio_state",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.batch_operation_types",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.batch_operations",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.batch_operations_helpers",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.batch_processing_presets",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.diagnostics_runtime",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.error_codes",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.errors",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.media_paths",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.sound_refs",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.trigger_operation_support",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_preset_adapter",
+    "target": "anki_audio_quick_editor.trigger_rules",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_result_application",
+    "target": "anki_audio_quick_editor.batch_operation_types",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_result_application",
+    "target": "anki_audio_quick_editor.diagnostics_runtime",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_result_application",
+    "target": "anki_audio_quick_editor.error_codes",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_result_application",
+    "target": "anki_audio_quick_editor.trigger_jobs",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_result_application",
+    "target": "anki_audio_quick_editor.trigger_state",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_rules",
+    "target": "anki_audio_quick_editor.audio_operation_params",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_rules",
+    "target": "anki_audio_quick_editor.audio_operations",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_rules",
+    "target": "anki_audio_quick_editor.audio_processing_presets",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_rules",
+    "target": "anki_audio_quick_editor.errors",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_rules",
+    "target": "anki_audio_quick_editor.sound_refs",
+    "type": "python_import",
+    "source_layer": "import_safe_core",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_runner",
+    "target": "anki_audio_quick_editor.trigger_dispatch",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_runner",
+    "target": "anki_audio_quick_editor.trigger_executor",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_runner",
+    "target": "anki_audio_quick_editor.trigger_jobs",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_runner",
+    "target": "anki_audio_quick_editor.trigger_result_application",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_runner",
+    "target": "anki_audio_quick_editor.trigger_scheduler",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.audio_processing_presets",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.audio_state",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.browser_batch_runner",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.diagnostics_runtime",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.trigger_dispatch",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "ui_adapter"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.trigger_jobs",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.trigger_rules",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
+    "target_layer": "import_safe_core"
+  },
+  {
+    "source": "anki_audio_quick_editor.trigger_scheduler",
+    "target": "anki_audio_quick_editor.trigger_state",
+    "type": "python_import",
+    "source_layer": "ui_adapter",
     "target_layer": "import_safe_core"
   },
   {
@@ -9708,6 +10261,12 @@
   },
   {
     "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/TriggerSettingsPanel.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
     "target": "src/settings/async-jobs.js",
     "type": "svelte_import",
     "source_category": "component"
@@ -9959,6 +10518,24 @@
     "source_category": "component"
   },
   {
+    "source": "src/settings/TriggerSettingsPanel.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/TriggerSettingsPanel.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/TriggerSettingsPanel.svelte",
+    "target": "src/settings/trigger-settings-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
     "source": "src/settings/async-jobs.ts",
     "target": "src/lib/types.js",
     "type": "svelte_import",
@@ -10014,6 +10591,12 @@
   },
   {
     "source": "src/settings/settings-state.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/settings/trigger-settings-state.ts",
     "target": "src/lib/types.js",
     "type": "svelte_import",
     "source_category": "state"

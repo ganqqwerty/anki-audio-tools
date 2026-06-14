@@ -45,6 +45,8 @@ class CallableUse:
         suffix = f"args={args}"
         if keywords:
             suffix = f"{suffix};kw={keywords}"
+        if self.exact_parameter_names:
+            suffix = f"{suffix};params={','.join(self.exact_parameter_names)}"
         return f"{self.module}.{self.qualname} ({suffix})"
 
 

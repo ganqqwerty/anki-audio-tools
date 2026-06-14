@@ -79,6 +79,7 @@ def _full_config() -> dict[str, object]:
         "graph_connect_short_dropouts_ms": 240,
         "graph_voice_lock": "balanced",
         "audio_processing_presets": [],
+        "audio_trigger_rules": [],
         "speed_step": 1.5,
         "min_speed": 0.2,
         "max_speed": 5.0,
@@ -120,6 +121,7 @@ def test_initial_state_has_required_keys() -> None:
         "direction",
         "messages",
         "diagnostics",
+        "triggers",
     }
     assert state["diagnostics"]["addon_id"] == "anki_audio_quick_editor"
     assert state["diagnostics"]["release_info"] == {"commit_hash": "", "commit_message": ""}
@@ -127,3 +129,28 @@ def test_initial_state_has_required_keys() -> None:
     assert state["locale"] == "en"
     assert state["direction"] == "ltr"
     assert "settings.title" in state["messages"]
+    assert state["triggers"] == {"note_types": []}
+
+
+def test_initial_state_includes_trigger_note_type_metadata() -> None:
+    from aqt import mw
+
+    mw.col.models.all.return_value = [
+        {
+            "id": 123,
+            "name": "Basic",
+            "flds": [{"name": "Front"}, {"name": "Audio"}, {"name": "Graph"}],
+        }
+    ]
+
+    state = json.loads(build_initial_state(_full_config()))
+
+    assert state["triggers"] == {
+        "note_types": [
+            {
+                "id": 123,
+                "name": "Basic",
+                "fields": ["Front", "Audio", "Graph"],
+            }
+        ]
+    }

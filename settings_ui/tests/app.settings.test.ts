@@ -11,6 +11,7 @@ import {
   OutputFormat,
   PauseAggressiveness,
   PitchHumMode,
+  TriggerEvent,
   VisibleEditorButton,
 } from "../src/lib/types.js";
 import { bridgePayload, defaultConfig, setInitialState } from "./settings-app-helpers";
@@ -86,6 +87,37 @@ describe("App settings behavior", () => {
 
     const config = bridgePayload<{ enabled: boolean }>("settings.save");
     expect(config.enabled).toBe(true);
+  });
+
+  it("adds and saves a trigger rule", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.click(screen.getByTestId("settings-tab-triggers"));
+    await fireEvent.click(screen.getByTestId("trigger-add"));
+    await fireEvent.input(screen.getByTestId("trigger-name"), {
+      target: { value: "Clean Basic audio" },
+    });
+    await fireEvent.change(screen.getByTestId("trigger-event"), {
+      target: { value: TriggerEvent.Edit },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{
+      audio_trigger_rules: Array<{
+        name: string;
+        event: string;
+        source_field: string;
+        operation: string | null;
+      }>;
+    }>("settings.save");
+    expect(config.audio_trigger_rules).toHaveLength(1);
+    expect(config.audio_trigger_rules[0]).toMatchObject({
+      name: "Clean Basic audio",
+      event: "edit",
+      source_field: "Audio",
+      operation: "convert",
+    });
   });
 
   it("saves edited volume settings", async () => {

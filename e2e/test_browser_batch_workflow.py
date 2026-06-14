@@ -14,7 +14,11 @@ from e2e.browser_workflow_helpers import (
 )
 from e2e.conftest import import_runtime_addon_module
 from e2e.editor_audio_generation_helpers import _generate_high_bitrate_mp3
-from e2e.editor_note_helpers import _basic_audio_note, _configure_ffmpeg, _sound_filename
+from e2e.editor_note_helpers import (
+    _basic_audio_note,
+    _configure_ffmpeg,
+    _sound_filename,
+)
 from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
 
 

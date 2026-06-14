@@ -8,9 +8,9 @@ Triggers reuse the existing batch operation core and the processing preset runne
 
 ## Current Baseline
 
-As of 2026-06-13, trigger automation and processing presets are still design-stage features in this repository. The committed config has no `audio_trigger_rules` or `audio_processing_presets` keys yet, and Settings still exposes only General and Diagnostics tabs. Trigger implementation should therefore add the Triggers tab against the then-current Settings layout, and should place it alongside the Presets tab if the processing preset feature has landed first.
+As of 2026-06-13, trigger automation is still design-stage, but processing presets have landed in config, Settings, editor, Browser batch, and the shared preset runner. Trigger implementation should therefore add the Triggers tab to the current Settings layout alongside General, Presets, and Diagnostics, and should reuse the existing preset model and runner instead of inventing a second preset path.
 
-The shared batch/editor operation surface has changed since the original design. `audio_operations.py` now includes `reduce_size` as a transform operation backed by size-reduction parameters and `render_size_reduced_audio`. Trigger operation allow-lists and parameter editors must include it.
+The shared batch/editor operation surface has changed since the original design. `audio_operations.py` now includes `reduce_size` as a transform operation backed by size-reduction parameters and `render_size_reduced_audio`. Trigger single-operation allow-lists and parameter editors must include it. Current preset Settings/schema code still omits `reduce_size` from preset steps even though the backend transform list includes it; broadening preset-step parity should be handled as a focused prerequisite or follow-up, not hidden inside trigger automation.
 
 ## Goals
 

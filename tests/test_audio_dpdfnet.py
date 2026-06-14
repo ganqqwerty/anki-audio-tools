@@ -12,12 +12,12 @@ from anki_audio_quick_editor.audio_processor import (
     render_dpdfnet_audio,
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
-from anki_audio_quick_editor.errors import AudioProcessingError, MissingDpdfnetError
+from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.support import (
     clear_latest_denoise_support_incident,
     latest_denoise_support_incident,
 )
-from tests.audio_fixtures import FFMPEG_AVAILABLE, _run_ffmpeg, FFMPEG_SKIP_REASON
+from tests.audio_fixtures import FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON, _run_ffmpeg
 
 DPDFNET = str(Path("/bin/dpdfnet"))
 FFMPEG = str(Path("/bin/ffmpeg"))
@@ -57,14 +57,8 @@ def _generate_mono_tone(path: Path, *, duration_s: float = 0.8) -> None:
 def test_render_dpdfnet_audio_smoke_uses_managed_dpdfnet_when_available(
     tmp_path: Path,
 ) -> None:
-    if not FFMPEG_AVAILABLE:
-        pytest.skip(FFMPEG_SKIP_REASON)
-
-    try:
-        dpdfnet_path = find_dpdfnet_bundle()
-    except MissingDpdfnetError:
-        pytest.skip("dpdfnet not available")
-
+    assert FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
+    dpdfnet_path = find_dpdfnet_bundle()
     source = tmp_path / "source.mp3"
     output = tmp_path / "denoised.mp3"
     _generate_mono_tone(source, duration_s=0.8)

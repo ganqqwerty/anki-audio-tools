@@ -18,7 +18,6 @@ from e2e.test_reviewer_audio_editor_workflow import (
     _menu_action,
     _open_reviewer_for_note,
     _prepare_reviewer_note,
-    _reviewer_module,
     _reviewer_more_menu,
     _show_answer,
     _tools_audio_menu,
