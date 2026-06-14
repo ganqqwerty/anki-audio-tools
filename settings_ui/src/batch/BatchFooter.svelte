@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
 
   interface Props {
@@ -8,9 +9,20 @@
     onClose: () => void;
     onCopyLog: () => void;
     canStart: boolean;
+    startDisabledReason: string | undefined;
+    startLabel?: string;
   }
 
-  let { running, finished, onStart, onClose, onCopyLog, canStart }: Props = $props();
+  let {
+    running,
+    finished,
+    onStart,
+    onClose,
+    onCopyLog,
+    canStart,
+    startDisabledReason,
+    startLabel = t("batch.start"),
+  }: Props = $props();
 </script>
 
 <footer class="footer">
@@ -23,15 +35,18 @@
         {t("batch.close")}
       </button>
     {/if}
-    <button
-      type="button"
-      class="batch-button batch-button-primary"
-      data-testid="batch-start"
-      onclick={onStart}
-      disabled={!canStart || running || finished}
-    >
-      {t("batch.start")}
-    </button>
+    <FieldTooltipTarget content={startLabel} disabledReason={startDisabledReason}>
+      <button
+        type="button"
+        class="batch-button batch-button-primary"
+        data-testid="batch-start"
+        data-aqe-tooltip-content={startDisabledReason || startLabel}
+        onclick={onStart}
+        disabled={!canStart || running || finished}
+      >
+        {startLabel}
+      </button>
+    </FieldTooltipTarget>
   </div>
 </footer>
 
@@ -78,6 +93,15 @@
     box-shadow: inset 0 0 0 1px var(--aqe-accent-border);
     color: var(--aqe-accent-text);
     font-weight: 700;
+  }
+
+  .batch-button-primary:disabled {
+    background: ButtonFace;
+    border-color: ButtonBorder;
+    box-shadow: none;
+    color: GrayText;
+    font-weight: 400;
+    opacity: 1;
   }
 
 </style>

@@ -69,7 +69,50 @@
   "graph_smoothness": "very_smooth",
   "graph_connect_short_dropouts_ms": 240,
   "graph_voice_lock": "balanced",
-  "audio_processing_presets": [],
+  "audio_processing_presets": [
+    {
+      "id": "default_clean_shorter_louder",
+      "name": "Denoise, shorten pauses, louder",
+      "steps": [
+        {
+          "id": "default_clean_shorter_louder_denoise",
+          "operation": "denoise",
+          "parameters": {
+            "denoise_algorithm": "standard"
+          }
+        },
+        {
+          "id": "default_clean_shorter_louder_remove_pauses",
+          "operation": "remove_pauses",
+          "parameters": {
+            "pause_aggressiveness": "normal",
+            "pause_detection_algorithm": "silencedetect",
+            "pause_threshold": -45.0,
+            "pause_min_silence_seconds": 0.3,
+            "pause_min_speech_seconds": 0.1,
+            "pause_preprocess_denoise": true
+          }
+        },
+        {
+          "id": "default_clean_shorter_louder_volume_up",
+          "operation": "volume_up",
+          "parameters": {
+            "volume_step_db": 15.0
+          }
+        }
+      ],
+      "graph": {
+        "enabled": false,
+        "parameters": {
+          "graph_voice_range": "general",
+          "graph_recording_condition": "auto",
+          "graph_smoothness": "very_smooth",
+          "graph_connect_short_dropouts_ms": 240,
+          "graph_voice_lock": "balanced"
+        }
+      }
+    }
+  ],
   "audio_trigger_rules": [],
   "speed_step": 1.5,
   "min_speed": 0.2,

@@ -13,11 +13,7 @@
     isUserFacingError,
   } from "$lib/user-facing-error.js";
   import { BatchSurface } from "$lib/types.js";
-  import type {
-    AudioExportInitialState,
-    BatchErrorPayload,
-    BatchInitialState,
-  } from "$lib/types.js";
+  import type { AudioExportInitialState, BatchErrorPayload, BatchInitialState } from "$lib/types.js";
   import BatchControls from "./BatchControls.svelte";
   import BatchExportControls from "./BatchExportControls.svelte";
   import BatchFooter from "./BatchFooter.svelte";
@@ -45,11 +41,8 @@
     selectedOperation,
     selectedPreset,
   } from "./batch-state.js";
-  import {
-    audioExportStartRequest,
-    canStartAudioExport,
-    initialAudioExportFormState,
-  } from "./export-state.js";
+  import { audioExportStartRequest, canStartAudioExport, initialAudioExportFormState } from "./export-state.js";
+  import { batchStartDisabledReason } from "./start-disabled-reason.js";
 
   const batchState = initialBatchState();
   const isAudioExportSurface = batchState.surface === BatchSurface.AudioExport;
@@ -82,6 +75,7 @@
       ? exportForm !== null && canStartAudioExport(exportForm)
       : canStartBatch(form, selected, preset),
   );
+  let startDisabledReason = $derived(batchStartDisabledReason({ canStart, exportForm, finished, form, isAudioExportSurface, running, selected }));
 
   onMount(() => {
     const showFrontendRuntimeError = () => {
@@ -190,6 +184,7 @@
     }
     batchCopyLog();
   }
+
 </script>
 
 <AqeTooltipProvider>
@@ -234,6 +229,8 @@
       onClose={close}
       onCopyLog={copyLog}
       canStart={canStart}
+      startDisabledReason={startDisabledReason}
+      startLabel={isAudioExportSurface ? t("audio_export.start") : t("batch.start")}
     />
   </main>
 </AqeTooltipProvider>

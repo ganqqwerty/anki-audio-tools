@@ -2,6 +2,7 @@
   import { Popover } from "bits-ui";
   import { onMount } from "svelte";
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import FieldTooltipTarget from "../lib/FieldTooltipTarget.svelte";
   import { buttonTooltipContent } from "../lib/disabled-tooltip.js";
   import { t } from "../lib/i18n.js";
   import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
@@ -150,53 +151,65 @@
         />
       </div>
       <p class="aqe-split-popover-description">{t("editor.chorusing.auto_advance_description")}</p>
-      <div class="aqe-split-popover-header">
-        <span>{t("editor.chorusing.pause_between_repeats")}</span>
-        <UnitNumberInput
-          inputClass="aqe-split-value-input"
-          testId={`aqe-split-${target.ord}-chorusing-pause-seconds`}
-          min="0"
-          max="10"
-          step="0.1"
-          unit="s"
-          value={chorusingPauseSeconds}
-          ariaLabel={t("editor.chorusing.pause_between_repeats")}
-          onValueInput={(value) => {
-            applyPauseSeconds(value);
-            defaultSaved = false;
-          }}
-        />
-      </div>
-      <label class="aqe-split-checkbox-row">
-        <input
-          type="checkbox"
-          checked={chorusingAutoAdvance}
-          data-testid={`aqe-split-${target.ord}-chorusing-auto-advance`}
-          onchange={(event) => {
-            const input = event.currentTarget as HTMLInputElement;
-            applyAutoAdvance(input.checked);
-            defaultSaved = false;
-          }}
-        />
-        <span>{t("editor.chorusing.auto_advance")}</span>
-      </label>
-      <div class="aqe-split-popover-header">
-        <span>{t("editor.chorusing.repeat_count")}</span>
-        <UnitNumberInput
-          inputClass="aqe-split-value-input"
-          testId={`aqe-split-${target.ord}-chorusing-repeat-count`}
-          min="1"
-          max="20"
-          step="1"
-          unit="x"
-          value={chorusingRepeatCount}
-          ariaLabel={t("editor.chorusing.repeat_count")}
-          onValueInput={(value) => {
-            applyRepeatCount(value);
-            defaultSaved = false;
-          }}
-        />
-      </div>
+      <FieldTooltipTarget block content={t("editor.chorusing.pause_between_repeats.tooltip")}>
+        <div class="aqe-split-popover-header">
+          <span>{t("editor.chorusing.pause_between_repeats")}</span>
+          <UnitNumberInput
+            inputClass="aqe-split-value-input"
+            testId={`aqe-split-${target.ord}-chorusing-pause-seconds`}
+            min="0"
+            max="10"
+            step="0.1"
+            unit="s"
+            value={chorusingPauseSeconds}
+            ariaLabel={t("editor.chorusing.pause_between_repeats")}
+            onValueInput={(value) => {
+              applyPauseSeconds(value);
+              defaultSaved = false;
+            }}
+          />
+        </div>
+      </FieldTooltipTarget>
+      <FieldTooltipTarget
+        block
+        content={t("editor.chorusing.auto_advance.tooltip", {
+          count: String(chorusingRepeatCount),
+          pause: String(chorusingPauseSeconds),
+        })}
+      >
+        <label class="aqe-split-checkbox-row">
+          <input
+            type="checkbox"
+            checked={chorusingAutoAdvance}
+            data-testid={`aqe-split-${target.ord}-chorusing-auto-advance`}
+            onchange={(event) => {
+              const input = event.currentTarget as HTMLInputElement;
+              applyAutoAdvance(input.checked);
+              defaultSaved = false;
+            }}
+          />
+          <span>{t("editor.chorusing.auto_advance")}</span>
+        </label>
+      </FieldTooltipTarget>
+      <FieldTooltipTarget block content={t("editor.chorusing.repeat_count.tooltip")}>
+        <div class="aqe-split-popover-header">
+          <span>{t("editor.chorusing.repeat_count")}</span>
+          <UnitNumberInput
+            inputClass="aqe-split-value-input"
+            testId={`aqe-split-${target.ord}-chorusing-repeat-count`}
+            min="1"
+            max="20"
+            step="1"
+            unit="x"
+            value={chorusingRepeatCount}
+            ariaLabel={t("editor.chorusing.repeat_count")}
+            onValueInput={(value) => {
+              applyRepeatCount(value);
+              defaultSaved = false;
+            }}
+          />
+        </div>
+      </FieldTooltipTarget>
     </Popover.Content>
   </span>
 </Popover.Root>

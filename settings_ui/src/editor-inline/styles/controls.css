@@ -111,6 +111,8 @@ body.nightMode .aqe-controls,
   background: transparent;
   border: 1px solid;
   border-color: var(--aqe-border-color);
+  border-block-color: var(--aqe-border-color);
+  border-inline-color: var(--aqe-border-color);
   border-radius: 7px;
   color: inherit;
   cursor: pointer;

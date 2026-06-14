@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from "../lib/i18n.js";
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import {
     formatDenoiseAlgorithm,
     formatOutputFormat,
@@ -370,15 +371,16 @@
   </div>
   <div class="aqe-split-presets">
     {#each sliderConfig().presets as preset}
-      <button
-        type="button"
-        class="aqe-button aqe-split-preset"
-        data-testid={`aqe-split-${targetOrd}-${slug}-preset-${preset}`}
-        aria-pressed={sliderValue() === preset ? "true" : "false"}
-        onclick={() => applyValue(preset)}
-      >
-        {presetLabel(preset)}
-      </button>
+      <AqeTooltip>{#snippet trigger({ props })}
+          <button
+            {...props}
+            type="button" class="aqe-button aqe-split-preset aqe-tooltip-target" data-aqe-tooltip-content={presetLabel(preset)}
+            data-testid={`aqe-split-${targetOrd}-${slug}-preset-${preset}`}
+            aria-pressed={sliderValue() === preset ? "true" : "false"} onclick={() => applyValue(preset)}>
+            {presetLabel(preset)}
+          </button>
+        {/snippet}
+      </AqeTooltip>
     {/each}
   </div>
 {/if}

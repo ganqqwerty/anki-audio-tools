@@ -297,6 +297,8 @@ body.nightMode .settings-root,
   appearance: none;
   background: color-mix(in srgb, var(--canvas-elevated, ButtonFace) 88%, transparent);
   border: 1px solid color-mix(in srgb, var(--border, ButtonBorder) 86%, transparent);
+  border-block-color: color-mix(in srgb, var(--border, ButtonBorder) 86%, transparent);
+  border-inline-color: color-mix(in srgb, var(--border, ButtonBorder) 86%, transparent);
   border-radius: 7px;
   color: inherit;
   cursor: pointer;
@@ -312,12 +314,16 @@ body.nightMode .settings-root,
 .settings-choice-button:hover {
   background: var(--aqe-accent-bg);
   border-color: var(--aqe-accent-border);
+  border-block-color: var(--aqe-accent-border);
+  border-inline-color: var(--aqe-accent-border);
   text-decoration: none;
 }
 
 .settings-choice-button[aria-checked="true"] {
   background: var(--aqe-accent-bg-strong);
   border-color: var(--aqe-accent-border);
+  border-block-color: var(--aqe-accent-border);
+  border-inline-color: var(--aqe-accent-border);
   box-shadow:
     inset 0 0 0 1px var(--aqe-accent-border),
     0 0 0 1px color-mix(in srgb, var(--aqe-accent-border) 24%, transparent);
@@ -331,6 +337,8 @@ body.nightMode .settings-root,
   background: Field;
   border: 1px solid;
   border-color: ButtonBorder;
+  border-block-color: ButtonBorder;
+  border-inline-color: ButtonBorder;
   border-radius: 5px;
   box-sizing: border-box;
   color: FieldText;
@@ -364,6 +372,8 @@ body.nightMode .settings-root,
 .toolbar-button:focus,
 .toolbar-mode-toggle button:focus {
   border-color: var(--aqe-accent-border);
+  border-block-color: var(--aqe-accent-border);
+  border-inline-color: var(--aqe-accent-border);
   outline: 2px solid var(--aqe-accent-focus);
   outline-offset: 2px;
 }
@@ -373,6 +383,8 @@ body.nightMode .settings-root,
   background: transparent;
   border: 1px solid;
   border-color: ButtonBorder;
+  border-block-color: ButtonBorder;
+  border-inline-color: ButtonBorder;
   border-radius: 7px;
   color: inherit;
   cursor: pointer;
@@ -390,6 +402,8 @@ body.nightMode .settings-root,
 .settings-button-primary {
   background: var(--aqe-accent-bg);
   border-color: var(--aqe-accent-border);
+  border-block-color: var(--aqe-accent-border);
+  border-inline-color: var(--aqe-accent-border);
   box-shadow: inset 0 0 0 1px var(--aqe-accent-border);
   color: var(--aqe-accent-text);
   font-weight: 700;
@@ -411,7 +425,7 @@ body.nightMode .settings-root,
 .preset-layout {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
 }
 
 .preset-list,
@@ -424,6 +438,14 @@ body.nightMode .settings-root,
 
 .preset-list {
   align-content: start;
+  min-width: 0;
+}
+
+.preset-list .field-tooltip-target,
+.preset-list .field-tooltip-target .preset-list-item {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
 }
 
 .preset-list-item {
@@ -436,8 +458,15 @@ body.nightMode .settings-root,
   display: grid;
   gap: 2px;
   min-height: 44px;
+  min-width: 0;
   padding: 7px 8px;
   text-align: left;
+}
+
+.preset-list-item span,
+.preset-list-item small {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .preset-list-item-active {

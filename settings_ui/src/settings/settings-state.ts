@@ -5,6 +5,7 @@ import {
   GraphSmoothness,
   GraphVoiceLock,
   GraphVoiceRange,
+  Operation,
   OutputFormat,
   PauseDetectionAlgorithm,
   PauseAggressiveness,
@@ -43,6 +44,51 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqeSettings,
 ] as const satisfies readonly VisibleEditorButton[];
 
+const DEFAULT_AUDIO_PROCESSING_PRESETS: Config["audio_processing_presets"] = [
+  {
+    id: "default_clean_shorter_louder",
+    name: "Denoise, shorten pauses, louder",
+    steps: [
+      {
+        id: "default_clean_shorter_louder_denoise",
+        operation: Operation.Denoise,
+        parameters: {
+          denoise_algorithm: DenoiseAlgorithm.Standard,
+        },
+      },
+      {
+        id: "default_clean_shorter_louder_remove_pauses",
+        operation: Operation.RemovePauses,
+        parameters: {
+          pause_aggressiveness: PauseAggressiveness.Normal,
+          pause_detection_algorithm: PauseDetectionAlgorithm.Silencedetect,
+          pause_threshold: -45,
+          pause_min_silence_seconds: 0.3,
+          pause_min_speech_seconds: 0.1,
+          pause_preprocess_denoise: true,
+        },
+      },
+      {
+        id: "default_clean_shorter_louder_volume_up",
+        operation: Operation.VolumeUp,
+        parameters: {
+          volume_step_db: 15,
+        },
+      },
+    ],
+    graph: {
+      enabled: false,
+      parameters: {
+        graph_voice_range: GraphVoiceRange.General,
+        graph_recording_condition: GraphRecordingCondition.Auto,
+        graph_smoothness: GraphSmoothness.VerySmooth,
+        graph_connect_short_dropouts_ms: 240,
+        graph_voice_lock: GraphVoiceLock.Balanced,
+      },
+    },
+  },
+];
+
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
     _config_version: 2,
@@ -68,7 +114,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     graph_smoothness: GraphSmoothness.VerySmooth,
     graph_connect_short_dropouts_ms: 240,
     graph_voice_lock: GraphVoiceLock.Balanced,
-    audio_processing_presets: [],
+    audio_processing_presets: DEFAULT_AUDIO_PROCESSING_PRESETS,
     audio_trigger_rules: [],
     speed_step: 1.5,
     min_speed: 0.2,

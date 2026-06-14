@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
   import {
     Operation,
@@ -114,9 +115,8 @@
 <div class="settings-card settings-stack">
   <h2>{t("settings.tab.presets")}</h2>
 
-  <section class="settings-section" aria-labelledby="processing-presets-title">
+  <section class="settings-section" aria-label={t("settings.tab.presets")}>
     <div class="settings-section-header">
-      <h3 id="processing-presets-title">{t("settings.presets.title")}</h3>
       <p>{t("settings.presets.summary")}</p>
     </div>
 
@@ -131,43 +131,53 @@
     <div class="preset-layout">
       <aside class="preset-list" aria-label={t("settings.presets.list_label")}>
         {#each config.audio_processing_presets as preset}
+          <FieldTooltipTarget block content={t("settings.presets.list_item.tooltip")}>
+            <button
+              type="button"
+              class="preset-list-item"
+              class:preset-list-item-active={preset.id === selectedPresetId}
+              data-testid={`preset-list-${preset.id}`}
+              onclick={() => (selectedPresetId = preset.id)}
+            >
+              <span>{preset.name || t("settings.presets.unnamed")}</span>
+              <small>
+                {preset.steps.length} / {preset.graph.enabled ? t("operation.graph") : t("settings.presets.no_graph")}
+              </small>
+            </button>
+          </FieldTooltipTarget>
+        {/each}
+        <FieldTooltipTarget block content={t("settings.presets.add.tooltip")}>
           <button
             type="button"
-            class="preset-list-item"
-            class:preset-list-item-active={preset.id === selectedPresetId}
-            data-testid={`preset-list-${preset.id}`}
-            onclick={() => (selectedPresetId = preset.id)}
+            class="settings-button settings-button-primary"
+            data-testid="preset-add"
+            onclick={addPreset}
           >
-            <span>{preset.name || t("settings.presets.unnamed")}</span>
-            <small>
-              {preset.steps.length} / {preset.graph.enabled ? t("operation.graph") : t("settings.presets.no_graph")}
-            </small>
+            {t("settings.presets.add")}
           </button>
-        {/each}
-        <button
-          type="button"
-          class="settings-button settings-button-primary"
-          data-testid="preset-add"
-          onclick={addPreset}
-        >
-          {t("settings.presets.add")}
-        </button>
+        </FieldTooltipTarget>
       </aside>
 
       <section class="preset-editor" aria-label={t("settings.presets.editor_label")}>
         {#if selectedPreset}
           <div class="settings-grid">
-            <label class="settings-field preset-name-field">
-              <span>{t("settings.presets.name")}</span>
-              <input class="settings-input" bind:value={selectedPreset.name} data-testid="preset-name" />
-            </label>
+            <FieldTooltipTarget block content={t("settings.presets.name.tooltip")}>
+              <label class="settings-field preset-name-field">
+                <span>{t("settings.presets.name")}</span>
+                <input class="settings-input" bind:value={selectedPreset.name} data-testid="preset-name" />
+              </label>
+            </FieldTooltipTarget>
             <div class="preset-actions">
-              <button type="button" class="settings-button" onclick={() => duplicatePreset(selectedPreset)}>
-                {t("settings.presets.duplicate")}
-              </button>
-              <button type="button" class="settings-button" onclick={() => deletePreset(selectedPreset)}>
-                {t("settings.presets.delete")}
-              </button>
+              <FieldTooltipTarget content={t("settings.presets.duplicate.tooltip")}>
+                <button type="button" class="settings-button" onclick={() => duplicatePreset(selectedPreset)}>
+                  {t("settings.presets.duplicate")}
+                </button>
+              </FieldTooltipTarget>
+              <FieldTooltipTarget content={t("settings.presets.delete.tooltip")}>
+                <button type="button" class="settings-button" onclick={() => deletePreset(selectedPreset)}>
+                  {t("settings.presets.delete")}
+                </button>
+              </FieldTooltipTarget>
             </div>
           </div>
 
@@ -177,23 +187,27 @@
               <span class="settings-muted">{t("settings.presets.steps_summary")}</span>
             </div>
             <div class="preset-add-step">
-              <select
-                class="settings-select"
-                bind:value={addStepOperation}
-                data-testid="preset-add-step-operation"
-              >
-                {#each TRANSFORM_OPERATIONS as operation}
-                  <option value={operation}>{operationLabel(operation)}</option>
-                {/each}
-              </select>
-              <button
-                type="button"
-                class="settings-button"
-                data-testid="preset-add-step"
-                onclick={() => addStep(selectedPreset)}
-              >
-                {t("settings.presets.add_step")}
-              </button>
+              <FieldTooltipTarget content={t("settings.presets.add_step_operation.tooltip")}>
+                <select
+                  class="settings-select"
+                  bind:value={addStepOperation}
+                  data-testid="preset-add-step-operation"
+                >
+                  {#each TRANSFORM_OPERATIONS as operation}
+                    <option value={operation}>{operationLabel(operation)}</option>
+                  {/each}
+                </select>
+              </FieldTooltipTarget>
+              <FieldTooltipTarget content={t("settings.presets.add_step.tooltip")}>
+                <button
+                  type="button"
+                  class="settings-button"
+                  data-testid="preset-add-step"
+                  onclick={() => addStep(selectedPreset)}
+                >
+                  {t("settings.presets.add_step")}
+                </button>
+              </FieldTooltipTarget>
             </div>
 
             <div class="preset-steps">
@@ -220,9 +234,6 @@
         {:else}
           <div class="preset-empty">
             <p>{t("settings.presets.empty")}</p>
-            <button type="button" class="settings-button settings-button-primary" onclick={addPreset}>
-              {t("settings.presets.add")}
-            </button>
           </div>
         {/if}
       </section>
