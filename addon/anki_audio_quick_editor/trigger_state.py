@@ -48,7 +48,10 @@ class TriggerStateStore:
         """Load a store from ``path`` or return an empty store."""
         if not path.exists():
             return cls(path)
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return cls(path)
         if not isinstance(raw, dict):
             return cls(path)
         entries: dict[TriggerStateKey, TriggerStateEntry] = {}

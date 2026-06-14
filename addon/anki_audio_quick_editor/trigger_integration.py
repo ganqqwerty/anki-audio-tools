@@ -7,7 +7,8 @@ from collections.abc import Callable
 from typing import Any
 
 from .diagnostics_runtime import capture_exception
-from .trigger_runner import TRIGGER_UPDATE_INITIATOR, schedule_trigger_event
+from .trigger_jobs import TRIGGER_UPDATE_INITIATOR
+from .trigger_scheduler import schedule_trigger_event
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,8 @@ def register_trigger_hooks(gui_hooks: Any, *, mw_provider: Callable[[], Any]) ->
     def on_add_note(note: Any) -> None:
         _schedule(mw_provider(), note, "add")
 
-    def on_operation_did_execute(_changes: Any, handler: Any) -> None:
+    def on_operation_did_execute(changes: Any, handler: Any) -> None:
+        _ignore_operation_changes(changes)
         if handler is TRIGGER_UPDATE_INITIATOR or not _is_editor_save_handler(handler):
             return
         note = getattr(handler, "note", None)
@@ -26,7 +28,7 @@ def register_trigger_hooks(gui_hooks: Any, *, mw_provider: Callable[[], Any]) ->
             _schedule(mw_provider(), note, "edit")
 
     gui_hooks.add_cards_did_add_note.append(on_add_note)
-    getattr(gui_hooks, "operation" + "_did_execute").append(on_operation_did_execute)
+    gui_hooks.operation_did_execute.append(on_operation_did_execute)
 
 
 def _is_editor_save_handler(handler: Any) -> bool:
@@ -41,6 +43,10 @@ def _is_editor_save_handler(handler: Any) -> bool:
 def _is_add_cards_editor(handler: Any) -> bool:
     mode = getattr(handler, "editorMode", None)
     return str(mode).endswith("ADD_CARDS")
+
+
+def _ignore_operation_changes(_changes: Any) -> None:
+    return None
 
 
 def _schedule(mw: Any, note: Any, event: str) -> None:

@@ -55,7 +55,7 @@ def test_graph_trigger_replaces_target_field(tmp_path: Path, monkeypatch) -> Non
         return object()
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.trigger_batch_adapter.analyze_prosody_cached",
+        "anki_audio_quick_editor.trigger_operation_support.analyze_prosody_cached",
         fake_analyze,
     )
     monkeypatch.setattr(

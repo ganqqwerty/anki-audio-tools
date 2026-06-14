@@ -2,27 +2,21 @@
 
 from __future__ import annotations
 
-import html
 from dataclasses import replace
 from pathlib import Path
 
 from .audio_operations import OP_GRAPH
-from .audio_processor import (
-    render_audio,
-    render_converted_audio,
-    render_size_reduced_audio,
-)
 from .audio_state import AudioProcessingConfig
-from .batch_operation_processing import BatchOperationDeps, process_graph_operation
+from .batch_operation_processing import process_graph_operation
 from .batch_operation_types import BatchNoteResult, BatchNoteSnapshot, BatchRunRequest
 from .batch_operations import MediaWriter, NowProvider, process_note_batch_operation
-from .batch_operations_helpers import render_batch_denoise, skipped_batch_note
+from .batch_operations_helpers import skipped_batch_note
 from .diagnostics_runtime import new_operation_id
 from .error_codes import AQE_MEDIA_REFERENCED_AUDIO_MISSING, format_coded_message
 from .errors import AudioQuickEditorError
 from .media_paths import existing_media_file_path
-from .prosody_cache import analyze_prosody_cached
 from .sound_refs import safe_media_basename, select_first_sound_reference
+from .trigger_operation_support import trigger_image_reference, trigger_operation_deps
 from .trigger_rules import AudioTriggerRule
 
 
@@ -74,7 +68,7 @@ def process_trigger_operation(
         append_image_reference=lambda _field_html, image_filename: trigger_image_reference(
             image_filename
         ),
-        deps=_trigger_operation_deps(),
+        deps=trigger_operation_deps(),
     )
 
 
@@ -122,30 +116,29 @@ def _config_with_graph_parameters(
     graph = rule.graph_parameters
     return replace(
         config,
-        graph_voice_range=graph.graph_voice_range or config.graph_voice_range,
-        graph_recording_condition=(
-            graph.graph_recording_condition or config.graph_recording_condition
+        graph_voice_range=(
+            graph.graph_voice_range
+            if graph.graph_voice_range is not None
+            else config.graph_voice_range
         ),
-        graph_smoothness=graph.graph_smoothness or config.graph_smoothness,
+        graph_recording_condition=(
+            graph.graph_recording_condition
+            if graph.graph_recording_condition is not None
+            else config.graph_recording_condition
+        ),
+        graph_smoothness=(
+            graph.graph_smoothness
+            if graph.graph_smoothness is not None
+            else config.graph_smoothness
+        ),
         graph_connect_short_dropouts_ms=(
             graph.graph_connect_short_dropouts_ms
             if graph.graph_connect_short_dropouts_ms is not None
             else config.graph_connect_short_dropouts_ms
         ),
-        graph_voice_lock=graph.graph_voice_lock or config.graph_voice_lock,
-    )
-
-
-def trigger_image_reference(image_filename: str) -> str:
-    """Return the complete target-field HTML for a trigger Graph output."""
-    return f'<img src="{html.escape(image_filename, quote=True)}">'
-
-
-def _trigger_operation_deps() -> BatchOperationDeps:
-    return BatchOperationDeps(
-        analyze_prosody_cached=analyze_prosody_cached,
-        render_audio=render_audio,
-        render_converted_audio=render_converted_audio,
-        render_size_reduced_audio=render_size_reduced_audio,
-        render_batch_denoise=render_batch_denoise,
+        graph_voice_lock=(
+            graph.graph_voice_lock
+            if graph.graph_voice_lock is not None
+            else config.graph_voice_lock
+        ),
     )

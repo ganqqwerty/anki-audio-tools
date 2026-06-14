@@ -389,6 +389,8 @@ source_modules = [
     "anki_audio_quick_editor.support",
     "anki_audio_quick_editor.support_reporting",
     "anki_audio_quick_editor.trigger_batch_adapter",
+    "anki_audio_quick_editor.trigger_jobs",
+    "anki_audio_quick_editor.trigger_operation_support",
     "anki_audio_quick_editor.trigger_preset_adapter",
     "anki_audio_quick_editor.trigger_rules",
     "anki_audio_quick_editor.trigger_state",
@@ -441,8 +443,12 @@ forbidden_modules = [
     "anki_audio_quick_editor.settings.async_operations",
     "anki_audio_quick_editor.settings.commands",
     "anki_audio_quick_editor.settings.initial_state",
+    "anki_audio_quick_editor.trigger_dispatch",
+    "anki_audio_quick_editor.trigger_executor",
     "anki_audio_quick_editor.trigger_integration",
+    "anki_audio_quick_editor.trigger_result_application",
     "anki_audio_quick_editor.trigger_runner",
+    "anki_audio_quick_editor.trigger_scheduler",
 ]
 
 [[tool.importlinter.contracts]]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from anki_audio_quick_editor.trigger_state import (
@@ -100,3 +101,41 @@ def test_collection_state_path_is_collection_scoped(tmp_path: Path) -> None:
     assert first != second
     assert first.parent == tmp_path / "aqe_artifacts" / "trigger_state"
     assert first.suffix == ".json"
+
+
+def test_state_loads_corrupt_json_as_empty_store(tmp_path: Path) -> None:
+    path = tmp_path / "state.json"
+    path.write_text("{not json", encoding="utf-8")
+
+    store = TriggerStateStore.load(path)
+
+    assert store.entries == {}
+
+
+def test_state_load_ignores_invalid_keys_and_entries(tmp_path: Path) -> None:
+    path = tmp_path / "state.json"
+    good_key = json.dumps([42, "trigger-clean", "Audio"], separators=(",", ":"))
+    path.write_text(
+        json.dumps(
+            {
+                "not-json": {"status": "succeeded"},
+                json.dumps([True, "trigger-clean", "Audio"]): {"status": "succeeded"},
+                json.dumps([43, "bad", "Audio"]): {"status": "unknown"},
+                good_key: {
+                    "last_handled_field_filename": "voice-a.mp3",
+                    "input_filename": "voice-a.mp3",
+                    "action_fingerprint": "fingerprint",
+                    "generation_token": "first",
+                    "status": "succeeded",
+                    "last_successful_output_filename": "voice-a-clean.mp3",
+                    "updated_at": "now",
+                    "last_error": None,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    store = TriggerStateStore.load(path)
+
+    assert list(store.entries) == [_key()]

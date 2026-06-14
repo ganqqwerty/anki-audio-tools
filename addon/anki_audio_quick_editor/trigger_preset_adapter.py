@@ -20,7 +20,7 @@ from .sound_refs import (
     safe_media_basename,
     select_first_sound_reference,
 )
-from .trigger_batch_adapter import _trigger_operation_deps, trigger_image_reference
+from .trigger_operation_support import trigger_image_reference, trigger_operation_deps
 from .trigger_rules import AudioTriggerRule
 
 
@@ -68,7 +68,7 @@ def process_trigger_preset(
         append_image_reference=lambda _field_html, image_filename: trigger_image_reference(
             image_filename
         ),
-        deps=_trigger_operation_deps(),
+        deps=trigger_operation_deps(),
         operation_id=new_operation_id("trigger-preset"),
     )
 

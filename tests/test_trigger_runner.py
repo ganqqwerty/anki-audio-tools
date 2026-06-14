@@ -5,9 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import MagicMock
 
+from anki_audio_quick_editor import trigger_executor, trigger_scheduler
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.batch_operation_types import BatchNoteResult
+from anki_audio_quick_editor.trigger_result_application import complete_trigger_job
 from anki_audio_quick_editor.trigger_rules import trigger_rules_from_raw
 from anki_audio_quick_editor.trigger_runner import (
     TriggerJob,
@@ -44,6 +47,12 @@ class _Taskman:
         assert uses_collection is True
         result = task()
         done(SimpleNamespace(result=lambda: result))
+
+
+class _FailingTaskman:
+    def run_in_background(self, task: Any, done: Any, *, uses_collection: bool) -> None:
+        del task, done, uses_collection
+        raise RuntimeError("taskman unavailable")
 
 
 class _Media:
@@ -135,7 +144,8 @@ def test_schedule_trigger_event_runs_matching_rule_and_updates_state(
     aqt.gui_hooks.operation_did_execute.reset_mock()
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.trigger_runner.process_trigger_operation",
+        trigger_executor,
+        "process_trigger_operation",
         lambda *_args, **_kwargs: BatchNoteResult(
             note_id=10,
             status="written",
@@ -161,6 +171,46 @@ def test_schedule_trigger_event_runs_matching_rule_and_updates_state(
     assert entry.last_successful_output_filename == "clip.flac"
 
 
+def test_schedule_trigger_event_records_dispatch_failure(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    note = _Note()
+    mw = _Mw(_config(), note, tmp_path)
+    mw.taskman = _FailingTaskman()
+    capture = MagicMock()
+    monkeypatch.setattr(trigger_scheduler, "capture_exception", capture)
+
+    assert schedule_trigger_event(mw, note, "add") == 0
+
+    state_files = list((tmp_path / "addon" / "aqe_artifacts" / "trigger_state").glob("*.json"))
+    store = TriggerStateStore.load(state_files[0])
+    entry = next(iter(store.entries.values()))
+    assert entry.status == "failed"
+    assert entry.last_error == "taskman unavailable"
+    capture.assert_called_once()
+
+
+def test_schedule_trigger_event_parse_failure_captures_and_skips(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    note = _Note()
+    mw = _Mw(_config(), note, tmp_path)
+    capture = MagicMock()
+    monkeypatch.setattr(trigger_scheduler, "capture_exception", capture)
+    monkeypatch.setattr(
+        trigger_scheduler,
+        "trigger_rules_from_raw",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("bad trigger config")),
+    )
+
+    assert schedule_trigger_event(mw, note, "add") == 0
+
+    assert not (tmp_path / "addon" / "aqe_artifacts" / "trigger_state").exists()
+    capture.assert_called_once()
+
+
 def test_schedule_trigger_event_skips_same_filename_and_fingerprint(
     tmp_path: Path,
     monkeypatch,
@@ -179,10 +229,7 @@ def test_schedule_trigger_event_skips_same_filename_and_fingerprint(
             audio_filename="clip.mp3",
         )
 
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.trigger_runner.process_trigger_operation",
-        fake_process,
-    )
+    monkeypatch.setattr(trigger_executor, "process_trigger_operation", fake_process)
 
     assert schedule_trigger_event(mw, note, "add") == 1
     assert schedule_trigger_event(mw, note, "add") == 0
@@ -202,11 +249,12 @@ def test_run_trigger_job_ignores_stale_generation(tmp_path: Path, monkeypatch) -
     (tmp_path / "clip.mp3").write_bytes(b"audio")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.trigger_runner.process_trigger_operation",
+        trigger_executor,
+        "process_trigger_operation",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("stale job should not run")),
     )
 
-    result = run_trigger_job(
+    execution = run_trigger_job(
         col,
         TriggerJob(
             note_id=10,
@@ -223,6 +271,87 @@ def test_run_trigger_job_ignores_stale_generation(tmp_path: Path, monkeypatch) -
         artifact_root=None,
     )
 
+    result = execution.result
     assert result.status == "skipped"
     assert result.message == "stale trigger completion"
     assert col.update_calls == []
+
+
+def test_run_trigger_job_conflict_marks_failed_without_updating_note(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    raw_rule = _config()["audio_trigger_rules"]
+    rule = trigger_rules_from_raw(raw_rule)[0]
+    key = TriggerStateKey(note_id=10, rule_id="clean", source_field="Audio")
+    state_path = tmp_path / "state.json"
+    store = TriggerStateStore.load(state_path)
+    mark_running(store, key, "clip.mp3", "fingerprint", "current")
+    store.save()
+    note = _Note()
+    col = _Col(note, tmp_path)
+    (tmp_path / "clip.mp3").write_bytes(b"audio")
+
+    def fake_process(*_args: object, **_kwargs: object) -> BatchNoteResult:
+        note.fields["Audio"] = "user changed [sound:clip.mp3]"
+        return BatchNoteResult(
+            note_id=10,
+            status="written",
+            message="converted",
+            target_field="Audio",
+            target_html="[sound:clip.flac]",
+            audio_filename="clip.mp3",
+            written_filename="clip.flac",
+            original_target_html="before [sound:clip.mp3] after",
+        )
+
+    monkeypatch.setattr(trigger_executor, "process_trigger_operation", fake_process)
+
+    execution = run_trigger_job(
+        col,
+        TriggerJob(
+            note_id=10,
+            rule=rule,
+            state_key=key,
+            state_path=state_path,
+            generation_token="current",
+            input_filename="clip.mp3",
+            action_fingerprint="fingerprint",
+        ),
+        presets=(),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(),
+        artifact_root=None,
+    )
+    complete_trigger_job(
+        TriggerJob(
+            note_id=10,
+            rule=rule,
+            state_key=key,
+            state_path=state_path,
+            generation_token="current",
+            input_filename="clip.mp3",
+            action_fingerprint="fingerprint",
+        ),
+        execution.result,
+    )
+
+    assert execution.result.status == "failed"
+    assert "target field 'Audio' changed during trigger processing" in execution.result.message
+    assert note.fields["Audio"] == "user changed [sound:clip.mp3]"
+    assert col.update_calls == []
+    entry = TriggerStateStore.load(state_path).get(key)
+    assert entry is not None
+    assert entry.status == "failed"
+
+
+def test_collection_identity_uses_collection_path_and_media_fallback(tmp_path: Path) -> None:
+    assert trigger_scheduler._collection_identity(SimpleNamespace(path=lambda: "callable.anki2")) == (
+        "callable.anki2"
+    )
+    assert trigger_scheduler._collection_identity(SimpleNamespace(path="property.anki2")) == (
+        "property.anki2"
+    )
+    assert trigger_scheduler._collection_identity(SimpleNamespace(media=_Media(tmp_path))) == str(
+        tmp_path
+    )
