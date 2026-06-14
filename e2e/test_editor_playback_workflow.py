@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _drag_cursor_to_ratio,
@@ -23,6 +22,7 @@ from e2e.editor_note_helpers import (
 )
 from e2e.editor_playback_helpers import (
     PLAYBACK_INTERVAL_TOLERANCE_MS,
+    _assert_no_playback_leaks,
     _record_fake_playback,
 )
 from e2e.helpers import (
@@ -35,8 +35,6 @@ from e2e.helpers import (
 
 
 def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_config) -> None:
-    SESSIONS = import_runtime_addon_module(".editor_runtime").SESSIONS
-
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_cursor_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
@@ -60,15 +58,7 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
             })()
             """,
         )
-        wait_for_condition(
-            lambda: (
-                (session := SESSIONS.get(editor)) is not None
-                and session.cursor_ms >= 1000
-            ),
-            timeout=5.0,
-            message="Dragging the visualizer cursor did not update the editor session",
-        )
-        track = _wait_for_visualizer_track(editor, lambda value: value["cursorMs"] >= 1000)
+        track = _wait_for_visualizer_track(editor, lambda value: value["cursorMs"] >= 1000, timeout=10.0)
 
         with _record_fake_playback(
             media_dir,
@@ -119,12 +109,12 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
                 timeout=5.0,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert progressed["playButtonLabel"] == "Pause"
         assert progressed["audioClockMuted"] is False
         assert timecoded["timecodeFlagTransform"].startswith("translate3d(")
         assert abs(frozen["progressMs"] - paused_progress) < 80
-        assert playback.toggle_count == 0
+        _assert_no_playback_leaks(playback, expected_toggle_count=0)
     finally:
         editor.set_note(None)
         parent.close()
@@ -159,7 +149,7 @@ def test_drag_to_70_percent_play_starts_html_audio_at_cursor(anki_mw, ffmpeg_con
                 lambda state: state["progressMs"] >= dragged["anchorMs"],
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert playing["audioClockCurrentMs"] >= dragged["anchorMs"] - PLAYBACK_INTERVAL_TOLERANCE_MS
         assert playing["audioClockMuted"] is False
         assert dragged["cursorMs"] == dragged["anchorMs"]
@@ -186,7 +176,7 @@ def test_play_from_zero_uses_original_file_without_segment(anki_mw, ffmpeg_confi
                 lambda state: state["audioClockCurrentMs"] < 400,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert playing["anchorMs"] == 0
         assert playing["audioClockMuted"] is False
     finally:
@@ -236,7 +226,7 @@ def test_play_without_graph_shown_uses_pause_button_until_native_playback_ends(
                 timeout=5.0,
             )
 
-        assert playback.attempts
+        _assert_no_playback_leaks(playback, expected_attempt_count=1)
         assert playback.attempts[0].filename == source.name
         assert playback.attempts[0].start_ms == 0
         assert playing["playbackEngine"] == "native"
@@ -296,7 +286,7 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
                 timeout=5.0,
             )
 
-        assert len(playback.attempts) == 1
+        _assert_no_playback_leaks(playback, expected_attempt_count=1)
         assert playback.attempts[0].filename == source.name
         assert status["title"] == ""
         assert note.fields[0] == missing_field
@@ -338,7 +328,7 @@ def test_drag_to_70_percent_plays_html_audio_70_to_100_without_native_seek(
                 lambda state: state["audioClockCurrentMs"] >= state["anchorMs"] - PLAYBACK_INTERVAL_TOLERANCE_MS,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert playing["anchorMs"] >= round(track["durationMs"] * 0.70) - PLAYBACK_INTERVAL_TOLERANCE_MS
         assert playing["audioClockMuted"] is False
     finally:
@@ -389,10 +379,10 @@ def test_pause_drag_then_play_restarts_from_dragged_cursor(anki_mw, ffmpeg_confi
                 lambda state: state["progressMs"] >= dragged["anchorMs"],
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert restarted["audioClockCurrentMs"] >= dragged["anchorMs"] - PLAYBACK_INTERVAL_TOLERANCE_MS
         assert dragged["anchorMs"] == dragged["cursorMs"]
-        assert playback.toggle_count == 0
+        _assert_no_playback_leaks(playback, expected_toggle_count=0)
     finally:
         editor.set_note(None)
         parent.close()

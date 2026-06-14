@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
@@ -50,15 +49,13 @@ def test_settings_dialog_saves_dpdfnet_aggressiveness(anki_mw) -> None:
         timeout=5.0,
     )
 
-    with patch.object(
-        anki_mw.addonManager,
-        "writeConfig",
-        wraps=anki_mw.addonManager.writeConfig,
-    ) as mock_write:
-        click_selector(dialog, '[data-testid="settings-save"]', timeout=5.0)
-        wait_for_condition(lambda: mock_write.called, timeout=5.0)
-
-    saved_config = mock_write.call_args.args[1]
+    click_selector(dialog, '[data-testid="settings-save"]', timeout=5.0)
+    wait_for_condition(
+        lambda: not dialog.isVisible(),
+        timeout=5.0,
+        message="Timed out waiting for settings dialog to close after save",
+    )
+    saved_config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     assert saved_config["dpdfnet_attn_limit_db"] == 18
 
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
     _basic_audio_note,
@@ -13,6 +12,7 @@ from e2e.editor_note_helpers import (
     _click_and_wait_for_new_file,
     _configure_ffmpeg,
     _open_editor,
+    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
@@ -83,8 +83,6 @@ def test_volume_split_button_uses_settings_default_and_local_value(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    SESSIONS = import_runtime_addon_module(".editor_runtime").SESSIONS
-
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_split_volume_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
@@ -118,15 +116,11 @@ def test_volume_split_button_uses_settings_default_and_local_value(
             "aqe:volume-up",
             source.name,
         )
-        wait_for_condition(
-            lambda: (
-                (session := SESSIONS.get(editor)) is not None
-                and session.state is not None
-                and session.state.volume_db == 6.5
-            ),
-            timeout=5.0,
-            message="Volume split input did not apply the local value",
+        status = _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Increased volume by 6.5 dB.",
         )
+        assert status["text"] == "Increased volume by 6.5 dB."
         assert (media_dir / generated_name).is_file()
     finally:
         editor.set_note(None)

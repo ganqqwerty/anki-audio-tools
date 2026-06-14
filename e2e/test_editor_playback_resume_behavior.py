@@ -19,6 +19,7 @@ from .editor_note_helpers import (
 )
 from .editor_playback_helpers import (
     PLAYBACK_INTERVAL_TOLERANCE_MS,
+    _assert_no_playback_leaks,
     _record_fake_playback,
     _shift_click_region,
 )
@@ -77,7 +78,7 @@ def test_playback_completion_clears_status_and_returns_cursor_to_anchor(anki_mw,
             )
 
         assert finished["anchorMs"] == 300
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
     finally:
         editor.set_note(None)
         parent.close()
@@ -118,7 +119,7 @@ def test_playback_starts_from_graph_positioned_cursor(anki_mw, ffmpeg_config) ->
                 timeout=5.0,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert abs(started["cursorMs"] - positioned["cursorMs"]) <= PLAYBACK_INTERVAL_TOLERANCE_MS
         assert started["playbackEndMs"] == round(track["durationMs"])
     finally:
@@ -151,7 +152,7 @@ def test_drag_while_playing_restarts_playback_from_released_cursor(anki_mw, ffmp
                 and state["audioClockCurrentMs"] >= state["anchorMs"] - PLAYBACK_INTERVAL_TOLERANCE_MS,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert restarted["playButtonLabel"] == "Pause"
         assert abs(restarted["progressMs"] - restarted["audioClockCurrentMs"]) <= PLAYBACK_INTERVAL_TOLERANCE_MS * 2
     finally:

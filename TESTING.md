@@ -237,6 +237,8 @@ The archive explains what currently connects. The source of truth for what is al
 
 The e2e suite uses a temporary `ANKI_BASE`, copies the add-on under `addons21/1000000002`, and imports add-on modules through `e2e.conftest.import_runtime_addon_module(...)`. It intentionally does not alias `1000000002.*` to `anki_audio_quick_editor.*`, so numeric-package runtime import bugs stay visible.
 
+Reviewer e2e tests should remain user-reachable: actions are exercised through context menu commands and visible controls. Assertions that depend on private reviewer hook output are intentionally kept in focused unit tests under `tests/test_reviewer_integration_*.py` so the e2e boundary remains "observable behavior only."
+
 E2E tests run in randomized order and Anki config is persistent inside the temporary add-on profile for the duration of a test. When adding a config key, update the e2e default-config helpers so the new setting is explicitly reset to its production default unless a test opts into another value. This prevents one settings-dialog test from silently changing later editor tests.
 
 Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. Shared e2e defaults intentionally leave `ffmpeg_path` empty so those tests exercise the same lookup order as production: configured path when set, then managed runtime, package `bin/` as a source-tree fallback, then `PATH` as a compatibility fallback. Do not pin machine-specific Homebrew or Windows paths in the shared e2e defaults.

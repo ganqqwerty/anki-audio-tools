@@ -17,7 +17,10 @@ from e2e.editor_note_helpers import (
     _configure_ffmpeg,
     _open_editor,
 )
-from e2e.editor_playback_helpers import _record_fake_playback
+from e2e.editor_playback_helpers import (
+    _assert_no_playback_leaks,
+    _record_fake_playback,
+)
 from e2e.editor_region_loop_helpers import (
     _drag_resize_handle,
     _force_audio_boundary,
@@ -126,7 +129,7 @@ def test_graph_default_repeat_can_be_turned_off_for_selected_region_playback(
                 timeout=5.0,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert initial["repeatEnabled"] is True
         assert repeat_off["playbackRegionMode"] == "selection"
         assert playing["playButtonLabel"] == "Pause"
@@ -182,6 +185,7 @@ def test_aac_full_repeat_falls_back_to_native_when_browser_audio_rejects_after_g
                 message="AAC full-repeat browser playback failure did not fall back to native playback",
             )
 
+        _assert_no_playback_leaks(playback, expected_attempt_count=1)
         assert playback.attempts[0].filename == source.name
         assert playing["selectionStartMs"] == 0
         assert playing["selectionEndMs"] == round(track["durationMs"])
@@ -258,7 +262,7 @@ def test_two_audio_fields_keep_region_state_scoped_and_single_active_playback(
             lambda value: value == 1,
             timeout=5.0,
         )
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert active_field == 1
         assert first_stopped["sourceFilename"] == first.name
         assert second_playing["sourceFilename"] == second.name
@@ -316,7 +320,7 @@ def test_note_switching_stops_looping_playback_and_clears_stale_selection(
                 and state["selectionEndMs"] == 1000,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert reset_state["hasTrack"] is False
         assert second_track["sourceFilename"] == second.name
         assert second_state["playbackRegionMode"] == "selection"
@@ -349,7 +353,7 @@ def test_repeat_default_config_initializes_editor_controls_and_selected_loop(
             _wait_for_html_playback(editor, lambda state: state["progressMs"] >= 500)
             looped = _force_repeat_wrap(editor, 500)
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert checked["repeatEnabled"] is True
         assert looped["playbackState"] == "playing"
     finally:

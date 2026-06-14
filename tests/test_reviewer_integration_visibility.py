@@ -78,14 +78,18 @@ def test_toggle_shows_answer_editor_when_setting_disabled() -> None:
     toggle_reviewer_editor_visibility()
 
     reviewer._showAnswer.assert_called_once()
+
+
+def test_reviewer_targets_not_added_when_setting_disabled() -> None:
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": False}
+
     html = _on_card_will_show(
         "<div>[sound:first.mp3] [sound:second.wav]</div>",
-        reviewer.card,
+        FakeRenderedAudioCard(FakeNote(["[sound:first.mp3]", "[sound:second.wav]"])),
         "reviewAnswer",
     )
-    assert html.count('class="aqe-review-audio-target"') == 2
-    assert 'data-field-ord="0"' in html
-    assert 'data-field-ord="1"' in html
+
+    assert "aqe-review-audio-target" not in html
 
 
 def test_reviewer_more_menu_adds_audio_editor_toggle(monkeypatch) -> None:

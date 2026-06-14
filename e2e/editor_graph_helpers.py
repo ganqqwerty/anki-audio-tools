@@ -186,6 +186,7 @@ def _wait_for_html_playback(editor, predicate=lambda state: True, timeout: float
         and state["playbackState"] == "playing"
         and state["playbackEngine"] == "html"
         and state["progressClockMode"] == "audio"
+        and state["audioPlaybackTestDriver"] is True
         and predicate(state),
         timeout=timeout,
     )

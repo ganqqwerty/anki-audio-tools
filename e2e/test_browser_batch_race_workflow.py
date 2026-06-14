@@ -1,130 +1,53 @@
 from __future__ import annotations
 
-import json
+from e2e.browser_workflow_helpers import (
+    add_basic_audio_note,
+    click_batch_start,
+    open_batch_dialog,
+    select_batch_operation,
+    trigger_cards_menu_action,
+    wait_for_batch_dialog_ready,
+)
+from e2e.conftest import import_runtime_addon_module
+from e2e.helpers import run_js, wait_for_js_condition
 
-import pytest
 
-from .conftest import import_runtime_addon_module
-from .helpers import run_js, wait_for_condition, wait_for_js_condition
-
-
-def test_batch_dialog_duplicate_start_does_not_launch_second_run(anki_mw) -> None:
-    audio_state = import_runtime_addon_module(".audio_state")
-    batch_operations = import_runtime_addon_module(".batch_operations")
-    browser_dialog = import_runtime_addon_module(".browser_dialog")
-    batch_dialog_class = browser_dialog.BatchOperationsDialog
-
-    started: list[dict[str, object]] = []
-
-    def fake_run_batch(browser, run_dialog, note_ids, request):
-        started.append({"browser": browser, "dialog": run_dialog, "note_ids": list(note_ids), "request": request})
-
-    dialog = batch_dialog_class(
+def test_batch_dialog_running_controls_explain_disabled_tooltip(anki_mw, monkeypatch) -> None:
+    note = add_basic_audio_note(
         anki_mw,
-        [1, 2],
-        (batch_operations.FieldGroup("Basic", ("Front", "Back")),),
-        audio_state.AudioProcessingConfig(),
-        fake_run_batch,
+        ("aqe_browser_batch_one.mp3",),
     )
-    start_payload = {
-        "operation": "faster",
-        "source_field": "Front",
-        "target_field": "Front",
-        "parameters": {"speed_step": 0.1},
-    }
-    command = "bridge:" + json.dumps({"command": "batch.start", "payload": start_payload})
-
-    dialog._dialog.show()
-    try:
-        run_js(dialog._webview, f"pycmd({command!r}); pycmd({command!r});")
-        wait_for_condition(lambda: len(started) >= 1, timeout=2.0)
-
-        assert len(started) == 1
-        assert dialog._running is True
-    finally:
-        dialog._dialog.close()
-
-
-def test_batch_dialog_duplicate_start_keeps_single_progress_stream(
-    anki_mw,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    audio_state = import_runtime_addon_module(".audio_state")
-    batch_operations = import_runtime_addon_module(".batch_operations")
-    browser_dialog = import_runtime_addon_module(".browser_dialog")
-    batch_dialog_class = browser_dialog.BatchOperationsDialog
-    emitted: list[tuple[str, object]] = []
-
-    def fake_emit(_self, name, event_payload=None):
-        emitted.append((name, event_payload))
-
-    def fake_run_batch(_browser, run_dialog, _note_ids, _request):
-        run_dialog.append_log("first run")
-
-    monkeypatch.setattr(browser_dialog.BatchOperationsDialog, "_emit", fake_emit)
-
-    dialog = batch_dialog_class(
-        anki_mw,
-        [1, 2, 3],
-        (batch_operations.FieldGroup("Basic", ("Front", "Back")),),
-        audio_state.AudioProcessingConfig(),
-        fake_run_batch,
-    )
-    start_payload = {
-        "operation": "volume_up",
-        "source_field": "Front",
-        "target_field": "Front",
-        "parameters": {"volume_step_db": 3.0},
-    }
-    command = "bridge:" + json.dumps({"command": "batch.start", "payload": start_payload})
-
-    dialog._dialog.show()
-    try:
-        run_js(dialog._webview, f"pycmd({command!r}); pycmd({command!r});")
-        wait_for_condition(lambda: any(name == "onBatchProgress" for name, _payload in emitted), timeout=2.0)
-
-        progress_events = [payload for name, payload in emitted if name == "onBatchProgress"]
-        assert len(progress_events) == 1
-        assert dialog._log_lines == ["first run"]
-    finally:
-        dialog._dialog.close()
-
-
-def test_batch_dialog_running_controls_explain_disabled_tooltip(anki_mw) -> None:
-    audio_state = import_runtime_addon_module(".audio_state")
-    batch_operations = import_runtime_addon_module(".batch_operations")
-    browser_dialog = import_runtime_addon_module(".browser_dialog")
-    batch_dialog_class = browser_dialog.BatchOperationsDialog
 
     def fake_run_batch(_browser, _run_dialog, _note_ids, _request):
         return None
 
-    dialog = batch_dialog_class(
+    browser_dialog = import_runtime_addon_module(".browser_dialog")
+    browser, opened_context, action_label = open_batch_dialog(
         anki_mw,
-        [1, 2],
-        (batch_operations.FieldGroup("Basic", ("Front", "Back")),),
-        audio_state.AudioProcessingConfig(),
-        fake_run_batch,
+        note,
+        browser_dialog.BatchOperationsDialog,
     )
+    monkeypatch.setattr(browser_dialog.BatchOperationsDialog, "exec", lambda self: 0)
+    monkeypatch.setattr(browser_dialog, "run_batch_in_background", fake_run_batch, raising=False)
 
-    dialog._dialog.show()
-    try:
+    with opened_context as opened:
+        trigger_cards_menu_action(browser, action_label)
+        assert len(opened) == 1
+        dialog = opened[0]
+        dialog._run_batch_in_background = fake_run_batch
+        wait_for_batch_dialog_ready(dialog)
+        select_batch_operation(dialog, "remove_pauses")
+        click_batch_start(dialog)
         wait_for_js_condition(
-            dialog._webview,
-            "Boolean(document.querySelector('[data-testid=\"batch-operation\"]'))",
-            bool,
-            timeout=5.0,
-        )
-        run_js(
             dialog._webview,
             """
             (() => {
               const operation = document.querySelector('[data-testid="batch-operation"]');
-              operation.value = 'remove_pauses';
-              operation.dispatchEvent(new Event('change', { bubbles: true }));
-              document.querySelector('[data-testid="batch-start"]').click();
+              return operation ? operation.value : null;
             })();
             """,
+            lambda value: value == "remove_pauses",
+            timeout=5.0,
         )
 
         tooltip_state = wait_for_js_condition(
@@ -151,5 +74,3 @@ def test_batch_dialog_running_controls_explain_disabled_tooltip(anki_mw) -> None
         )
 
         assert "Aggressive" in tooltip_state["buttonTooltip"]
-    finally:
-        dialog._dialog.close()

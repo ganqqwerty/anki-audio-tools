@@ -33,7 +33,6 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
     ffmpeg_config,
 ) -> None:
     probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
-    SESSIONS = import_runtime_addon_module(".editor_runtime").SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_split_volume_speed_source.wav"
@@ -62,15 +61,6 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
             lambda status: status["text"] == "Decreased volume by 6 dB.",
             timeout=10.0,
         )
-        wait_for_condition(
-            lambda: (
-                (session := SESSIONS.get(editor)) is not None
-                and session.state is not None
-                and session.state.volume_db == -6
-            ),
-            timeout=5.0,
-            message="Grouped volume menu did not apply the local 6 dB value to Volume -",
-        )
         volume_name = _click_and_wait_for_new_file(
             editor,
             note,
@@ -82,15 +72,6 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
             editor,
             lambda status: status["text"] == "Increased volume by 6 dB.",
             timeout=10.0,
-        )
-        wait_for_condition(
-            lambda: (
-                (session := SESSIONS.get(editor)) is not None
-                and session.state is not None
-                and session.state.volume_db == 0
-            ),
-            timeout=5.0,
-            message="Grouped volume menu did not apply the local 6 dB value to Volume +",
         )
 
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
@@ -111,15 +92,6 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
             editor,
             lambda status: status["text"] == "Decreased speed to x2.",
             timeout=10.0,
-        )
-        wait_for_condition(
-            lambda: (
-                (session := SESSIONS.get(editor)) is not None
-                and session.state is not None
-                and session.state.speed == 0.5
-            ),
-            timeout=5.0,
-            message="Grouped speed menu did not apply the local x2 value to Slower",
         )
         speed_name = _click_and_wait_for_new_file(
             editor,

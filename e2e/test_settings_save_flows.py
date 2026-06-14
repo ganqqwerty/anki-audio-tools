@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
 
 from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
 from e2e.settings_dialog_helpers import open_settings_dialog
@@ -42,15 +41,13 @@ def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw
     )
     click_selector(dialog, checkbox_selector, timeout=5.0)
 
-    with patch.object(
-        anki_mw.addonManager,
-        "writeConfig",
-        wraps=anki_mw.addonManager.writeConfig,
-    ) as mock_write:
-        click_selector(dialog, save_selector, timeout=5.0)
-        wait_for_condition(lambda: mock_write.called, timeout=5.0)
-
-    saved_config = mock_write.call_args.args[1]
+    click_selector(dialog, save_selector, timeout=5.0)
+    wait_for_condition(
+        lambda: not dialog.isVisible(),
+        timeout=5.0,
+        message="Timed out waiting for settings dialog to close after save",
+    )
+    saved_config = anki_mw.addonManager.getConfig("1000000002") or {}
     assert saved_config["show_graph_by_default"] is True
 
 
@@ -80,15 +77,13 @@ def test_pitch_hum_default_mode_select_saves_in_one_session(anki_mw) -> None:
         timeout=5.0,
     )
 
-    with patch.object(
-        anki_mw.addonManager,
-        "writeConfig",
-        wraps=anki_mw.addonManager.writeConfig,
-    ) as mock_write:
-        click_selector(dialog, save_selector, timeout=5.0)
-        wait_for_condition(lambda: mock_write.called, timeout=5.0)
-
-    saved_config = mock_write.call_args.args[1]
+    click_selector(dialog, save_selector, timeout=5.0)
+    wait_for_condition(
+        lambda: not dialog.isVisible(),
+        timeout=5.0,
+        message="Timed out waiting for settings dialog to close after save",
+    )
+    saved_config = anki_mw.addonManager.getConfig("1000000002") or {}
     assert saved_config["pitch_hum_mode"] == "pitch_tier"
 
 
@@ -118,15 +113,13 @@ def test_share_target_select_saves_in_one_session(anki_mw) -> None:
         timeout=5.0,
     )
 
-    with patch.object(
-        anki_mw.addonManager,
-        "writeConfig",
-        wraps=anki_mw.addonManager.writeConfig,
-    ) as mock_write:
-        click_selector(dialog, save_selector, timeout=5.0)
-        wait_for_condition(lambda: mock_write.called, timeout=5.0)
-
-    saved_config = mock_write.call_args.args[1]
+    click_selector(dialog, save_selector, timeout=5.0)
+    wait_for_condition(
+        lambda: not dialog.isVisible(),
+        timeout=5.0,
+        message="Timed out waiting for settings dialog to close after save",
+    )
+    saved_config = anki_mw.addonManager.getConfig("1000000002") or {}
     assert saved_config["share_target"] == "catbox"
 
 
@@ -168,14 +161,12 @@ def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:
         timeout=5.0,
     )
 
-    with patch.object(
-        anki_mw.addonManager,
-        "writeConfig",
-        wraps=anki_mw.addonManager.writeConfig,
-    ) as mock_write:
-        click_selector(dialog, save_selector, timeout=5.0)
-        wait_for_condition(lambda: mock_write.called, timeout=5.0)
-
-    saved_config = mock_write.call_args.args[1]
+    click_selector(dialog, save_selector, timeout=5.0)
+    wait_for_condition(
+        lambda: not dialog.isVisible(),
+        timeout=5.0,
+        message="Timed out waiting for settings dialog to close after save",
+    )
+    saved_config = anki_mw.addonManager.getConfig("1000000002") or {}
     assert saved_config["editor_button_modes"]["aqe:play"] == "icon"
     assert saved_config["editor_button_modes"]["aqe:settings"] == "icon"

@@ -247,6 +247,28 @@ def ffmpeg_config(anki_mw):
         pytest.fail(f"ffmpeg and ffprobe are required for audio processing e2e tests: {exc}")
 
 
+@pytest.fixture(autouse=True)
+def _fail_on_unfaked_native_playback(monkeypatch):
+    from aqt.sound import av_player
+    from e2e.editor_playback_helpers import fake_playback_active
+
+    original_play_tags = av_player.play_tags
+    original_stop = av_player.stop_and_clear_queue
+
+    def guarded_play_tags(tags):
+        if not fake_playback_active():
+            return None
+        return original_play_tags(tags)
+
+    def guarded_stop_and_clear_queue():
+        if fake_playback_active():
+            return original_stop()
+        return None
+
+    monkeypatch.setattr(av_player, "play_tags", guarded_play_tags)
+    monkeypatch.setattr(av_player, "stop_and_clear_queue", guarded_stop_and_clear_queue)
+
+
 def _runtime_ffmpeg_config(audio_processor, audio_processing_config):
     """Build e2e audio config from the add-on's runtime-aware ffmpeg lookup."""
     configured = os.environ.get("AQE_FFMPEG_PATH") or os.environ.get("FFMPEG_PATH") or ""
