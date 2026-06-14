@@ -1,0 +1,3021 @@
+[
+  {
+    "module": "src/App.svelte",
+    "file": "src/App.svelte",
+    "category": "component",
+    "summary": "App",
+    "imports": {
+      "internal": [
+        "src/settings/SettingsApp.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/BatchApp.svelte",
+    "file": "src/batch/BatchApp.svelte",
+    "category": "component",
+    "summary": "BatchApp",
+    "imports": {
+      "internal": [
+        "src/batch/BatchControls.svelte",
+        "src/batch/BatchExportControls.svelte",
+        "src/batch/BatchFooter.svelte",
+        "src/batch/BatchProgressPanel.svelte",
+        "src/batch/BatchResourceLinks.svelte",
+        "src/batch/batch-state.js",
+        "src/batch/bridge.js",
+        "src/batch/export-state.js",
+        "src/lib/AqeTooltipProvider.svelte",
+        "src/lib/ErrorMessage.svelte",
+        "src/lib/bridge.js",
+        "src/lib/i18n.js",
+        "src/lib/logger.js",
+        "src/lib/types.js",
+        "src/lib/user-facing-error.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/batch/BatchControls.svelte",
+    "file": "src/batch/BatchControls.svelte",
+    "category": "component",
+    "summary": "BatchControls",
+    "imports": {
+      "internal": [
+        "src/batch/BatchFieldSelectors.svelte",
+        "src/batch/BatchSizeReductionFields.svelte",
+        "src/batch/batch-state.js",
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/PauseAdvancedParamsFields.svelte",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/audio-option-tooltips.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/BatchExportControls.svelte",
+    "file": "src/batch/BatchExportControls.svelte",
+    "category": "component",
+    "summary": "BatchExportControls",
+    "imports": {
+      "internal": [
+        "src/batch/export-state.js",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/BatchFieldSelectors.svelte",
+    "file": "src/batch/BatchFieldSelectors.svelte",
+    "category": "component",
+    "summary": "BatchFieldSelectors",
+    "imports": {
+      "internal": [
+        "src/batch/batch-state.js",
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/BatchFooter.svelte",
+    "file": "src/batch/BatchFooter.svelte",
+    "category": "component",
+    "summary": "BatchFooter",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/BatchProgressPanel.svelte",
+    "file": "src/batch/BatchProgressPanel.svelte",
+    "category": "component",
+    "summary": "BatchProgressPanel",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/BatchResourceLinks.svelte",
+    "file": "src/batch/BatchResourceLinks.svelte",
+    "category": "component",
+    "summary": "BatchResourceLinks",
+    "imports": {
+      "internal": [
+        "src/lib/ProductLinkIcon.svelte",
+        "src/lib/i18n.js",
+        "src/lib/product-links.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/BatchSizeReductionFields.svelte",
+    "file": "src/batch/BatchSizeReductionFields.svelte",
+    "category": "component",
+    "summary": "BatchSizeReductionFields",
+    "imports": {
+      "internal": [
+        "src/batch/batch-state.js",
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/SizeReductionAdvancedParamsFields.svelte",
+        "src/lib/audio-option-tooltips.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/batch-state.ts",
+    "file": "src/batch/batch-state.ts",
+    "category": "state",
+    "summary": "batch-state",
+    "imports": {
+      "internal": [
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/size-reduction-parameters.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/bridge.ts",
+    "file": "src/batch/bridge.ts",
+    "category": "bridge",
+    "summary": "bridge",
+    "imports": {
+      "internal": [
+        "src/lib/bridge.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/export-state.ts",
+    "file": "src/batch/export-state.ts",
+    "category": "state",
+    "summary": "export-state",
+    "imports": {
+      "internal": [
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/batch/main.ts",
+    "file": "src/batch/main.ts",
+    "category": "logic",
+    "summary": "main",
+    "imports": {
+      "internal": [
+        "src/batch/BatchApp.svelte"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/EditorCommandIcon.svelte",
+    "file": "src/editor-inline/EditorCommandIcon.svelte",
+    "category": "component",
+    "summary": "EditorCommandIcon",
+    "imports": {
+      "internal": [
+        "src/lib/CommandIcon.svelte",
+        "src/lib/icon-types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/EditorControls.svelte",
+    "file": "src/editor-inline/EditorControls.svelte",
+    "category": "component",
+    "summary": "EditorControls",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorHelp.svelte",
+        "src/editor-inline/EditorToolbarButton.svelte",
+        "src/editor-inline/EditorToolbarPanel.svelte",
+        "src/editor-inline/GraphVisualizer.svelte",
+        "src/editor-inline/HistorySplitButton.svelte",
+        "src/editor-inline/PlaySplitButton.svelte",
+        "src/editor-inline/PresetSplitButton.svelte",
+        "src/editor-inline/SplitButton.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/editor-toolbar-render-items.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/AqeTooltipProvider.svelte",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/editor-toolbar-panel-definitions.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/EditorHelp.svelte",
+    "file": "src/editor-inline/EditorHelp.svelte",
+    "category": "component",
+    "summary": "EditorHelp",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/external-links.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/ProductLinkIcon.svelte",
+        "src/lib/i18n.js",
+        "src/lib/product-links.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/EditorToolbarButton.svelte",
+    "file": "src/editor-inline/EditorToolbarButton.svelte",
+    "category": "component",
+    "summary": "EditorToolbarButton",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/EditorToolbarPanel.svelte",
+    "file": "src/editor-inline/EditorToolbarPanel.svelte",
+    "category": "component",
+    "summary": "EditorToolbarPanel",
+    "imports": {
+      "internal": [
+        "src/lib/AqeTooltip.svelte"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/GraphAreaControls.svelte",
+    "file": "src/editor-inline/GraphAreaControls.svelte",
+    "category": "component",
+    "summary": "GraphAreaControls",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/graph-actions.js",
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/graph-split-state.js",
+        "src/editor-inline/graph-split-values.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/editor-toolbar-visibility.js",
+        "src/lib/graph-option-copy.js",
+        "src/lib/i18n.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/GraphSplitOptions.svelte",
+    "file": "src/editor-inline/GraphSplitOptions.svelte",
+    "category": "component",
+    "summary": "GraphSplitOptions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/graph-split-values.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/ValueSlider.svelte",
+        "src/lib/graph-option-copy.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "file": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "category": "component",
+    "summary": "GraphSplitPopoverContent",
+    "imports": {
+      "internal": [
+        "src/editor-inline/GraphSplitOptions.svelte",
+        "src/editor-inline/SplitDefaultSaveButton.svelte",
+        "src/editor-inline/external-links.js",
+        "src/editor-inline/graph-settings.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/i18n.js",
+        "src/lib/product-links.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/GraphVisualizer.svelte",
+    "file": "src/editor-inline/GraphVisualizer.svelte",
+    "category": "component",
+    "summary": "GraphVisualizer",
+    "imports": {
+      "internal": [
+        "src/editor-inline/GraphAreaControls.svelte",
+        "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+        "src/editor-inline/SelectionToolbar.svelte",
+        "src/editor-inline/TimeViewportScroller.svelte",
+        "src/editor-inline/ZoomControls.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/chorusing-controller.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/plot.js",
+        "src/editor-inline/post-edit-playback.js",
+        "src/editor-inline/recording-actions.js",
+        "src/editor-inline/region-delete.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/zoom-actions.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/HistorySplitButton.svelte",
+    "file": "src/editor-inline/HistorySplitButton.svelte",
+    "category": "component",
+    "summary": "HistorySplitButton",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/SplitButtonPrimary.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/types.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js"
+      ],
+      "external": [
+        "bits-ui",
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/PlaySplitButton.svelte",
+    "file": "src/editor-inline/PlaySplitButton.svelte",
+    "category": "component",
+    "summary": "PlaySplitButton",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/SplitDefaultSaveButton.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/external-links.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/ValueSlider.svelte",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js",
+        "src/lib/product-links.js",
+        "src/lib/types.js"
+      ],
+      "external": [
+        "bits-ui",
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/PresetSplitButton.svelte",
+    "file": "src/editor-inline/PresetSplitButton.svelte",
+    "category": "component",
+    "summary": "PresetSplitButton",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": [
+        "bits-ui"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/RecordingSplitOptions.svelte",
+    "file": "src/editor-inline/RecordingSplitOptions.svelte",
+    "category": "component",
+    "summary": "RecordingSplitOptions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/SplitDefaultSaveButton.svelte",
+        "src/editor-inline/external-links.js",
+        "src/editor-inline/split-button-state.js",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/ValueSlider.svelte",
+        "src/lib/i18n.js",
+        "src/lib/product-links.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "file": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "category": "component",
+    "summary": "SelectionMarkerShiftButtons",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/selection-marker-shift-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/SelectionToolbar.svelte",
+    "file": "src/editor-inline/SelectionToolbar.svelte",
+    "category": "component",
+    "summary": "SelectionToolbar",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/region-delete.js",
+        "src/editor-inline/selection-toolbar-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitButton.svelte",
+    "file": "src/editor-inline/SplitButton.svelte",
+    "category": "component",
+    "summary": "SplitButton",
+    "imports": {
+      "internal": [
+        "src/editor-inline/SplitButtonMenu.svelte",
+        "src/editor-inline/SplitButtonPrimary.svelte",
+        "src/editor-inline/actions.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/graph-split-state.js",
+        "src/editor-inline/recording-actions.js",
+        "src/editor-inline/split-button-presenter.js",
+        "src/editor-inline/split-button-state-behavior.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitButtonMenu.svelte",
+    "file": "src/editor-inline/SplitButtonMenu.svelte",
+    "category": "component",
+    "summary": "SplitButtonMenu",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/GraphSplitPopoverContent.svelte",
+        "src/editor-inline/RecordingSplitOptions.svelte",
+        "src/editor-inline/SplitButtonPrimary.svelte",
+        "src/editor-inline/SplitValueOptions.svelte",
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/types.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js"
+      ],
+      "external": [
+        "bits-ui"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitButtonPrimary.svelte",
+    "file": "src/editor-inline/SplitButtonPrimary.svelte",
+    "category": "component",
+    "summary": "SplitButtonPrimary",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/icon-types.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "file": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "category": "component",
+    "summary": "SplitDefaultSaveButton",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitExtraFields.svelte",
+    "file": "src/editor-inline/SplitExtraFields.svelte",
+    "category": "component",
+    "summary": "SplitExtraFields",
+    "imports": {
+      "internal": [
+        "src/editor-inline/source-metadata-formatting.js",
+        "src/editor-inline/source-metadata-requests.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/PauseAdvancedParamsFields.svelte",
+        "src/lib/SizeReductionAdvancedParamsFields.svelte",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/audio-option-tooltips.js",
+        "src/lib/i18n.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitRunButtons.svelte",
+    "file": "src/editor-inline/SplitRunButtons.svelte",
+    "category": "component",
+    "summary": "SplitRunButtons",
+    "imports": {
+      "internal": [
+        "src/editor-inline/commands.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/disabled-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitValueOptions.svelte",
+    "file": "src/editor-inline/SplitValueOptions.svelte",
+    "category": "component",
+    "summary": "SplitValueOptions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/SplitDefaultSaveButton.svelte",
+        "src/editor-inline/SplitExtraFields.svelte",
+        "src/editor-inline/SplitRunButtons.svelte",
+        "src/editor-inline/SplitValuePresetGrid.svelte",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/external-links.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/split-menu-content.js",
+        "src/editor-inline/types.js",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/ValueSlider.svelte",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/SplitValuePresetGrid.svelte",
+    "file": "src/editor-inline/SplitValuePresetGrid.svelte",
+    "category": "component",
+    "summary": "SplitValuePresetGrid",
+    "imports": {
+      "internal": [
+        "src/editor-inline/split-menu-content.js",
+        "src/editor-inline/types.js",
+        "src/lib/AqeTooltip.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/TimeViewportScroller.svelte",
+    "file": "src/editor-inline/TimeViewportScroller.svelte",
+    "category": "component",
+    "summary": "TimeViewportScroller",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/ZoomControls.svelte",
+    "file": "src/editor-inline/ZoomControls.svelte",
+    "category": "component",
+    "summary": "ZoomControls",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorCommandIcon.svelte",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/zoom-actions.js",
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/actions-audio-clock.ts",
+    "file": "src/editor-inline/actions-audio-clock.ts",
+    "category": "logic",
+    "summary": "actions-audio-clock",
+    "imports": {
+      "internal": [
+        "src/editor-inline/audio-clock.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/playback-actions.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-renderer.js",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/actions-playback.ts",
+    "file": "src/editor-inline/actions-playback.ts",
+    "category": "logic",
+    "summary": "actions-playback",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions-audio-clock.js",
+        "src/editor-inline/audio-clock.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/playback-actions.js",
+        "src/editor-inline/playback-controller-frame.js",
+        "src/editor-inline/playback-controller.js",
+        "src/editor-inline/selection-controller.js",
+        "src/editor-inline/selection-events.js",
+        "src/editor-inline/selection-toolbar-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/actions-selection.ts",
+    "file": "src/editor-inline/actions-selection.ts",
+    "category": "logic",
+    "summary": "actions-selection",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions-audio-clock.js",
+        "src/editor-inline/actions-playback.js",
+        "src/editor-inline/chorusing-dom.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/playback-actions.js",
+        "src/editor-inline/playback-state.js",
+        "src/editor-inline/selection-controller.js",
+        "src/editor-inline/selection-events.js",
+        "src/editor-inline/selection-gestures.js",
+        "src/editor-inline/selection-marker-shift.js",
+        "src/editor-inline/selection-state.js",
+        "src/editor-inline/selection-toolbar-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/actions.ts",
+    "file": "src/editor-inline/actions.ts",
+    "category": "logic",
+    "summary": "actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions-audio-clock.js",
+        "src/editor-inline/actions-playback.js",
+        "src/editor-inline/actions-selection.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/command-actions.js",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/graph-actions.js",
+        "src/editor-inline/playback-actions.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/audio-clock.ts",
+    "file": "src/editor-inline/audio-clock.ts",
+    "category": "logic",
+    "summary": "audio-clock",
+    "imports": {
+      "internal": [
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/bridge.ts",
+    "file": "src/editor-inline/bridge.ts",
+    "category": "bridge",
+    "summary": "bridge",
+    "imports": {
+      "internal": [
+        "src/editor-inline/source-metadata-types.js",
+        "src/editor-inline/split-default-save-types.js",
+        "src/editor-inline/types.js",
+        "src/lib/generated/contracts.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/chorusing-controller.ts",
+    "file": "src/editor-inline/chorusing-controller.ts",
+    "category": "logic",
+    "summary": "chorusing-controller",
+    "imports": {
+      "internal": [
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/chorusing-dom.js",
+        "src/editor-inline/chorusing-state",
+        "src/editor-inline/chorusing-toolbar.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/graph-overlay-geometry.js",
+        "src/editor-inline/playback-actions.js",
+        "src/editor-inline/selection-controller.js",
+        "src/editor-inline/selection-events.js",
+        "src/editor-inline/selection-toolbar-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/chorusing-dom.ts",
+    "file": "src/editor-inline/chorusing-dom.ts",
+    "category": "logic",
+    "summary": "chorusing-dom",
+    "imports": {
+      "internal": [
+        "src/editor-inline/chorusing-state",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/graph-overlay-geometry.js",
+        "src/editor-inline/plot.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/chorusing-state.ts",
+    "file": "src/editor-inline/chorusing-state.ts",
+    "category": "state",
+    "summary": "chorusing-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/playback-model.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/chorusing-toolbar.ts",
+    "file": "src/editor-inline/chorusing-toolbar.ts",
+    "category": "logic",
+    "summary": "chorusing-toolbar",
+    "imports": {
+      "internal": [
+        "src/editor-inline/chorusing-dom.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/command-actions.ts",
+    "file": "src/editor-inline/command-actions.ts",
+    "category": "logic",
+    "summary": "command-actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/chorusing-controller.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/graph-actions.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/playback-actions.js",
+        "src/editor-inline/post-edit-playback.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/commands.ts",
+    "file": "src/editor-inline/commands.ts",
+    "category": "logic",
+    "summary": "commands",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/editor-toolbar-command-slugs.js",
+        "src/lib/editor-toolbar-visibility.js",
+        "src/lib/i18n.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/control-actions.ts",
+    "file": "src/editor-inline/control-actions.ts",
+    "category": "logic",
+    "summary": "control-actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/chorusing-dom.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/default-graph-queue.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/external-links.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/graph-actions.js",
+        "src/editor-inline/post-edit-playback.js",
+        "src/editor-inline/recording-actions.js",
+        "src/editor-inline/selection-toolbar-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/error-links.js",
+        "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js",
+        "src/lib/user-facing-error.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/default-graph-queue.ts",
+    "file": "src/editor-inline/default-graph-queue.ts",
+    "category": "logic",
+    "summary": "default-graph-queue",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/dom-selectors.ts",
+    "file": "src/editor-inline/dom-selectors.ts",
+    "category": "logic",
+    "summary": "dom-selectors",
+    "imports": {
+      "internal": [
+        "src/editor-inline/sound-source.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/editor-playback-types.ts",
+    "file": "src/editor-inline/editor-playback-types.ts",
+    "category": "types",
+    "summary": "editor-playback-types",
+    "imports": {
+      "internal": [
+        "src/editor-inline/chorusing-state",
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/playback-progress-clock.js",
+        "src/lib/generated/contracts.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/editor-runtime-config.ts",
+    "file": "src/editor-inline/editor-runtime-config.ts",
+    "category": "logic",
+    "summary": "editor-runtime-config",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/editor-runtime-types.ts",
+    "file": "src/editor-inline/editor-runtime-types.ts",
+    "category": "types",
+    "summary": "editor-runtime-types",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-settings.js",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/editor-toolbar-render-items.ts",
+    "file": "src/editor-inline/editor-toolbar-render-items.ts",
+    "category": "logic",
+    "summary": "editor-toolbar-render-items",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js",
+        "src/lib/editor-toolbar-panel-definitions.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/external-links.ts",
+    "file": "src/editor-inline/external-links.ts",
+    "category": "logic",
+    "summary": "external-links",
+    "imports": {
+      "internal": [
+        "src/editor-inline/bridge.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/field-controller.ts",
+    "file": "src/editor-inline/field-controller.ts",
+    "category": "logic",
+    "summary": "field-controller",
+    "imports": {
+      "internal": [
+        "src/editor-inline/EditorControls.svelte",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/editor-inline/field-state-dom-sync.ts",
+    "file": "src/editor-inline/field-state-dom-sync.ts",
+    "category": "state",
+    "summary": "field-state-dom-sync",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/field-state-store.ts",
+    "file": "src/editor-inline/field-state-store.ts",
+    "category": "state",
+    "summary": "field-state-store",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-dom-sync.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/field-state.ts",
+    "file": "src/editor-inline/field-state.ts",
+    "category": "state",
+    "summary": "field-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/playback-state.js",
+        "src/editor-inline/selection-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/gesture-session.ts",
+    "file": "src/editor-inline/gesture-session.ts",
+    "category": "logic",
+    "summary": "gesture-session",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/graph-actions.ts",
+    "file": "src/editor-inline/graph-actions.ts",
+    "category": "logic",
+    "summary": "graph-actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/default-graph-queue.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/graph-split-state.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/recording-actions.js",
+        "src/editor-inline/source-metadata-requests.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-state.js",
+        "src/lib/generated/contracts.js",
+        "src/lib/i18n.js",
+        "src/lib/user-facing-error.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/graph-countdown-overlay.ts",
+    "file": "src/editor-inline/graph-countdown-overlay.ts",
+    "category": "logic",
+    "summary": "graph-countdown-overlay",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/graph-overlay-geometry.ts",
+    "file": "src/editor-inline/graph-overlay-geometry.ts",
+    "category": "logic",
+    "summary": "graph-overlay-geometry",
+    "imports": {
+      "internal": [
+        "src/editor-inline/plot.js",
+        "src/editor-inline/time-viewport.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/graph-promoted-defaults.ts",
+    "file": "src/editor-inline/graph-promoted-defaults.ts",
+    "category": "logic",
+    "summary": "graph-promoted-defaults",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-split-values.js",
+        "src/editor-inline/split-default-save-types.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/graph-settings.ts",
+    "file": "src/editor-inline/graph-settings.ts",
+    "category": "logic",
+    "summary": "graph-settings",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/graph-split-state.ts",
+    "file": "src/editor-inline/graph-split-state.ts",
+    "category": "state",
+    "summary": "graph-split-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/graph-split-values.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/graph-split-values.ts",
+    "file": "src/editor-inline/graph-split-values.ts",
+    "category": "logic",
+    "summary": "graph-split-values",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-settings.js",
+        "src/lib/graph-option-copy.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/logger.ts",
+    "file": "src/editor-inline/logger.ts",
+    "category": "logic",
+    "summary": "logger",
+    "imports": {
+      "internal": [
+        "src/editor-inline/bridge.js",
+        "src/lib/logger.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/main.ts",
+    "file": "src/editor-inline/main.ts",
+    "category": "logic",
+    "summary": "main",
+    "imports": {
+      "internal": [
+        "src/editor-inline/runtime.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/pause-split-state.ts",
+    "file": "src/editor-inline/pause-split-state.ts",
+    "category": "state",
+    "summary": "pause-split-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/split-default-save-types.js",
+        "src/editor-inline/types.js",
+        "src/lib/audio-operation-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-actions.ts",
+    "file": "src/editor-inline/playback-actions.ts",
+    "category": "logic",
+    "summary": "playback-actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/control-actions.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/playback-controller.js",
+        "src/editor-inline/playback-model.js",
+        "src/editor-inline/post-edit-playback.js",
+        "src/editor-inline/selection-toolbar-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-controller-audio.ts",
+    "file": "src/editor-inline/playback-controller-audio.ts",
+    "category": "logic",
+    "summary": "playback-controller-audio",
+    "imports": {
+      "internal": [
+        "src/editor-inline/audio-clock.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/playback-plan-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-controller-frame.ts",
+    "file": "src/editor-inline/playback-controller-frame.ts",
+    "category": "logic",
+    "summary": "playback-controller-frame",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-countdown-overlay.js",
+        "src/editor-inline/playback-plan-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-controller-pass.ts",
+    "file": "src/editor-inline/playback-controller-pass.ts",
+    "category": "logic",
+    "summary": "playback-controller-pass",
+    "imports": {
+      "internal": [
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/playback-controller.js",
+        "src/editor-inline/playback-model.js",
+        "src/editor-inline/playback-plan-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-controller-state.ts",
+    "file": "src/editor-inline/playback-controller-state.ts",
+    "category": "state",
+    "summary": "playback-controller-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/audio-clock.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/playback-controller-audio.js",
+        "src/editor-inline/playback-controller-frame.js",
+        "src/editor-inline/playback-controller-pass.js",
+        "src/editor-inline/playback-controller.js",
+        "src/editor-inline/playback-model.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/viewport-actions.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-controller.ts",
+    "file": "src/editor-inline/playback-controller.ts",
+    "category": "logic",
+    "summary": "playback-controller",
+    "imports": {
+      "internal": [
+        "src/editor-inline/audio-clock.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/graph-countdown-overlay.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/playback-controller-audio.js",
+        "src/editor-inline/playback-controller-frame.js",
+        "src/editor-inline/playback-controller-pass.js",
+        "src/editor-inline/playback-controller-state.js",
+        "src/editor-inline/playback-model.js",
+        "src/editor-inline/playback-plan-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/visualizer-renderer.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-model.ts",
+    "file": "src/editor-inline/playback-model.ts",
+    "category": "logic",
+    "summary": "playback-model",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-plan-state.ts",
+    "file": "src/editor-inline/playback-plan-state.ts",
+    "category": "state",
+    "summary": "playback-plan-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/playback-progress-clock.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-renderer.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-progress-clock.ts",
+    "file": "src/editor-inline/playback-progress-clock.ts",
+    "category": "logic",
+    "summary": "playback-progress-clock",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/playback-state.ts",
+    "file": "src/editor-inline/playback-state.ts",
+    "category": "state",
+    "summary": "playback-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/playback-model.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/plot.ts",
+    "file": "src/editor-inline/plot.ts",
+    "category": "logic",
+    "summary": "plot",
+    "imports": {
+      "internal": [
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/post-edit-playback.ts",
+    "file": "src/editor-inline/post-edit-playback.ts",
+    "category": "logic",
+    "summary": "post-edit-playback",
+    "imports": {
+      "internal": [
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/recording-actions-lifecycle.ts",
+    "file": "src/editor-inline/recording-actions-lifecycle.ts",
+    "category": "logic",
+    "summary": "recording-actions-lifecycle",
+    "imports": {
+      "internal": [
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/graph-countdown-overlay.js",
+        "src/editor-inline/graph-split-state.js",
+        "src/editor-inline/recording-actions-state.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/visualizer-renderer.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/recording-actions-state.ts",
+    "file": "src/editor-inline/recording-actions-state.ts",
+    "category": "state",
+    "summary": "recording-actions-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/graph-countdown-overlay.js",
+        "src/editor-inline/recording-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-state.js",
+        "src/lib/generated/contracts.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/recording-actions-sync.ts",
+    "file": "src/editor-inline/recording-actions-sync.ts",
+    "category": "logic",
+    "summary": "recording-actions-sync",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/recording-actions-state.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/recording-actions.ts",
+    "file": "src/editor-inline/recording-actions.ts",
+    "category": "logic",
+    "summary": "recording-actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/recording-actions-lifecycle.js",
+        "src/editor-inline/recording-actions-state.js",
+        "src/editor-inline/recording-actions-sync.js",
+        "src/editor-inline/recording-state.js",
+        "src/lib/generated/contracts.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/recording-state.ts",
+    "file": "src/editor-inline/recording-state.ts",
+    "category": "state",
+    "summary": "recording-state",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/region-delete-state.ts",
+    "file": "src/editor-inline/region-delete-state.ts",
+    "category": "state",
+    "summary": "region-delete-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/playback-state.js",
+        "src/editor-inline/selection-controller.js",
+        "src/editor-inline/types.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/region-delete.ts",
+    "file": "src/editor-inline/region-delete.ts",
+    "category": "logic",
+    "summary": "region-delete",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/post-edit-playback.js",
+        "src/editor-inline/region-delete-state.js",
+        "src/editor-inline/selection-toolbar-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/reviewer-panel-trigger.ts",
+    "file": "src/editor-inline/reviewer-panel-trigger.ts",
+    "category": "logic",
+    "summary": "reviewer-panel-trigger",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/runtime.ts",
+    "file": "src/editor-inline/runtime.ts",
+    "category": "logic",
+    "summary": "runtime",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions.js",
+        "src/editor-inline/default-graph-queue.js",
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/field-controller.js",
+        "src/editor-inline/logger.js",
+        "src/editor-inline/reviewer-panel-trigger.js",
+        "src/editor-inline/sound-source.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/window-contract.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/selection-controller.ts",
+    "file": "src/editor-inline/selection-controller.ts",
+    "category": "logic",
+    "summary": "selection-controller",
+    "imports": {
+      "internal": [
+        "src/editor-inline/playback-state.js",
+        "src/editor-inline/selection-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-selection-renderer.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/selection-events.ts",
+    "file": "src/editor-inline/selection-events.ts",
+    "category": "logic",
+    "summary": "selection-events",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/selection-gestures.ts",
+    "file": "src/editor-inline/selection-gestures.ts",
+    "category": "logic",
+    "summary": "selection-gestures",
+    "imports": {
+      "internal": [
+        "src/editor-inline/gesture-session.js",
+        "src/editor-inline/playback-state.js",
+        "src/editor-inline/plot.js",
+        "src/editor-inline/selection-state.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/selection-marker-shift-state.ts",
+    "file": "src/editor-inline/selection-marker-shift-state.ts",
+    "category": "state",
+    "summary": "selection-marker-shift-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/chorusing-dom.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/selection-controller.js",
+        "src/editor-inline/selection-marker-shift.js",
+        "src/editor-inline/types.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/selection-marker-shift.ts",
+    "file": "src/editor-inline/selection-marker-shift.ts",
+    "category": "logic",
+    "summary": "selection-marker-shift",
+    "imports": {
+      "internal": [
+        "src/editor-inline/selection-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/selection-state.ts",
+    "file": "src/editor-inline/selection-state.ts",
+    "category": "state",
+    "summary": "selection-state",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/selection-toolbar-state.ts",
+    "file": "src/editor-inline/selection-toolbar-state.ts",
+    "category": "state",
+    "summary": "selection-toolbar-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/region-delete-state.js",
+        "src/editor-inline/selection-controller.js",
+        "src/editor-inline/types.js",
+        "src/lib/disabled-tooltip.js",
+        "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/size-reduction-field-state.ts",
+    "file": "src/editor-inline/size-reduction-field-state.ts",
+    "category": "state",
+    "summary": "size-reduction-field-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/size-reduction-split-state.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/size-reduction-split-state.ts",
+    "file": "src/editor-inline/size-reduction-split-state.ts",
+    "category": "state",
+    "summary": "size-reduction-split-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/split-default-save-types.js",
+        "src/editor-inline/types.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/sound-source.ts",
+    "file": "src/editor-inline/sound-source.ts",
+    "category": "logic",
+    "summary": "sound-source",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/source-metadata-formatting.ts",
+    "file": "src/editor-inline/source-metadata-formatting.ts",
+    "category": "logic",
+    "summary": "source-metadata-formatting",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/source-metadata-requests.ts",
+    "file": "src/editor-inline/source-metadata-requests.ts",
+    "category": "logic",
+    "summary": "source-metadata-requests",
+    "imports": {
+      "internal": [
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/source-metadata-types.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/source-metadata-types.ts",
+    "file": "src/editor-inline/source-metadata-types.ts",
+    "category": "types",
+    "summary": "source-metadata-types",
+    "imports": {
+      "internal": [
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-formatters.ts",
+    "file": "src/editor-inline/split-button-formatters.ts",
+    "category": "logic",
+    "summary": "split-button-formatters",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-presenter.ts",
+    "file": "src/editor-inline/split-button-presenter.ts",
+    "category": "logic",
+    "summary": "split-button-presenter",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/graph-split-values.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-state-behavior.ts",
+    "file": "src/editor-inline/split-button-state-behavior.ts",
+    "category": "state",
+    "summary": "split-button-state-behavior",
+    "imports": {
+      "internal": [
+        "src/editor-inline/graph-settings.js",
+        "src/editor-inline/graph-split-state.js",
+        "src/editor-inline/size-reduction-field-state.js",
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-state-commands.ts",
+    "file": "src/editor-inline/split-button-state-commands.ts",
+    "category": "state",
+    "summary": "split-button-state-commands",
+    "imports": {
+      "internal": [
+        "src/editor-inline/split-default-save-types.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-state-core.ts",
+    "file": "src/editor-inline/split-button-state-core.ts",
+    "category": "state",
+    "summary": "split-button-state-core",
+    "imports": {
+      "internal": [
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/graph-promoted-defaults.js",
+        "src/editor-inline/graph-split-values.js",
+        "src/editor-inline/pause-split-state.js",
+        "src/editor-inline/size-reduction-split-state.js",
+        "src/editor-inline/split-button-state-defaults.js",
+        "src/editor-inline/split-default-save-types.js",
+        "src/editor-inline/types.js",
+        "src/lib/audio-operation-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-state-defaults.ts",
+    "file": "src/editor-inline/split-button-state-defaults.ts",
+    "category": "state",
+    "summary": "split-button-state-defaults",
+    "imports": {
+      "internal": [
+        "src/editor-inline/editor-runtime-config.js",
+        "src/editor-inline/graph-split-values.js",
+        "src/editor-inline/types.js",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-state-setters.ts",
+    "file": "src/editor-inline/split-button-state-setters.ts",
+    "category": "state",
+    "summary": "split-button-state-setters",
+    "imports": {
+      "internal": [
+        "src/editor-inline/pause-split-state.js",
+        "src/editor-inline/split-button-state-commands.js",
+        "src/editor-inline/split-button-state-core.js",
+        "src/editor-inline/split-button-state-defaults.js",
+        "src/editor-inline/split-default-save-types.js",
+        "src/editor-inline/types.js",
+        "src/lib/audio-operation-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-button-state.ts",
+    "file": "src/editor-inline/split-button-state.ts",
+    "category": "state",
+    "summary": "split-button-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/split-button-formatters.js",
+        "src/editor-inline/split-button-state-core.js",
+        "src/editor-inline/split-button-state-defaults.js",
+        "src/editor-inline/split-button-state-setters.js",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-default-save-types.ts",
+    "file": "src/editor-inline/split-default-save-types.ts",
+    "category": "types",
+    "summary": "split-default-save-types",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/split-menu-content.ts",
+    "file": "src/editor-inline/split-menu-content.ts",
+    "category": "logic",
+    "summary": "split-menu-content",
+    "imports": {
+      "internal": [
+        "src/editor-inline/split-button-state.js",
+        "src/editor-inline/types.js",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/audio-option-tooltips.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js",
+        "src/lib/product-links.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/test-contract.ts",
+    "file": "src/editor-inline/test-contract.ts",
+    "category": "logic",
+    "summary": "test-contract",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions.js",
+        "src/editor-inline/audio-clock.js",
+        "src/editor-inline/chorusing-dom.js",
+        "src/editor-inline/commands.js",
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/plot.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/time-viewport.ts",
+    "file": "src/editor-inline/time-viewport.ts",
+    "category": "logic",
+    "summary": "time-viewport",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/types.ts",
+    "file": "src/editor-inline/types.ts",
+    "category": "types",
+    "summary": "types",
+    "imports": {
+      "internal": [
+        "src/editor-inline/editor-playback-types",
+        "src/editor-inline/editor-runtime-types",
+        "src/lib/generated/contracts.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/viewport-actions.ts",
+    "file": "src/editor-inline/viewport-actions.ts",
+    "category": "logic",
+    "summary": "viewport-actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/visualizer-learner-overlay.ts",
+    "file": "src/editor-inline/visualizer-learner-overlay.ts",
+    "category": "logic",
+    "summary": "visualizer-learner-overlay",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/visualizer-renderer.ts",
+    "file": "src/editor-inline/visualizer-renderer.ts",
+    "category": "logic",
+    "summary": "visualizer-renderer",
+    "imports": {
+      "internal": [
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/field-state.js",
+        "src/editor-inline/plot.js",
+        "src/editor-inline/selection-state.js",
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-learner-overlay.js",
+        "src/editor-inline/visualizer-selection-renderer.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/visualizer-selection-renderer.ts",
+    "file": "src/editor-inline/visualizer-selection-renderer.ts",
+    "category": "logic",
+    "summary": "visualizer-selection-renderer",
+    "imports": {
+      "internal": [
+        "src/editor-inline/playback-state.js",
+        "src/editor-inline/plot.js",
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/visualizer-state.ts",
+    "file": "src/editor-inline/visualizer-state.ts",
+    "category": "state",
+    "summary": "visualizer-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/playback-state.js",
+        "src/editor-inline/selection-state.js",
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/window-contract.ts",
+    "file": "src/editor-inline/window-contract.ts",
+    "category": "logic",
+    "summary": "window-contract",
+    "imports": {
+      "internal": [
+        "src/editor-inline/actions.js",
+        "src/editor-inline/bridge.js",
+        "src/editor-inline/playback-actions.js",
+        "src/editor-inline/recording-actions.js",
+        "src/editor-inline/source-metadata-requests.js",
+        "src/editor-inline/test-contract.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/zoom-actions.ts",
+    "file": "src/editor-inline/zoom-actions.ts",
+    "category": "logic",
+    "summary": "zoom-actions",
+    "imports": {
+      "internal": [
+        "src/editor-inline/field-state-store.js",
+        "src/editor-inline/plot.js",
+        "src/editor-inline/selection-controller.js",
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js",
+        "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/AqeTooltip.svelte",
+    "file": "src/lib/AqeTooltip.svelte",
+    "category": "component",
+    "summary": "AqeTooltip",
+    "imports": {
+      "internal": [
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": [
+        "bits-ui",
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/lib/AqeTooltipProvider.svelte",
+    "file": "src/lib/AqeTooltipProvider.svelte",
+    "category": "component",
+    "summary": "AqeTooltipProvider",
+    "imports": {
+      "internal": [],
+      "external": [
+        "bits-ui",
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/lib/CommandIcon.svelte",
+    "file": "src/lib/CommandIcon.svelte",
+    "category": "component",
+    "summary": "CommandIcon",
+    "imports": {
+      "internal": [
+        "src/lib/icon-types.js",
+        "src/lib/icons/SelectionRemoveOutsideIcon.svelte"
+      ],
+      "external": [
+        "@lucide/svelte/icons/audio-lines",
+        "@lucide/svelte/icons/bug-play",
+        "@lucide/svelte/icons/chart-line",
+        "@lucide/svelte/icons/chevron-down",
+        "@lucide/svelte/icons/chevron-right",
+        "@lucide/svelte/icons/circle",
+        "@lucide/svelte/icons/circle-help",
+        "@lucide/svelte/icons/fast-forward",
+        "@lucide/svelte/icons/file-audio",
+        "@lucide/svelte/icons/folder-open",
+        "@lucide/svelte/icons/maximize-2",
+        "@lucide/svelte/icons/mic",
+        "@lucide/svelte/icons/minimize-2",
+        "@lucide/svelte/icons/pause",
+        "@lucide/svelte/icons/play",
+        "@lucide/svelte/icons/redo-2",
+        "@lucide/svelte/icons/refresh-cw",
+        "@lucide/svelte/icons/repeat-2",
+        "@lucide/svelte/icons/rewind",
+        "@lucide/svelte/icons/save",
+        "@lucide/svelte/icons/scan-search",
+        "@lucide/svelte/icons/scissors",
+        "@lucide/svelte/icons/settings",
+        "@lucide/svelte/icons/share",
+        "@lucide/svelte/icons/skip-back",
+        "@lucide/svelte/icons/skip-forward",
+        "@lucide/svelte/icons/snail",
+        "@lucide/svelte/icons/sparkles",
+        "@lucide/svelte/icons/square",
+        "@lucide/svelte/icons/timer-reset",
+        "@lucide/svelte/icons/trash-2",
+        "@lucide/svelte/icons/undo-2",
+        "@lucide/svelte/icons/volume-1",
+        "@lucide/svelte/icons/volume-2",
+        "@lucide/svelte/icons/volume-x",
+        "@lucide/svelte/icons/waves",
+        "@lucide/svelte/icons/x",
+        "@lucide/svelte/icons/zoom-in",
+        "@lucide/svelte/icons/zoom-out"
+      ]
+    }
+  },
+  {
+    "module": "src/lib/ErrorMessage.svelte",
+    "file": "src/lib/ErrorMessage.svelte",
+    "category": "component",
+    "summary": "ErrorMessage",
+    "imports": {
+      "internal": [
+        "src/lib/error-links.js",
+        "src/lib/external-links.js",
+        "src/lib/user-facing-error.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/FieldTooltipTarget.svelte",
+    "file": "src/lib/FieldTooltipTarget.svelte",
+    "category": "component",
+    "summary": "FieldTooltipTarget",
+    "imports": {
+      "internal": [
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/disabled-tooltip.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/lib/PauseAdvancedParamsFields.svelte",
+    "file": "src/lib/PauseAdvancedParamsFields.svelte",
+    "category": "component",
+    "summary": "PauseAdvancedParamsFields",
+    "imports": {
+      "internal": [
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/CommandIcon.svelte",
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/ProductLinkIcon.svelte",
+    "file": "src/lib/ProductLinkIcon.svelte",
+    "category": "component",
+    "summary": "ProductLinkIcon",
+    "imports": {
+      "internal": [],
+      "external": [
+        "@lucide/svelte/icons/bug",
+        "@lucide/svelte/icons/external-link",
+        "@lucide/svelte/icons/heart",
+        "@lucide/svelte/icons/lightbulb",
+        "@lucide/svelte/icons/message-circle",
+        "@lucide/svelte/icons/send"
+      ]
+    }
+  },
+  {
+    "module": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "file": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "category": "component",
+    "summary": "SizeReductionAdvancedParamsFields",
+    "imports": {
+      "internal": [
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/CommandIcon.svelte",
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/i18n.js",
+        "src/lib/size-reduction-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/UnitNumberInput.svelte",
+    "file": "src/lib/UnitNumberInput.svelte",
+    "category": "component",
+    "summary": "UnitNumberInput",
+    "imports": {
+      "internal": [],
+      "external": [
+        "clsx"
+      ]
+    }
+  },
+  {
+    "module": "src/lib/ValueSlider.svelte",
+    "file": "src/lib/ValueSlider.svelte",
+    "category": "component",
+    "summary": "ValueSlider",
+    "imports": {
+      "internal": [],
+      "external": [
+        "clsx"
+      ]
+    }
+  },
+  {
+    "module": "src/lib/asset-imports.d.ts",
+    "file": "src/lib/asset-imports.d.ts",
+    "category": "logic",
+    "summary": "asset-imports.d",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/audio-operation-parameters.ts",
+    "file": "src/lib/audio-operation-parameters.ts",
+    "category": "logic",
+    "summary": "audio-operation-parameters",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/audio-option-tooltips.ts",
+    "file": "src/lib/audio-option-tooltips.ts",
+    "category": "logic",
+    "summary": "audio-option-tooltips",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/bridge-transport.ts",
+    "file": "src/lib/bridge-transport.ts",
+    "category": "logic",
+    "summary": "bridge-transport",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/bridge.ts",
+    "file": "src/lib/bridge.ts",
+    "category": "bridge",
+    "summary": "bridge",
+    "imports": {
+      "internal": [
+        "src/lib/bridge-transport.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/disabled-tooltip.ts",
+    "file": "src/lib/disabled-tooltip.ts",
+    "category": "logic",
+    "summary": "disabled-tooltip",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/editor-toolbar-buttons.ts",
+    "file": "src/lib/editor-toolbar-buttons.ts",
+    "category": "logic",
+    "summary": "editor-toolbar-buttons",
+    "imports": {
+      "internal": [
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/editor-toolbar-defaults.js",
+        "src/lib/i18n.js",
+        "src/lib/icon-types.js",
+        "src/lib/size-reduction-parameters.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/editor-toolbar-command-slugs.ts",
+    "file": "src/lib/editor-toolbar-command-slugs.ts",
+    "category": "logic",
+    "summary": "editor-toolbar-command-slugs",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/editor-toolbar-defaults.ts",
+    "file": "src/lib/editor-toolbar-defaults.ts",
+    "category": "logic",
+    "summary": "editor-toolbar-defaults",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/editor-toolbar-panel-definitions.ts",
+    "file": "src/lib/editor-toolbar-panel-definitions.ts",
+    "category": "logic",
+    "summary": "editor-toolbar-panel-definitions",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/editor-toolbar-visibility.ts",
+    "file": "src/lib/editor-toolbar-visibility.ts",
+    "category": "logic",
+    "summary": "editor-toolbar-visibility",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/editor-toolbar-command-slugs.js",
+        "src/lib/editor-toolbar-panel-definitions.js",
+        "src/lib/i18n.js",
+        "src/lib/icon-types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/error-links.ts",
+    "file": "src/lib/error-links.ts",
+    "category": "logic",
+    "summary": "error-links",
+    "imports": {
+      "internal": [
+        "src/lib/product-links.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/external-links.ts",
+    "file": "src/lib/external-links.ts",
+    "category": "logic",
+    "summary": "external-links",
+    "imports": {
+      "internal": [
+        "src/lib/bridge-transport.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/generated/contracts.ts",
+    "file": "src/lib/generated/contracts.ts",
+    "category": "logic",
+    "summary": "contracts",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/graph-option-copy.ts",
+    "file": "src/lib/graph-option-copy.ts",
+    "category": "logic",
+    "summary": "graph-option-copy",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/i18n.ts",
+    "file": "src/lib/i18n.ts",
+    "category": "logic",
+    "summary": "i18n",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/icon-types.ts",
+    "file": "src/lib/icon-types.ts",
+    "category": "types",
+    "summary": "icon-types",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/icons/SelectionRemoveOutsideIcon.svelte",
+    "file": "src/lib/icons/SelectionRemoveOutsideIcon.svelte",
+    "category": "component",
+    "summary": "SelectionRemoveOutsideIcon",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/logger.ts",
+    "file": "src/lib/logger.ts",
+    "category": "logic",
+    "summary": "logger",
+    "imports": {
+      "internal": [
+        "src/lib/bridge-transport.js",
+        "src/lib/generated/contracts.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/product-links.ts",
+    "file": "src/lib/product-links.ts",
+    "category": "logic",
+    "summary": "product-links",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/rich-tooltip.ts",
+    "file": "src/lib/rich-tooltip.ts",
+    "category": "logic",
+    "summary": "rich-tooltip",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/settings-toolbar-buttons.ts",
+    "file": "src/lib/settings-toolbar-buttons.ts",
+    "category": "logic",
+    "summary": "settings-toolbar-buttons",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/size-reduction-parameters.ts",
+    "file": "src/lib/size-reduction-parameters.ts",
+    "category": "logic",
+    "summary": "size-reduction-parameters",
+    "imports": {
+      "internal": [
+        "src/lib/audio-operation-parameters.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/types.ts",
+    "file": "src/lib/types.ts",
+    "category": "types",
+    "summary": "types",
+    "imports": {
+      "internal": [
+        "src/lib/generated/contracts.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/user-facing-error.ts",
+    "file": "src/lib/user-facing-error.ts",
+    "category": "logic",
+    "summary": "user-facing-error",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
+    "module": "src/main.ts",
+    "file": "src/main.ts",
+    "category": "logic",
+    "summary": "main",
+    "imports": {
+      "internal": [
+        "src/App.svelte"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/settings/ButtonSettingsCard.svelte",
+    "file": "src/settings/ButtonSettingsCard.svelte",
+    "category": "component",
+    "summary": "ButtonSettingsCard",
+    "imports": {
+      "internal": [
+        "src/lib/CommandIcon.svelte",
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js",
+        "src/lib/icon-types.js",
+        "src/lib/types.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/settings/ButtonSettingsPanelControls.svelte",
+    "file": "src/settings/ButtonSettingsPanelControls.svelte",
+    "category": "component",
+    "summary": "ButtonSettingsPanelControls",
+    "imports": {
+      "internal": [
+        "src/lib/CommandIcon.svelte",
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js",
+        "src/lib/icon-types.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/DiagnosticsLinks.svelte",
+    "file": "src/settings/DiagnosticsLinks.svelte",
+    "category": "component",
+    "summary": "DiagnosticsLinks",
+    "imports": {
+      "internal": [
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/ProductLinkIcon.svelte",
+        "src/lib/i18n.js",
+        "src/lib/product-links.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/DiagnosticsPanel.svelte",
+    "file": "src/settings/DiagnosticsPanel.svelte",
+    "category": "component",
+    "summary": "DiagnosticsPanel",
+    "imports": {
+      "internal": [
+        "src/lib/ErrorMessage.svelte",
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/lib/user-facing-error.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/GeneralSettingsPanel.svelte",
+    "file": "src/settings/GeneralSettingsPanel.svelte",
+    "category": "component",
+    "summary": "GeneralSettingsPanel",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/ToolbarVisibilitySettings.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/GraphSettingsFields.svelte",
+    "file": "src/settings/GraphSettingsFields.svelte",
+    "category": "component",
+    "summary": "GraphSettingsFields",
+    "imports": {
+      "internal": [
+        "src/lib/AqeTooltip.svelte",
+        "src/lib/CommandIcon.svelte",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/graph-option-copy.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/SettingsChoiceGroup.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/HistorySettingsFields.svelte",
+    "file": "src/settings/HistorySettingsFields.svelte",
+    "category": "component",
+    "summary": "HistorySettingsFields",
+    "imports": {
+      "internal": [
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/OutputFormatField.svelte",
+    "file": "src/settings/OutputFormatField.svelte",
+    "category": "component",
+    "summary": "OutputFormatField",
+    "imports": {
+      "internal": [
+        "src/lib/CommandIcon.svelte",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/SettingsChoiceGroup.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/PresetGraphEditor.svelte",
+    "file": "src/settings/PresetGraphEditor.svelte",
+    "category": "component",
+    "summary": "PresetGraphEditor",
+    "imports": {
+      "internal": [
+        "src/lib/graph-option-copy.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/PresetSettingsPanel.svelte",
+    "file": "src/settings/PresetSettingsPanel.svelte",
+    "category": "component",
+    "summary": "PresetSettingsPanel",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/PresetGraphEditor.svelte",
+        "src/settings/PresetStepEditor.svelte",
+        "src/settings/preset-settings-helpers.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/PresetStepEditor.svelte",
+    "file": "src/settings/PresetStepEditor.svelte",
+    "category": "component",
+    "summary": "PresetStepEditor",
+    "imports": {
+      "internal": [
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/SettingsChoiceGroup.svelte",
+        "src/settings/preset-settings-helpers.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/SettingsApp.svelte",
+    "file": "src/settings/SettingsApp.svelte",
+    "category": "component",
+    "summary": "SettingsApp",
+    "imports": {
+      "internal": [
+        "src/lib/AqeTooltipProvider.svelte",
+        "src/lib/ErrorMessage.svelte",
+        "src/lib/i18n.js",
+        "src/lib/logger.js",
+        "src/lib/types.js",
+        "src/lib/user-facing-error.js",
+        "src/settings/DiagnosticsLinks.svelte",
+        "src/settings/DiagnosticsPanel.svelte",
+        "src/settings/GeneralSettingsPanel.svelte",
+        "src/settings/PresetSettingsPanel.svelte",
+        "src/settings/SettingsFooter.svelte",
+        "src/settings/TriggerSettingsPanel.svelte",
+        "src/settings/async-jobs.js",
+        "src/settings/bridge.js",
+        "src/settings/settings-state.js"
+      ],
+      "external": [
+        "svelte"
+      ]
+    }
+  },
+  {
+    "module": "src/settings/SettingsChoiceGroup.svelte",
+    "file": "src/settings/SettingsChoiceGroup.svelte",
+    "category": "component",
+    "summary": "SettingsChoiceGroup",
+    "imports": {
+      "internal": [
+        "src/lib/FieldTooltipTarget.svelte",
+        "src/lib/disabled-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/SettingsFooter.svelte",
+    "file": "src/settings/SettingsFooter.svelte",
+    "category": "component",
+    "summary": "SettingsFooter",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/SettingsHiddenWarning.svelte",
+    "file": "src/settings/SettingsHiddenWarning.svelte",
+    "category": "component",
+    "summary": "SettingsHiddenWarning",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js",
+        "src/settings/assets/settings-hidden-warning.jpg?inline"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/SettingsSizeReductionFields.svelte",
+    "file": "src/settings/SettingsSizeReductionFields.svelte",
+    "category": "component",
+    "summary": "SettingsSizeReductionFields",
+    "imports": {
+      "internal": [
+        "src/lib/SizeReductionAdvancedParamsFields.svelte",
+        "src/lib/audio-option-tooltips.js",
+        "src/lib/i18n.js",
+        "src/lib/size-reduction-parameters.js",
+        "src/lib/types.js",
+        "src/settings/SettingsChoiceGroup.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "file": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "category": "component",
+    "summary": "ToolbarPanelSettingsFields",
+    "imports": {
+      "internal": [
+        "src/lib/PauseAdvancedParamsFields.svelte",
+        "src/lib/UnitNumberInput.svelte",
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/audio-option-tooltips.js",
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/GraphSettingsFields.svelte",
+        "src/settings/HistorySettingsFields.svelte",
+        "src/settings/OutputFormatField.svelte",
+        "src/settings/SettingsChoiceGroup.svelte",
+        "src/settings/SettingsHiddenWarning.svelte",
+        "src/settings/SettingsSizeReductionFields.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/ToolbarVisibilitySettings.svelte",
+    "file": "src/settings/ToolbarVisibilitySettings.svelte",
+    "category": "component",
+    "summary": "ToolbarVisibilitySettings",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/editor-toolbar-command-slugs.js",
+        "src/lib/editor-toolbar-visibility.js",
+        "src/lib/i18n.js",
+        "src/lib/settings-toolbar-buttons.js",
+        "src/lib/types.js",
+        "src/settings/ButtonSettingsCard.svelte",
+        "src/settings/ToolbarPanelSettingsFields.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/TriggerSettingsPanel.svelte",
+    "file": "src/settings/TriggerSettingsPanel.svelte",
+    "category": "component",
+    "summary": "TriggerSettingsPanel",
+    "imports": {
+      "internal": [
+        "src/lib/i18n.js",
+        "src/lib/types.js",
+        "src/settings/trigger-settings-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/async-jobs.ts",
+    "file": "src/settings/async-jobs.ts",
+    "category": "logic",
+    "summary": "async-jobs",
+    "imports": {
+      "internal": [
+        "src/lib/types.js",
+        "src/lib/user-facing-error.js",
+        "src/settings/bridge.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/bridge.ts",
+    "file": "src/settings/bridge.ts",
+    "category": "bridge",
+    "summary": "bridge",
+    "imports": {
+      "internal": [
+        "src/lib/bridge-transport.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/preset-settings-helpers.ts",
+    "file": "src/settings/preset-settings-helpers.ts",
+    "category": "logic",
+    "summary": "preset-settings-helpers",
+    "imports": {
+      "internal": [
+        "src/lib/audio-operation-parameters.js",
+        "src/lib/i18n.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/settings-state.ts",
+    "file": "src/settings/settings-state.ts",
+    "category": "state",
+    "summary": "settings-state",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/trigger-settings-state.ts",
+    "file": "src/settings/trigger-settings-state.ts",
+    "category": "state",
+    "summary": "trigger-settings-state",
+    "imports": {
+      "internal": [
+        "src/lib/types.js"
+      ],
+      "external": []
+    }
+  }
+]

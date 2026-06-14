@@ -99,6 +99,7 @@ def _full_config() -> dict[str, object]:
         "graph_connect_short_dropouts_ms": 240,
         "graph_voice_lock": "balanced",
         "audio_processing_presets": [],
+        "audio_trigger_rules": [],
         "speed_step": 1.5,
         "min_speed": 0.2,
         "max_speed": 5.0,

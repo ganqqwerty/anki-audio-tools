@@ -84,6 +84,7 @@ def _full_config() -> dict[str, object]:
         "graph_connect_short_dropouts_ms": 240,
         "graph_voice_lock": "balanced",
         "audio_processing_presets": [],
+        "audio_trigger_rules": [],
         "speed_step": 1.5,
         "min_speed": 0.2,
         "max_speed": 5.0,
@@ -162,6 +163,7 @@ def test_build_initial_state_payload_has_settings_webview_shape() -> None:
             },
             "runtime": _missing_runtime_status(),
         },
+        "triggers": {"note_types": []},
     }
 
 

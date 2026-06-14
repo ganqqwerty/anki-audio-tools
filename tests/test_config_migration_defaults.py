@@ -169,6 +169,19 @@ class TestMigrateConfigDefaults:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_audio_trigger_rules_default(self) -> None:
+        user = {"_config_version": CURRENT_CONFIG_VERSION, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "audio_trigger_rules": [],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["audio_trigger_rules"] == []
+        assert changed is True
+
     def test_current_version_only_marks_change_when_defaults_add_values(self) -> None:
         user = {"_config_version": CURRENT_CONFIG_VERSION, "enabled": False}
         defaults = {

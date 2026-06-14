@@ -18,6 +18,7 @@ ALLOWED_PERSISTENCE_FILES = {
     "browser_result_application.py",
     "editor_processing.py",
     "reviewer_integration.py",
+    "trigger_runner.py",
 }
 PERSISTENCE_PATTERNS = [
     r"\.media\.write_data\(",

@@ -20,6 +20,7 @@ def build_initial_state_payload(
     locale: str,
     direction: str,
     messages: dict[str, str],
+    triggers: dict[str, Any] | None = None,
     release_info: dict[str, str] | None = None,
     runtime_status: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -48,6 +49,7 @@ def build_initial_state_payload(
                 "error": "",
             },
         },
+        "triggers": triggers or {"note_types": []},
     }
 
 

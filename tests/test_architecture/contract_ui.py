@@ -22,6 +22,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "runtime_installer_dialog",
             "runtime_manager",
             "settings",
+            "trigger_integration",
             "vendor_runtime",
         ),
         allowed_side_effects=(
@@ -214,6 +215,36 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allow_any_anki_imports=True,
         notes="Template-filter adapter only registers the card-template trigger hook.",
     ),
+    "trigger_integration": contract(
+        "trigger_integration",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("diagnostics_runtime", "trigger_runner"),
+        allowed_side_effects=(SideEffect.GUI_HOOK_REGISTRATION,),
+    ),
+    "trigger_runner": contract(
+        "trigger_runner",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_processing_presets",
+            "audio_state",
+            "batch_operation_types",
+            "browser_batch_runner",
+            "diagnostics_runtime",
+            "error_codes",
+            "trigger_batch_adapter",
+            "trigger_preset_adapter",
+            "trigger_rules",
+            "trigger_state",
+        ),
+        allowed_side_effects=(
+            SideEffect.ANKI_IMPORTS_ANYWHERE,
+            SideEffect.BACKGROUND_TASK_DISPATCH,
+            SideEffect.MEDIA_WRITE,
+            SideEffect.NOTE_UPDATE,
+        ),
+        allow_any_anki_imports=True,
+        notes="Automation UI adapter owns trigger scheduling, media writes, and note updates.",
+    ),
     "settings": contract(
         "settings",
         layer=Layer.SETTINGS_SHELL,
@@ -259,6 +290,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "frontend_logs",
             "i18n",
             "settings.async_commands",
+            "trigger_rules",
             "webview_bridge",
         ),
         allowed_side_effects=(

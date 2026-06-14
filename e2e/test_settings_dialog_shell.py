@@ -92,6 +92,7 @@ def test_initial_state_shape(anki_mw) -> None:
         "locale",
         "log_file_path",
         "messages",
+        "triggers",
         "version",
     }
     assert state["direction"] in {"ltr", "rtl"}

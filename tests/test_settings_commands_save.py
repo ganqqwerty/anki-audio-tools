@@ -199,6 +199,39 @@ def test_settings_save_rejects_invalid_processing_preset() -> None:
     assert dialog.accepted is False
 
 
+def test_settings_save_rejects_invalid_trigger_rule() -> None:
+    from aqt import mw
+
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    config = {
+        **_full_config(),
+        "audio_trigger_rules": [
+            {
+                "id": "graph",
+                "name": "Graph",
+                "enabled": True,
+                "event": "add",
+                "note_type": {"id": 123, "name": "Basic"},
+                "source_field": "Audio",
+                "action_type": "operation",
+                "operation": "graph",
+                "preset_id": None,
+                "target_field": None,
+                "parameters": {},
+            }
+        ],
+    }
+
+    handle_settings_command(_bridge_command("settings.save", config), eval_fn, dialog)
+
+    payload = _parse_callback(calls[0], "onSaveError")
+    assert payload["user_error"]["code"] == "AQE-SETTINGS-001"
+    assert "target field" in payload["user_error"]["message"]
+    mw.addonManager.writeConfig.assert_not_called()
+    assert dialog.accepted is False
+
+
 def test_settings_cancel_rejects_dialog() -> None:
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
