@@ -46,4 +46,6 @@ When changing editor field replacement, undo, processing, or frontend runtime mo
 
 Symptoms of this class of bug include two visualizers for one field, a hidden old visualizer receiving playback/graph state, buttons becoming enabled during processing, or graph state reverting shortly after an apparently successful e2e step.
 
+For reviewer e2e coverage, avoid calling private lifecycle hooks directly (`_on_card_will_show`, `_on_reviewer_did_show_card_side`, and related reviewer internals). Those assertions belong in focused tests such as `tests/test_reviewer_integration_visibility.py`, while e2e tests should verify behavior through user-facing menu actions and visible reviewer controls.
+
 When changing inline editor toolbar commands or quick settings, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) with the corresponding e2e behavior source and any intentional exceptions.

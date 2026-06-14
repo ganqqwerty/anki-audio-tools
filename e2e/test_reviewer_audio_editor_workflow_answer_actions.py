@@ -125,13 +125,19 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     assert reviewer.state == "answer"
 
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
-    config["enable_reviewer_editor"] = False
-    anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
-    reviewer_module = _reviewer_module()
-    reviewer_module._on_reviewer_did_show_card_side(reviewer.card)
+    original_editor_setting = bool(config.get("enable_reviewer_editor", True))
+    hide_action = _menu_action(_reviewer_more_menu(reviewer), "Hide audio editor")
+    _trigger_action(hide_action)
     _wait_for_no_controls(reviewer.web)
-    action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
-    assert action.isEnabled() is True
-    _trigger_action(action)
-    _wait_for_controls(reviewer.web)
-    _cleanup_reviewer_session(reviewer)
+    try:
+        config["enable_reviewer_editor"] = False
+        anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+        action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
+        assert action.isEnabled() is True
+        _trigger_action(action)
+        _wait_for_controls(reviewer.web)
+    finally:
+        config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+        config["enable_reviewer_editor"] = original_editor_setting
+        anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+        _cleanup_reviewer_session(reviewer)

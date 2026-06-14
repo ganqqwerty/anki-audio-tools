@@ -184,6 +184,75 @@ def test_batch_dialog_validation_error_is_recoverable(monkeypatch, request, capl
     assert "batch dialog displayed error: AQE-BATCH-001: Choose a target field before starting." in caplog.text
 
 
+def test_batch_dialog_ignores_duplicate_start(monkeypatch, request) -> None:
+    dialog_module = _reload_browser_dialog_with_fake_qt(request)
+    started: list[tuple[object, object, list[int], object]] = []
+
+    dialog = dialog_module.BatchOperationsDialog(
+        browser=object(),
+        note_ids=[101, 102],
+        groups=(),
+        config=AudioProcessingConfig(),
+        run_batch_in_background=lambda browser, dialog_instance, note_ids, request: started.append(
+            (browser, dialog_instance, list(note_ids), request),
+        ),
+    )
+
+    start_payload = json.dumps(
+        {
+            "command": "batch.start",
+            "payload": {
+                "operation": "faster",
+                "source_field": "Front",
+                "target_field": "Front",
+                "parameters": {"speed_step": 0.1},
+            },
+        }
+    )
+
+    assert dialog._webview.bridge(f"bridge:{start_payload}") is True
+    assert dialog._webview.bridge(f"bridge:{start_payload}") is True
+
+    assert len(started) == 1
+    assert dialog._running is True
+
+
+def test_batch_dialog_duplicate_start_keeps_single_progress_event(monkeypatch, request) -> None:
+    dialog_module = _reload_browser_dialog_with_fake_qt(request)
+    emitted: list[tuple[str, object]] = []
+    monkeypatch.setattr(dialog_module.BatchOperationsDialog, "_emit", lambda self, event, payload=None: emitted.append((event, payload)))
+
+    def fake_run_batch(_browser, _dialog_instance, _note_ids, _request):
+        _dialog_instance.append_log("first run")
+
+    dialog = dialog_module.BatchOperationsDialog(
+        browser=object(),
+        note_ids=[1, 2, 3],
+        groups=(),
+        config=AudioProcessingConfig(),
+        run_batch_in_background=fake_run_batch,
+    )
+
+    start_payload = json.dumps(
+        {
+            "command": "batch.start",
+            "payload": {
+                "operation": "volume_up",
+                "source_field": "Front",
+                "target_field": "Front",
+                "parameters": {"volume_step_db": 3.0},
+            },
+        }
+    )
+
+    assert dialog._webview.bridge(f"bridge:{start_payload}") is True
+    assert dialog._webview.bridge(f"bridge:{start_payload}") is True
+
+    progress_events = [payload for event, payload in emitted if event == "onBatchProgress"]
+    assert len(progress_events) == 1
+    assert dialog._running is True
+
+
 def _reload_browser_dialog_with_fake_qt(request):
     import anki_audio_quick_editor.browser_dialog as browser_dialog
 

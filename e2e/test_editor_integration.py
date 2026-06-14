@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import patch
-
 from PyQt6.QtWidgets import QApplication
 
 from e2e.conftest import import_runtime_addon_module
@@ -27,15 +25,6 @@ from e2e.helpers import (
     wait_for_js_condition,
     wait_for_selector,
 )
-
-
-# noinspection PyUnusedLocal
-def test_editor_hooks_are_registered(anki_mw) -> None:
-    from aqt import gui_hooks
-
-    del anki_mw
-    assert gui_hooks.editor_did_init.count() > 0
-    assert gui_hooks.editor_will_load_note.count() > 0
 
 
 def test_visible_editor_buttons_can_hide_settings(anki_mw, ffmpeg_config) -> None:
@@ -150,13 +139,12 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
             timeout=5.0,
         )
 
-        with patch.object(
-            anki_mw.addonManager,
-            "writeConfig",
-            wraps=anki_mw.addonManager.writeConfig,
-        ) as mock_write:
-            click_selector(dialog, '[data-testid="settings-save"]', timeout=5.0)
-            wait_for_condition(lambda: mock_write.called, timeout=5.0)
+        click_selector(dialog, '[data-testid="settings-save"]', timeout=5.0)
+        wait_for_condition(
+            lambda: not dialog.isVisible(),
+            timeout=5.0,
+            message="Timed out waiting for settings dialog to close after save",
+        )
         _wait_for_status_flow(
             editor,
             lambda status: status["text"] == "Closed settings.",

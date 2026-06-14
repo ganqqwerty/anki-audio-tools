@@ -18,6 +18,7 @@ from e2e.editor_note_helpers import (
 )
 from e2e.editor_playback_helpers import (
     PLAYBACK_INTERVAL_TOLERANCE_MS,
+    _assert_no_playback_leaks,
     _record_fake_playback,
 )
 from e2e.editor_region_loop_helpers import (
@@ -72,7 +73,7 @@ def test_selected_repeat_play_after_pause_restarts_from_selection_start(
             )
             looped = _force_repeat_wrap(editor, 500)
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert restarted["playbackStartMs"] == 500
         assert restarted["playbackEndMs"] == 1300
         assert paused["cursorMs"] > restarted["playbackStartMs"] + PLAYBACK_INTERVAL_TOLERANCE_MS
@@ -132,7 +133,7 @@ def test_full_region_repeat_resume_loops_from_beginning(
             )
             looped = _force_repeat_wrap(editor, 0)
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert looped["playbackStartMs"] == 0
         assert looped["selectionActive"] is select_everything
     finally:
@@ -181,7 +182,7 @@ def test_hidden_full_repeat_resume_loops_from_beginning_without_graph(
             )
             looped = _force_repeat_wrap(editor, 0)
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert looped["hidden"] is True
         assert looped["hasTrack"] is False
         assert looped["playbackStartMs"] == 0
@@ -229,7 +230,7 @@ def test_hidden_default_repeat_ended_replays_browser_audio_with_stale_field_stat
                 timeout=5.0,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
     finally:
         editor.set_note(None)
         parent.close()
@@ -272,7 +273,7 @@ def test_selected_non_repeat_resume_completion_resets_to_selection_start(
                 and abs(state["cursorMs"] - 500) <= PLAYBACK_INTERVAL_TOLERANCE_MS,
             )
 
-        assert playback.attempts == []
+        _assert_no_playback_leaks(playback)
         assert finished["playbackRegionMode"] == "selection"
     finally:
         editor.set_note(None)

@@ -1,12 +1,48 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
 from anki_audio_quick_editor.editor_session import (
+    AudioEditState,
     EditorSession,
+    UndoEntry,
     begin_processing_guard,
     invalidate_processing_guard,
     is_current_processing_guard,
     reset_for_note_load,
 )
+from anki_audio_quick_editor.editor_history import undo
+
+
+def test_undo_during_busy_processing_is_blocked_and_shows_processing_status() -> None:
+    editor = SimpleNamespace(currentField=0, web=MagicMock(), note=SimpleNamespace(fields=[]))
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        current_filename="clip.mp3",
+    )
+    entry = UndoEntry(AudioEditState("clip.mp3", speed=2.0), "generated.mp3")
+    session.undo_history.push(entry.state, entry.filename, status_summary=entry.status_summary)
+
+    deps = MagicMock()
+    deps.session_and_source.return_value = (session, "clip.mp3")
+    deps.is_busy.return_value = True
+    deps.still_processing_message = "Still processing. Please wait."
+    deps.restore_persistent_undo = MagicMock()
+    deps.restore_history_entry = MagicMock()
+    deps.eval_status = MagicMock()
+
+    undo(editor, deps)
+
+    deps.eval_status.assert_called_once_with(
+        editor,
+        "Still processing. Please wait.",
+        kind="processing",
+    )
+    assert session.undo_history.entries == [entry]
+    deps.restore_persistent_undo.assert_not_called()
+    deps.restore_history_entry.assert_not_called()
 
 
 def test_processing_guard_matches_only_current_generation_note_field_and_source() -> None:

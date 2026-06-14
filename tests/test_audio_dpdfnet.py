@@ -7,13 +7,17 @@ from types import SimpleNamespace
 import pytest
 
 from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
-from anki_audio_quick_editor.audio_processor import render_dpdfnet_audio
+from anki_audio_quick_editor.audio_processor import (
+    find_dpdfnet_bundle,
+    render_dpdfnet_audio,
+)
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
-from anki_audio_quick_editor.errors import AudioProcessingError
+from anki_audio_quick_editor.errors import AudioProcessingError, MissingDpdfnetError
 from anki_audio_quick_editor.support import (
     clear_latest_denoise_support_incident,
     latest_denoise_support_incident,
 )
+from tests.audio_fixtures import FFMPEG_AVAILABLE, _run_ffmpeg, FFMPEG_SKIP_REASON
 
 DPDFNET = str(Path("/bin/dpdfnet"))
 FFMPEG = str(Path("/bin/ffmpeg"))
@@ -34,6 +38,44 @@ def stub_source_metadata(monkeypatch) -> None:
             sample_fmt=None,
         ),
     )
+
+
+def _generate_mono_tone(path: Path, *, duration_s: float = 0.8) -> None:
+    _run_ffmpeg(
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        f"sine=frequency=440:duration={duration_s}",
+        "-c:a",
+        "libmp3lame",
+        str(path),
+    )
+
+
+@pytest.mark.allow_managed_runtime
+def test_render_dpdfnet_audio_smoke_uses_managed_dpdfnet_when_available(
+    tmp_path: Path,
+) -> None:
+    if not FFMPEG_AVAILABLE:
+        pytest.skip(FFMPEG_SKIP_REASON)
+
+    try:
+        dpdfnet_path = find_dpdfnet_bundle()
+    except MissingDpdfnetError:
+        pytest.skip("dpdfnet not available")
+
+    source = tmp_path / "source.mp3"
+    output = tmp_path / "denoised.mp3"
+    _generate_mono_tone(source, duration_s=0.8)
+
+    result = render_dpdfnet_audio(source, AudioProcessingConfig(), output_path=output)
+
+    assert result.output_path == output
+    assert result.command[0] == str(dpdfnet_path)
+    assert result.command[:2] == (str(dpdfnet_path), "enhance")
+    assert output.is_file()
+    assert result.duration_ms >= 700
 
 
 def test_render_dpdfnet_audio_runs_denoise_and_encode(

@@ -13,6 +13,7 @@ from unittest.mock import patch
 from e2e.conftest import import_runtime_addon_module
 
 PLAYBACK_INTERVAL_TOLERANCE_MS = 75
+_FAKE_PLAYBACK_ACTIVE = 0
 
 
 @dataclass
@@ -116,6 +117,10 @@ class FakePlaybackRecorder:
         self.toggle_count += 1
 
 
+def fake_playback_active() -> bool:
+    return _FAKE_PLAYBACK_ACTIVE > 0
+
+
 @contextmanager
 def _record_fake_playback(
     media_dir: Path,
@@ -126,19 +131,39 @@ def _record_fake_playback(
 ):
     from aqt.sound import av_player
 
+    global _FAKE_PLAYBACK_ACTIVE
     recorder = FakePlaybackRecorder(
         media_dir,
         durations_ms,
         apply_immediate_seek=apply_immediate_seek,
         ffmpeg_config=ffmpeg_config,
     )
-    with (
-        patch.object(av_player, "stop_and_clear_queue", recorder.stop_and_clear_queue),
-        patch.object(av_player, "play_tags", recorder.play_tags),
-        patch.object(av_player, "seek_relative", recorder.seek_relative),
-        patch.object(av_player, "toggle_pause", recorder.toggle_pause),
-    ):
-        yield recorder
+    _FAKE_PLAYBACK_ACTIVE += 1
+    try:
+        with (
+            patch.object(av_player, "stop_and_clear_queue", recorder.stop_and_clear_queue),
+            patch.object(av_player, "play_tags", recorder.play_tags),
+            patch.object(av_player, "seek_relative", recorder.seek_relative),
+            patch.object(av_player, "toggle_pause", recorder.toggle_pause),
+        ):
+            yield recorder
+    finally:
+        _FAKE_PLAYBACK_ACTIVE -= 1
+
+
+def _assert_no_playback_leaks(
+    playback: FakePlaybackRecorder,
+    *,
+    expected_attempt_count: int | None = None,
+    expected_toggle_count: int | None = None,
+) -> None:
+    """Assert the fake playback recorder saw no unexpected activity."""
+
+    if expected_attempt_count is not None:
+        assert len(playback.attempts) == expected_attempt_count
+    assert playback.unknown_filenames == []
+    if expected_toggle_count is not None:
+        assert playback.toggle_count == expected_toggle_count
 
 
 def _assert_interval(

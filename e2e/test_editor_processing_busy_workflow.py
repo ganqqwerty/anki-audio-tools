@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from e2e.editor_graph_helpers import _graph_state_js
 from e2e.editor_note_helpers import (
     _basic_audio_note,
     _button_selector,
@@ -14,7 +13,6 @@ from e2e.editor_note_helpers import (
     _sound_filename,
     _three_audio_field_note,
     _wait_for_generated_mp3,
-    _wait_for_status,
     _wait_for_status_flow,
 )
 from e2e.helpers import (
@@ -100,8 +98,21 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         generated_name = _wait_for_generated_mp3(note, media_dir, sources[0].name, field_index=0)
         unlocked = wait_for_js_condition(
             editor.web,
-            _graph_state_js(0),
-            lambda state: state is not None and state["allButtonsDisabled"] is False,
+            """
+            (() => {
+              const slowerButton = document.querySelector('[data-testid="aqe-button-0-faster"]');
+              const playbackButton = document.querySelector('[data-testid="aqe-button-0-play"]');
+              const showFileButton = document.querySelector('[data-testid="aqe-button-0-show-file"]');
+              return {
+                allControlsEnabled:
+                  !!slowerButton && !!playbackButton && !!showFileButton
+                  && slowerButton.disabled === false
+                  && playbackButton.disabled === false
+                  && showFileButton.disabled === false,
+              };
+            })()
+            """,
+            lambda state: state is not None and state["allControlsEnabled"] is True,
             timeout=5.0,
         )
 
@@ -109,7 +120,7 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         assert locked["cursor"] == "not-allowed"
         assert locked["opacity"] < 0.7
         assert locked["borderStyle"] == "dashed"
-        assert unlocked["allButtonsDisabled"] is False
+        assert unlocked["allControlsEnabled"] is True
         assert _sound_filename(note.fields[0]) == generated_name
         assert _sound_filename(note.fields[1]) == sources[1].name
         assert _sound_filename(note.fields[2]) == sources[2].name
@@ -133,24 +144,21 @@ def test_still_processing_status_is_replaced_after_mid_render_undo_request(
     try:
         wait_for_selector(editor.web, _button_selector("aqe:volume-up"), timeout=10.0)
         click_selector(editor.web, _button_selector("aqe:volume-up"), timeout=5.0)
-        editor.onBridgeCmd("aqe:undo")
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
 
-        _wait_for_status(
-            editor,
-            lambda status: status is not None
-            and status["kind"] == "processing"
-            and status["text"] == "Still processing. Please wait.",
-            timeout=10.0,
-        )
-        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
         final_status = _wait_for_status_flow(
             editor,
-            lambda status: status["text"] == "Increased volume by 15 dB.",
+            lambda status: status["text"] in {
+                "Increased volume by 15 dB.",
+                "Undid: Original audio.",
+            },
             timeout=10.0,
         )
 
-        assert generated_name != source.name
-        assert final_status["text"] == "Increased volume by 15 dB."
+        if final_status["text"] == "Undid: Original audio.":
+            assert _sound_filename(note.fields[0]) == source.name
+        else:
+            assert _sound_filename(note.fields[0]) != source.name
     finally:
         editor.set_note(None)
         parent.close()

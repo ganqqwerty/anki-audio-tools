@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
@@ -48,15 +47,13 @@ def _set_show_graph_by_default_from_settings(anki_mw, enabled: bool) -> None:
             timeout=5.0,
         )
 
-    with patch.object(
-        anki_mw.addonManager,
-        "writeConfig",
-        wraps=anki_mw.addonManager.writeConfig,
-    ) as mock_write:
-        click_selector(dialog, save_selector, timeout=5.0)
-        wait_for_condition(lambda: mock_write.called, timeout=5.0)
-
-    saved_config = mock_write.call_args.args[1]
+    click_selector(dialog, save_selector, timeout=5.0)
+    wait_for_condition(
+        lambda: not dialog.isVisible(),
+        timeout=5.0,
+        message="Timed out waiting for settings dialog to close after save",
+    )
+    saved_config = anki_mw.addonManager.getConfig("1000000002") or {}
     assert saved_config["show_graph_by_default"] is enabled
 
 
@@ -132,13 +129,19 @@ def test_manual_graph_after_clearing_default_graph_field_shows_error_without_ana
             })()
             """,
         )
+        saved = {"done": False}
+        editor.saveNow(lambda: saved.__setitem__("done", True))
+        wait_for_condition(
+            lambda: saved["done"] is True,
+            timeout=5.0,
+            message="Editor did not finish saving the cleared field",
+        )
         editor.onBridgeCmd(f"blur:0:{note.id}:")
         wait_for_condition(
             lambda: "[sound:" not in note.fields[0],
             timeout=5.0,
             message="Editor field was not cleared before graph analysis",
         )
-
         click_selector(editor.web, _button_selector("aqe:analyze"), timeout=5.0)
         state = wait_for_js_condition(
             editor.web,
@@ -279,15 +282,13 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
             timeout=5.0,
         )
 
-        with patch.object(
-            anki_mw.addonManager,
-            "writeConfig",
-            wraps=anki_mw.addonManager.writeConfig,
-        ) as mock_write:
-            click_selector(dialog, save_selector, timeout=5.0)
-            wait_for_condition(lambda: mock_write.called, timeout=5.0)
-
-        saved_config = mock_write.call_args.args[1]
+        click_selector(dialog, save_selector, timeout=5.0)
+        wait_for_condition(
+            lambda: not dialog.isVisible(),
+            timeout=5.0,
+            message="Timed out waiting for settings dialog to close after save",
+        )
+        saved_config = anki_mw.addonManager.getConfig("1000000002") or {}
         assert saved_config["repeat_playback_by_default"] is True
         assert saved_config["repeat_pause_seconds"] == 1.5
         wait_for_js_condition(

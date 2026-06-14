@@ -11,6 +11,7 @@ from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import _configure_ffmpeg
 from e2e.helpers import (
     generate_tone,
+    run_js,
     wait_for_condition,
     wait_for_js,
     wait_for_js_condition,
@@ -25,8 +26,12 @@ def _unique_name(prefix: str) -> str:
     return f"{prefix} {time.time_ns()}"
 
 
-def _set_reviewer_editor_visible(enabled: bool = True) -> None:
-    _reviewer_module()._reviewer_editor_visible = enabled
+def _set_reviewer_editor_visible(reviewer, enabled: bool = True) -> None:
+    if enabled:
+        reviewer_module = _reviewer_module()
+        if reviewer_module.reviewer_editor_menu_label(reviewer) == "Hide audio editor":
+            return
+        _trigger_action(_menu_action(_reviewer_more_menu(reviewer), "Show audio editor"))
 
 
 def _reviewer_note(
@@ -65,7 +70,6 @@ def _reviewer_note(
 
 
 def _open_reviewer_for_note(anki_mw, note, deck_id: int):
-    _set_reviewer_editor_visible(True)
     if anki_mw.state != "deckBrowser":
         anki_mw.moveToState("deckBrowser")
     anki_mw.col.decks.select(deck_id)
@@ -78,10 +82,6 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
     reviewer = anki_mw.reviewer
     card_ids = note.card_ids()
     assert card_ids
-    reviewer.card = anki_mw.col.get_card(card_ids[0])
-    reviewer.card.start_timer()
-    reviewer._initWeb()
-    reviewer._showQuestion()
     try:
         wait_for_js_condition(
             reviewer.web,
@@ -111,11 +111,12 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
         lambda value: value is True,
         timeout=10.0,
     )
+    _set_reviewer_editor_visible(reviewer)
     return reviewer
 
 
 def _show_answer(reviewer) -> None:
-    reviewer._showAnswer()
+    run_js(reviewer.web, "pycmd('ans')")
     wait_for_condition(
         lambda: reviewer.state == "answer",
         timeout=5.0,
@@ -191,10 +192,13 @@ def _reviewer_more_menu(reviewer) -> QMenu:
 
 
 def _cleanup_reviewer_session(reviewer) -> None:
-    from aqt import gui_hooks
-
-    if getattr(reviewer, "card", None) is not None:
-        gui_hooks.reviewer_did_answer_card(reviewer, reviewer.card, 3)
+    if getattr(reviewer, "state", "") == "answer":
+        run_js(reviewer.web, "pycmd('ease3')")
+        wait_for_condition(
+            lambda: reviewer.mw.state in {"review", "deckBrowser"},
+            timeout=5.0,
+            message="Reviewer did not accept the answer during cleanup",
+        )
     reviewer.mw.moveToState("deckBrowser")
 
 

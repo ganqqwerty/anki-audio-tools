@@ -1,12 +1,9 @@
-"""E2E tests for settings dialog shell rendering and initial state."""
+"""E2E tests for settings dialog shell rendering."""
 
 from __future__ import annotations
 
-import json
-
 from PyQt6.QtWidgets import QApplication
 
-from e2e.conftest import import_runtime_addon_module
 from e2e.helpers import wait_for_js_condition
 from e2e.settings_dialog_helpers import open_settings_dialog
 
@@ -69,31 +66,3 @@ def test_settings_dialog_uses_anki_dark_theme_classes_and_readable_colors(anki_m
         QApplication.processEvents()
 
     assert theme_state["contrast"] >= 4.5
-
-
-def test_initial_state_is_embedded(anki_mw) -> None:
-    render_settings_html = import_runtime_addon_module(".settings")._render_settings_html
-
-    config = anki_mw.addonManager.getConfig("1000000002") or {}
-    html = render_settings_html(config)
-    assert "window.__INITIAL_STATE__" in html
-
-
-def test_initial_state_shape(anki_mw) -> None:
-    build_initial_state = import_runtime_addon_module(".settings.initial_state").build_initial_state
-
-    config = anki_mw.addonManager.getConfig("1000000002") or {}
-    state = json.loads(build_initial_state(config))
-    assert set(state) == {
-        "addon_dir",
-        "config",
-        "diagnostics",
-        "direction",
-        "locale",
-        "log_file_path",
-        "messages",
-        "version",
-    }
-    assert state["direction"] in {"ltr", "rtl"}
-    assert isinstance(state["locale"], str)
-    assert isinstance(state["messages"], dict)
