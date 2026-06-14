@@ -58,6 +58,7 @@ def injection_script(
             "chorusingPauseSeconds": 0.0,
             "chorusingAutoAdvanceByDefault": False,
             "chorusingAutoAdvanceRepeats": 3,
+            "chorusingMarkerIntervalMs": 500,
             "voiceRecordingCountdownSeconds": 0,
             "pauseAggressiveness": "normal",
             "pauseDetectionAlgorithm": "silencedetect",

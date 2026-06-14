@@ -81,6 +81,9 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "chorusingAutoAdvanceRepeats": int(
                 config.get("chorusing_auto_advance_repeats", 3)
             ),
+            "chorusingMarkerIntervalMs": int(
+                config.get("chorusing_marker_interval_ms", 500)
+            ),
             "voiceRecordingCountdownSeconds": int(
                 config.get("voice_recording_countdown_seconds", 0)
             ),

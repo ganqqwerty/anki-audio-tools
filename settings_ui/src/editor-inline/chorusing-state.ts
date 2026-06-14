@@ -3,6 +3,10 @@ import type { PlaybackRegion } from "./playback-model.js";
 export type ChorusingStatus = "paused" | "playing" | "stopped";
 export type ChorusingMarkerDirection = "next" | "previous";
 
+export const DEFAULT_CHORUSING_MARKER_INTERVAL_MS = 500;
+export const CHORUSING_MARKER_INTERVAL_MIN_MS = 50;
+export const CHORUSING_MARKER_INTERVAL_MAX_MS = 10000;
+
 export interface ChorusingState {
   activeMarkerIndex: number | null;
   baseRegion: PlaybackRegion | null;
@@ -52,14 +56,27 @@ export function emptyChorusingState(): ChorusingState {
   };
 }
 
-export function defaultChorusingMarkers(baseRegion: PlaybackRegion | null): number[] {
+export function clampChorusingMarkerIntervalMs(value: unknown): number {
+  if (typeof value === "boolean" || typeof value !== "number" || !Number.isFinite(value)) {
+    return DEFAULT_CHORUSING_MARKER_INTERVAL_MS;
+  }
+  return Math.max(
+    CHORUSING_MARKER_INTERVAL_MIN_MS,
+    Math.min(CHORUSING_MARKER_INTERVAL_MAX_MS, Math.round(value)),
+  );
+}
+
+export function defaultChorusingMarkers(
+  baseRegion: PlaybackRegion | null,
+  markerIntervalMs = DEFAULT_CHORUSING_MARKER_INTERVAL_MS,
+): number[] {
   if (!baseRegion) return [];
-  const lengthMs = Math.max(0, baseRegion.endMs - baseRegion.startMs);
-  return normalizeChorusingMarkers([
-    baseRegion.startMs,
-    baseRegion.startMs + lengthMs / 3,
-    baseRegion.startMs + (lengthMs * 2) / 3,
-  ], baseRegion);
+  const intervalMs = clampChorusingMarkerIntervalMs(markerIntervalMs);
+  const markers: number[] = [];
+  for (let markerMs = baseRegion.startMs; markerMs < baseRegion.endMs; markerMs += intervalMs) {
+    markers.push(markerMs);
+  }
+  return normalizeChorusingMarkers(markers, baseRegion);
 }
 
 export function normalizeChorusingMarkers(markersMs: readonly number[], baseRegion: PlaybackRegion | null): number[] {

@@ -68,6 +68,7 @@ export interface ProcessingPresetOption {
 export interface SplitButtonDefaults {
   chorusingAutoAdvanceByDefault?: boolean;
   chorusingAutoAdvanceRepeats?: number;
+  chorusingMarkerIntervalMs?: number;
   chorusingPauseSeconds?: number;
   denoiseAlgorithm: DenoiseAlgorithm;
   dpdfnetAttnLimitDb?: number;

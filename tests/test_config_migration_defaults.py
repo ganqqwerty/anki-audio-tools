@@ -107,6 +107,7 @@ class TestMigrateConfigDefaults:
             "chorusing_pause_seconds": 0.0,
             "chorusing_auto_advance_by_default": False,
             "chorusing_auto_advance_repeats": 3,
+            "chorusing_marker_interval_ms": 500,
         }
 
         migrated, changed = migrate_config(user, defaults)
@@ -114,6 +115,7 @@ class TestMigrateConfigDefaults:
         assert migrated["chorusing_pause_seconds"] == 0.0
         assert migrated["chorusing_auto_advance_by_default"] is False
         assert migrated["chorusing_auto_advance_repeats"] == 3
+        assert migrated["chorusing_marker_interval_ms"] == 500
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 

@@ -10,6 +10,7 @@
   "chorusing_pause_seconds": 0.0,
   "chorusing_auto_advance_by_default": false,
   "chorusing_auto_advance_repeats": 3,
+  "chorusing_marker_interval_ms": 500,
   "share_target": "litterbox",
   "voice_recording_countdown_seconds": 0,
   "show_graph_by_default": false,

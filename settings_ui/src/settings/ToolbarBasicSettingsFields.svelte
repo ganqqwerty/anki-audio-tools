@@ -101,6 +101,18 @@
       bind:value={config.chorusing_auto_advance_repeats}
     />
   </label>
+  <label class="settings-field">
+    <span>{t("settings.chorusing_marker_interval_ms")}</span>
+    <UnitNumberInput
+      inputClass="settings-input"
+      testId="chorusing-marker-interval-ms"
+      min="50"
+      max="10000"
+      step="50"
+      unit="ms"
+      bind:value={config.chorusing_marker_interval_ms}
+    />
+  </label>
 {:else if command === "aqe:share"}
   <label class="settings-field">
     <span>{t("settings.share_target")}</span>

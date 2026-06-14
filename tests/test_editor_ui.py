@@ -36,6 +36,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["splitButtonDefaults"]["chorusingPauseSeconds"] == 0.0
     assert config["splitButtonDefaults"]["chorusingAutoAdvanceByDefault"] is False
     assert config["splitButtonDefaults"]["chorusingAutoAdvanceRepeats"] == 3
+    assert config["splitButtonDefaults"]["chorusingMarkerIntervalMs"] == 500
     assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 0
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
     assert config["splitButtonDefaults"]["sizeReductionMode"] == "normal"

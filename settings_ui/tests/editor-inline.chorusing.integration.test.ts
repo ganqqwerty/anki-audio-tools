@@ -51,13 +51,13 @@ describe("editor inline chorusing integration", () => {
     expect(row.getAttribute("aria-hidden")).toBe("false");
     expect(row.style.display).toBe("");
     expect(row.querySelector(".aqe-chorusing-marker-track")).not.toBeNull();
-    expect(row.querySelectorAll(".aqe-chorusing-marker")).toHaveLength(3);
+    expect(row.querySelectorAll(".aqe-chorusing-marker")).toHaveLength(2);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingBaseEndMs: 1000,
       chorusingBaseStartMs: 0,
       chorusingCanPractice: true,
       chorusingCanPrevious: false,
-      chorusingMarkersMs: [0, 333, 667],
+      chorusingMarkersMs: [0, 500],
       chorusingState: "stopped",
     });
     expect(previousButton()).toBeDisabled();
@@ -71,12 +71,12 @@ describe("editor inline chorusing integration", () => {
       "Move to the next longer chorusing suffix.",
     );
 
-    clickMarkerRail(svg, 0.5);
+    clickMarkerRail(svg, 0.75);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingBaseEndMs: 1000,
       chorusingBaseStartMs: 0,
-      chorusingMarkersMs: [0, 333, 500, 667],
+      chorusingMarkersMs: [0, 500, 750],
     });
   });
 
@@ -94,14 +94,14 @@ describe("editor inline chorusing integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingBaseEndMs: 1000,
       chorusingBaseStartMs: 0,
-      chorusingMarkersMs: [0, 333, 667],
+      chorusingMarkersMs: [0, 500],
     });
 
     clickMarkerRail(svg, 0.5);
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingMarkersMs: [0, 333, 667],
+      chorusingMarkersMs: [0, 500],
     });
   });
 
@@ -122,13 +122,13 @@ describe("editor inline chorusing integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingBaseEndMs: 1000,
       chorusingBaseStartMs: 0,
-      chorusingMarkersMs: [0, 333, 667],
+      chorusingMarkersMs: [0, 500],
       chorusingState: "playing",
       playbackEndMs: 1000,
       playbackRegionMode: "selection",
-      playbackStartMs: 667,
+      playbackStartMs: 500,
       selectionEndMs: 1000,
-      selectionStartMs: 667,
+      selectionStartMs: 500,
     });
     expect(row.querySelectorAll(".aqe-chorusing-boundary-marker")).toHaveLength(1);
     expect(practiceButton().dataset.aqeButtonState).toBe("pause");
@@ -146,7 +146,7 @@ describe("editor inline chorusing integration", () => {
       chorusingBaseEndMs: 1000,
       chorusingBaseStartMs: 0,
       chorusingMarkerVisibleXs: expect.any(Array),
-      chorusingMarkersMs: [0, 333, 440, 667],
+      chorusingMarkersMs: [0, 440, 500],
       viewportEndMs: 800,
       viewportStartMs: 200,
     });
@@ -159,19 +159,10 @@ describe("editor inline chorusing integration", () => {
     practiceButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 2,
-      chorusingActiveStartMs: 667,
+      chorusingActiveMarkerIndex: 1,
+      chorusingActiveStartMs: 500,
       chorusingState: "playing",
       repeatEnabled: true,
-    });
-
-    nextButton().click();
-    await Promise.resolve();
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 1,
-      playbackStartMs: 333,
-      selectionEndMs: 1000,
-      selectionStartMs: 333,
     });
 
     nextButton().click();
@@ -189,12 +180,12 @@ describe("editor inline chorusing integration", () => {
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingActiveMarkerIndex: 1,
-      playbackStartMs: 333,
+      playbackStartMs: 500,
       selectionEndMs: 1000,
-      selectionStartMs: 333,
+      selectionStartMs: 500,
     });
     expect(nextButton().disabled).toBe(false);
-    expect(previousButton().disabled).toBe(false);
+    expect(previousButton().disabled).toBe(true);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
@@ -211,24 +202,24 @@ describe("editor inline chorusing integration", () => {
 
     practiceButton().click();
     await Promise.resolve();
-    clickMarkerRail(svg, 0.5);
+    clickMarkerRail(svg, 0.25);
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 3,
-      chorusingActiveStartMs: 667,
-      chorusingMarkersMs: [0, 333, 500, 667],
-      playbackStartMs: 667,
+      chorusingActiveMarkerIndex: 2,
+      chorusingActiveStartMs: 500,
+      chorusingMarkersMs: [0, 250, 500],
+      playbackStartMs: 500,
     });
 
     nextButton().click();
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 2,
-      chorusingActiveStartMs: 500,
-      playbackStartMs: 500,
-      selectionStartMs: 500,
+      chorusingActiveMarkerIndex: 1,
+      chorusingActiveStartMs: 250,
+      playbackStartMs: 250,
+      selectionStartMs: 250,
     });
   });
 
@@ -303,7 +294,7 @@ describe("editor inline chorusing integration", () => {
     expect(audio.play).toHaveBeenCalledTimes(1);
     expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
       action: "start",
-      cursorMs: 667,
+      cursorMs: 500,
       endMs: 1000,
       engine: "html",
       loop: true,
@@ -313,9 +304,9 @@ describe("editor inline chorusing integration", () => {
     });
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 2,
+      chorusingActiveMarkerIndex: 1,
       chorusingState: "playing",
-      playbackStartMs: 667,
+      playbackStartMs: 500,
       repeatEnabled: true,
     });
     expect(window.__aqePendingPlaybackRequest).toBeNull();
@@ -325,7 +316,7 @@ describe("editor inline chorusing integration", () => {
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 2,
+      chorusingActiveMarkerIndex: 1,
       chorusingRepeatPassesCompleted: 1,
       chorusingState: "playing",
     });
@@ -337,16 +328,16 @@ describe("editor inline chorusing integration", () => {
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 1,
+      chorusingActiveMarkerIndex: 0,
       chorusingRepeatPassesCompleted: 0,
       chorusingState: "playing",
-      playbackStartMs: 333,
-      selectionStartMs: 333,
+      playbackStartMs: 0,
+      selectionStartMs: 0,
     });
     expect(audio.play).toHaveBeenCalledTimes(2);
     expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
       action: "start",
-      cursorMs: 333,
+      cursorMs: 0,
       endMs: 1000,
       engine: "html",
       loop: true,
@@ -368,7 +359,7 @@ describe("editor inline chorusing integration", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      cursorMs: 667,
+      cursorMs: 500,
       source: "chorusing",
     });
 
@@ -376,13 +367,13 @@ describe("editor inline chorusing integration", () => {
       endMs: 1000,
       loop: true,
       regionMode: "selection" as const,
-      resetCursorMs: 667,
-      startMs: 667,
+      resetCursorMs: 500,
+      startMs: 500,
     };
     expect(handleChorusingLoopBoundary(visualizer(), stalePass)).toBe(true);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 1,
-      selectionStartMs: 333,
+      chorusingActiveMarkerIndex: 0,
+      selectionStartMs: 0,
     });
 
     expect(handleChorusingLoopBoundary(visualizer(), stalePass)).toBe(false);
@@ -391,15 +382,15 @@ describe("editor inline chorusing integration", () => {
 
     expect(audio.play).toHaveBeenCalledTimes(2);
     expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      cursorMs: 333,
+      cursorMs: 0,
       source: "chorusing",
     });
     expect(window.__aqePendingPlaybackRequest).toBeNull();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      chorusingActiveMarkerIndex: 1,
+      chorusingActiveMarkerIndex: 0,
       chorusingRepeatPassesCompleted: 0,
-      playbackStartMs: 333,
-      selectionStartMs: 333,
+      playbackStartMs: 0,
+      selectionStartMs: 0,
     });
   });
 });

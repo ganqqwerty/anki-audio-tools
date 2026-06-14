@@ -40,6 +40,7 @@
   "settings.chorusing_pause_seconds": "Pause between chorusing repeats (s)",
   "settings.chorusing_auto_advance_by_default": "Auto-advance chorusing by default",
   "settings.chorusing_auto_advance_repeats": "Chorusing repeats before auto-advance",
+  "settings.chorusing_marker_interval_ms": "Markers every X ms",
   "settings.share_target": "Default share target",
   "settings.share_target.catbox.tooltip": "Permanent public upload while the Catbox service keeps it available.\nUse this when you want a link that should last.",
   "settings.share_target.litterbox.tooltip": "Temporary public upload that expires after about 3 days.\nUse this for quick sharing when the link does not need to last.",

@@ -5,6 +5,10 @@ import {
   clampRepeatPauseSeconds,
 } from "../lib/audio-operation-parameters.js";
 import {
+  DEFAULT_CHORUSING_MARKER_INTERVAL_MS,
+  clampChorusingMarkerIntervalMs,
+} from "./chorusing-state.js";
+import {
   editorRuntimeConfig,
   splitButtonDefaults as runtimeSplitButtonDefaults,
 } from "./editor-runtime-config.js";
@@ -20,6 +24,7 @@ export const CHORUSING_REPEAT_COUNT_MAX = 20;
 const DEFAULTS: CompleteSplitButtonDefaults = {
   chorusingAutoAdvanceByDefault: false,
   chorusingAutoAdvanceRepeats: 3,
+  chorusingMarkerIntervalMs: DEFAULT_CHORUSING_MARKER_INTERVAL_MS,
   chorusingPauseSeconds: 0,
   denoiseAlgorithm: "standard",
   dpdfnetAttnLimitDb: 12,
@@ -79,6 +84,8 @@ export function clampChorusingRepeatCount(value: unknown): number {
   }
   return Math.max(CHORUSING_REPEAT_COUNT_MIN, Math.min(CHORUSING_REPEAT_COUNT_MAX, Math.round(value)));
 }
+
+export { clampChorusingMarkerIntervalMs };
 
 export function formatVoiceRecordingCountdownSeconds(seconds: number): string {
   return t("editor.recording.countdown_seconds", { seconds: clampVoiceRecordingCountdownSeconds(seconds) });

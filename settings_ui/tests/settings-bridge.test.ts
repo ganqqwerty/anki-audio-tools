@@ -41,6 +41,7 @@ const config: Config = {
   chorusing_pause_seconds: 0,
   chorusing_auto_advance_by_default: false,
   chorusing_auto_advance_repeats: 3,
+  chorusing_marker_interval_ms: 500,
   voice_recording_countdown_seconds: 0,
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,

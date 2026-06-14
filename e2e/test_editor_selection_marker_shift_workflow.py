@@ -22,11 +22,11 @@ def test_selection_marker_shift_buttons_track_marker_changes_and_hide_inner_pair
         selection_marker_shift_buttons_enabled=True,
     )
     try:
-        _shift_drag_region(editor, 0.0, 1 / 3)
+        _shift_drag_region(editor, 0.0, 0.25)
         _state(
             editor,
             lambda state: state["selectionStartMs"] == 0
-            and abs(state["selectionEndMs"] - 667) <= 8,
+            and abs(state["selectionEndMs"] - 500) <= 8,
         )
 
         disabled = _button_state(editor, "end", "previous")
@@ -34,7 +34,7 @@ def test_selection_marker_shift_buttons_track_marker_changes_and_hide_inner_pair
         assert disabled["disabled"] is True
         assert "That marker would cross the other selection edge." in disabled["tooltip"]
 
-        _click_chorusing_marker(editor, 1 / 6, expected_count=4)
+        _click_chorusing_marker(editor, 0.125, expected_count=5)
         enabled = wait_for_js_condition(
             editor.web,
             _button_state_js("end", "previous"),
@@ -43,7 +43,7 @@ def test_selection_marker_shift_buttons_track_marker_changes_and_hide_inner_pair
         )
         assert enabled["tooltip"] == "Move selection end to previous marker"
 
-        _click_chorusing_marker(editor, 1 / 6, expected_count=3)
+        _click_chorusing_marker(editor, 0.125, expected_count=4)
         disabled_again = wait_for_js_condition(
             editor.web,
             _button_state_js("end", "previous"),
@@ -52,17 +52,43 @@ def test_selection_marker_shift_buttons_track_marker_changes_and_hide_inner_pair
         )
         assert "That marker would cross the other selection edge." in disabled_again["tooltip"]
 
-        _click_chorusing_marker(editor, 0.475, expected_count=4)
-        _click_chorusing_marker(editor, 0.5, expected_count=5)
-        _shift_drag_region(editor, 0.475, 0.5)
+        marker_state = _click_chorusing_marker(editor, 0.4, expected_count=5)
+        inserted_marker_ms = _single_extra_marker(marker_state, {0, 500, 1000, 1500})
+        duration_ms = marker_state["durationMs"]
+        _shift_drag_region(editor, inserted_marker_ms / duration_ms, 1000 / duration_ms)
         _state(
             editor,
-            lambda state: abs(state["selectionStartMs"] - 950) <= 8
+            lambda state: abs(state["selectionStartMs"] - inserted_marker_ms) <= 8
+            and abs(state["selectionEndMs"] - 1000) <= 8,
+        )
+        run_js(
+            editor.web,
+            """
+            (() => {
+              const button = document.querySelector('[data-testid="aqe-selection-shift-start-next-0"]');
+              if (button && !button.disabled) button.click();
+              return true;
+            })()
+            """,
+        )
+        _state(
+            editor,
+            lambda state: state["selectionStartMs"] == inserted_marker_ms
             and abs(state["selectionEndMs"] - 1000) <= 8,
         )
         start_previous = _button_state(editor, "start", "previous")
-        start_next = _button_state(editor, "start", "next")
-        end_previous = _button_state(editor, "end", "previous")
+        start_next = wait_for_js_condition(
+            editor.web,
+            _button_state_js("start", "next"),
+            lambda value: value is not None and value["hidden"] is True,
+            timeout=5.0,
+        )
+        end_previous = wait_for_js_condition(
+            editor.web,
+            _button_state_js("end", "previous"),
+            lambda value: value is not None and value["hidden"] is True,
+            timeout=5.0,
+        )
         end_next = _button_state(editor, "end", "next")
         assert start_previous["hidden"] is False
         assert start_next["hidden"] is True
@@ -85,10 +111,10 @@ def test_selection_marker_shift_click_moves_edge_and_keeps_html_playback_running
         selection_marker_shift_buttons_enabled=True,
     )
     try:
-        _shift_drag_region(editor, 0.0, 1 / 3)
+        _shift_drag_region(editor, 0.0, 0.5)
         _state(
             editor,
-            lambda state: state["selectionStartMs"] == 0 and abs(state["selectionEndMs"] - 667) <= 8,
+            lambda state: state["selectionStartMs"] == 0 and abs(state["selectionEndMs"] - 1000) <= 8,
         )
 
         click_selector(editor.web, '[data-testid="aqe-button-0-play"]', timeout=5.0)
@@ -96,9 +122,9 @@ def test_selection_marker_shift_click_moves_edge_and_keeps_html_playback_running
             editor,
             lambda state: state["playbackState"] == "playing"
             and state["selectionStartMs"] == 0
-            and abs(state["selectionEndMs"] - 667) <= 8
+            and abs(state["selectionEndMs"] - 1000) <= 8
             and state["playbackStartMs"] == 0
-            and abs(state["playbackEndMs"] - 667) <= 8,
+            and abs(state["playbackEndMs"] - 1000) <= 8,
         )
 
         click_selector(editor.web, '[data-testid="aqe-selection-shift-end-next-0"]', timeout=5.0)
@@ -106,9 +132,9 @@ def test_selection_marker_shift_click_moves_edge_and_keeps_html_playback_running
             editor,
             lambda state: state["playbackState"] == "playing"
             and state["selectionStartMs"] == 0
-            and abs(state["selectionEndMs"] - 1333) <= 8
+            and abs(state["selectionEndMs"] - 1500) <= 8
             and state["playbackStartMs"] == 0
-            and abs(state["playbackEndMs"] - 1333) <= 8,
+            and abs(state["playbackEndMs"] - 1500) <= 8,
         )
         assert shifted["cursorMs"] == 0
         assert _button_state(editor, "end", "next")["disabled"] is True
@@ -143,6 +169,12 @@ def _click_chorusing_marker(editor, ratio: float, *, expected_count: int):
         editor,
         lambda state: len(state["chorusingMarkersMs"]) == expected_count,
     )
+
+
+def _single_extra_marker(state, expected_markers: set[int]) -> int:
+    extras = [marker for marker in state["chorusingMarkersMs"] if marker not in expected_markers]
+    assert len(extras) == 1
+    return extras[0]
 
 
 def _button_state(editor, edge: str, direction: str):

@@ -103,6 +103,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                     "Volume +",
                     "Options",
                     "Chorusing",
+                    "Options",
                     "Longer suffix",
                     "Shorter suffix",
                     "Pitch Hum",

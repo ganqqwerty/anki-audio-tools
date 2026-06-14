@@ -28,7 +28,7 @@ describe("editor inline selection marker shift integration", () => {
 
   it("moves selection edges to neighboring markers and updates the playback region", async () => {
     const svg = await prepareShiftGraph();
-    clickMarkerRail(svg, 0.5);
+    clickMarkerRail(svg, 0.75);
     await Promise.resolve();
     dragGraphSelection(svg, 1 / 3, 2 / 3);
     await Promise.resolve();
@@ -63,7 +63,7 @@ describe("editor inline selection marker shift integration", () => {
 
   it("recomputes button availability when markers are added and removed after a selection exists", async () => {
     const svg = await prepareShiftGraph();
-    dragGraphSelection(svg, 1 / 3, 2 / 3);
+    dragGraphSelection(svg, 0, 0.5);
     await Promise.resolve();
     const startNext = shiftButton("start", "next");
 
@@ -72,7 +72,7 @@ describe("editor inline selection marker shift integration", () => {
       "That marker would cross the other selection edge.",
     );
 
-    clickMarkerRail(svg, 0.5);
+    clickMarkerRail(svg, 0.25);
     await Promise.resolve();
     expect(startNext).not.toBeDisabled();
     expect(startNext.closest(".aqe-tooltip-target")).toHaveAttribute(
@@ -80,7 +80,7 @@ describe("editor inline selection marker shift integration", () => {
       "Move selection start to next marker",
     );
 
-    clickMarkerRail(svg, 0.5);
+    clickMarkerRail(svg, 0.25);
     await Promise.resolve();
     expect(startNext).toBeDisabled();
     expect(startNext.closest(".aqe-tooltip-target")?.getAttribute("data-aqe-tooltip-content")).toContain(

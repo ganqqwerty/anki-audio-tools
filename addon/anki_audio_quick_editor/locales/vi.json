@@ -40,6 +40,7 @@
   "settings.chorusing_pause_seconds": "Tạm dừng giữa các lần lặp chorusing (giây)",
   "settings.chorusing_auto_advance_by_default": "Tự động chuyển chorusing theo mặc định",
   "settings.chorusing_auto_advance_repeats": "Số lần lặp chorusing trước khi tự động chuyển",
+  "settings.chorusing_marker_interval_ms": "Dấu mốc mỗi X ms",
   "settings.share_target": "Đích chia sẻ mặc định",
   "settings.show_graph_by_default": "Hiển thị biểu đồ theo mặc định",
   "settings.selection_marker_shift_buttons_enabled": "Hiện nút dịch vùng chọn theo mốc",

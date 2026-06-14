@@ -25,10 +25,10 @@ def _matches_zoomed_marker_state(state) -> bool:
         and end - start == 1200
         and state["chorusingBaseStartMs"] == 0
         and state["chorusingBaseEndMs"] == 2000
-        and len(markers) == 4
-        and markers[0:2] == [0, 667]
+        and len(markers) == 5
+        and markers[0:2] == [0, 500]
         and abs(markers[2] - 880) <= 5
-        and markers[3] == 1333
+        and markers[3:5] == [1000, 1500]
     )
 
 
@@ -50,16 +50,16 @@ def test_chorusing_practice_loops_suffixes_and_pauses_for_normal_play(
             and state["selectionEndMs"] == 1600
             and state["chorusingBaseStartMs"] == 0
             and state["chorusingBaseEndMs"] == 2000
-            and state["chorusingMarkersMs"] == [0, 667, 1333],
+            and state["chorusingMarkersMs"] == [0, 500, 1000, 1500],
         )
 
         _click_chorusing_practice(editor)
         playing = _state(
             editor,
             lambda state: state["chorusingState"] == "playing"
-            and state["selectionStartMs"] == 1333
+            and state["selectionStartMs"] == 1500
             and state["selectionEndMs"] == 2000
-            and state["playbackStartMs"] == 1333
+            and state["playbackStartMs"] == 1500
             and state["playbackEndMs"] == 2000
             and state["repeatEnabled"] is True,
         )
@@ -69,13 +69,14 @@ def test_chorusing_practice_loops_suffixes_and_pauses_for_normal_play(
             lambda value: "Practice mode. Use the toolbar buttons for chorusing." in value,
             timeout=5.0,
         )
-        wrapped = _force_repeat_wrap(editor, 1333)
+        wrapped = _force_repeat_wrap(editor, 1500)
 
-        inserted = _click_chorusing_marker(editor, 0.5, expected_count=4)
-        after_insert_next = _click_chorusing_next(editor, expected_index=2)
+        inserted = _click_chorusing_marker(editor, 0.625, expected_count=5)
+        after_insert_next = _click_chorusing_next(editor, expected_index=3)
 
-        longer = _click_chorusing_next(editor, expected_index=1)
+        longer = _click_chorusing_next(editor, expected_index=2)
 
+        _click_chorusing_next(editor, expected_index=1)
         _click_chorusing_next(editor, expected_index=0)
         full_sentence = _state(
             editor,
@@ -93,19 +94,19 @@ def test_chorusing_practice_loops_suffixes_and_pauses_for_normal_play(
         )
 
         assert markers["chorusingState"] == "stopped"
-        assert "Playing from 1.33s" in status_text
+        assert "Playing from 1.50s" in status_text
         assert playing["chorusingBaseStartMs"] == 0
-        assert playing["chorusingMarkersMs"] == [0, 667, 1333]
-        assert playing["chorusingActiveStartMs"] == 1333
-        assert wrapped["chorusingActiveMarkerIndex"] == 2
-        assert inserted["chorusingMarkersMs"] == [0, 667, 1000, 1333]
-        assert inserted["chorusingActiveStartMs"] == 1333
-        assert after_insert_next["chorusingActiveStartMs"] == 1000
-        assert longer["chorusingActiveStartMs"] == 667
+        assert playing["chorusingMarkersMs"] == [0, 500, 1000, 1500]
+        assert playing["chorusingActiveStartMs"] == 1500
+        assert wrapped["chorusingActiveMarkerIndex"] == 3
+        assert inserted["chorusingMarkersMs"] == [0, 500, 1000, 1250, 1500]
+        assert inserted["chorusingActiveStartMs"] == 1500
+        assert after_insert_next["chorusingActiveStartMs"] == 1250
+        assert longer["chorusingActiveStartMs"] == 1000
         assert full_sentence["chorusingActiveStartMs"] == 0
-        assert shorter["chorusingActiveStartMs"] == 667
-        assert shorter["selectionStartMs"] == 667
-        assert paused["selectionStartMs"] == 667
+        assert shorter["chorusingActiveStartMs"] == 500
+        assert shorter["selectionStartMs"] == 500
+        assert paused["selectionStartMs"] == 500
     finally:
         editor.set_note(None)
         parent.close()
@@ -128,30 +129,30 @@ def test_chorusing_auto_advance_uses_split_menu_and_keeps_manual_navigation(
         initial = _state(
             editor,
             lambda state: state["chorusingState"] == "playing"
-            and state["chorusingActiveMarkerIndex"] == 2
-            and state["selectionStartMs"] == 1333
+            and state["chorusingActiveMarkerIndex"] == 3
+            and state["selectionStartMs"] == 1500
             and state["selectionEndMs"] == 2000
             and state["repeatEnabled"] is True,
         )
 
-        first_wrap = _force_repeat_wrap(editor, 1333)
+        first_wrap = _force_repeat_wrap(editor, 1500)
         second_wrap = _state(
             editor,
             lambda state: state["chorusingState"] == "playing"
-            and state["chorusingActiveMarkerIndex"] == 1
-            and state["selectionStartMs"] == 667
+            and state["chorusingActiveMarkerIndex"] == 2
+            and state["selectionStartMs"] == 1000
             and state["selectionEndMs"] == 2000
-            and state["playbackStartMs"] == 667,
+            and state["playbackStartMs"] == 1000,
         )
 
-        longer = _click_chorusing_next(editor, expected_index=0)
-        shorter = _click_chorusing_previous(editor, expected_index=1)
+        longer = _click_chorusing_next(editor, expected_index=1)
+        shorter = _click_chorusing_previous(editor, expected_index=2)
 
         assert initial["chorusingRepeatPassesCompleted"] == 0
         assert first_wrap["chorusingRepeatPassesCompleted"] == 1
         assert second_wrap["chorusingRepeatPassesCompleted"] == 0
-        assert longer["chorusingActiveStartMs"] == 0
-        assert shorter["chorusingActiveStartMs"] == 667
+        assert longer["chorusingActiveStartMs"] == 500
+        assert shorter["chorusingActiveStartMs"] == 1000
     finally:
         editor.set_note(None)
         parent.close()
@@ -172,7 +173,7 @@ def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
             editor,
             lambda state: state["chorusingBaseStartMs"] == 0
             and state["chorusingBaseEndMs"] == 2000
-            and state["chorusingMarkersMs"] == [0, 667, 1333]
+            and state["chorusingMarkersMs"] == [0, 500, 1000, 1500]
             and state["chorusingState"] == "stopped",
         )
         rail = wait_for_js_condition(
@@ -190,7 +191,7 @@ def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
             """,
             lambda value: value is not None
             and value["hidden"] == "false"
-            and value["markerCount"] == 3
+            and value["markerCount"] == 4
             and value["trackVisible"] is True,
             timeout=5.0,
         )
@@ -230,13 +231,13 @@ def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
             timeout=5.0,
         )
 
-        inserted = _click_chorusing_marker(editor, 0.5, expected_count=4)
+        inserted = _click_chorusing_marker(editor, 0.625, expected_count=5)
         _click_chorusing_practice(editor)
         playing = _state(
             editor,
             lambda state: state["chorusingState"] == "playing"
-            and state["chorusingActiveStartMs"] == 1333
-            and state["chorusingMarkersMs"] == [0, 667, 1000, 1333],
+            and state["chorusingActiveStartMs"] == 1500
+            and state["chorusingMarkersMs"] == [0, 500, 1000, 1250, 1500],
         )
 
         assert initial["chorusingCanPractice"] is True
@@ -246,8 +247,8 @@ def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
             "aqe:chorusing-next",
             "aqe:chorusing-previous",
         ]
-        assert inserted["chorusingActiveStartMs"] == 1333
-        assert playing["selectionStartMs"] == 1333
+        assert inserted["chorusingActiveStartMs"] == 1500
+        assert playing["selectionStartMs"] == 1500
     finally:
         editor.set_note(None)
         parent.close()
@@ -270,7 +271,7 @@ def test_chorusing_marker_placement_uses_zoomed_viewport(
             lambda value: value["viewportStartMs"] == 400
             and value["viewportEndMs"] == 1600,
         )
-        _click_chorusing_marker(editor, 0.4, expected_count=4)
+        _click_chorusing_marker(editor, 0.4, expected_count=5)
 
         state = _state(
             editor,
@@ -334,7 +335,7 @@ def test_chorusing_marker_rail_does_not_steal_top_of_graph_cursor_drag(
             """,
             lambda value: value is not None
             and abs(value["cursorMs"] - 1200) <= 75
-            and value["markersMs"] == [0, 667, 1333],
+            and value["markersMs"] == [0, 500, 1000, 1500],
             timeout=5.0,
         )
 

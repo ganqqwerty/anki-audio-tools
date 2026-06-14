@@ -31,8 +31,38 @@ describe("editor inline chorusing state", () => {
     ]);
   });
 
-  it("creates default markers from the selection start through two equally spaced suffix starts", () => {
-    expect(defaultChorusingMarkers(baseRegion)).toEqual([1000, 1400, 1800]);
+  it("creates default markers from the selection start at the configured interval", () => {
+    expect(defaultChorusingMarkers(baseRegion, 500)).toEqual([1000, 1500, 2000]);
+  });
+
+  it("clamps invalid default marker intervals to the built-in default", () => {
+    expect(defaultChorusingMarkers(baseRegion, Number.NaN)).toEqual([1000, 1500, 2000]);
+    expect(defaultChorusingMarkers(baseRegion, 10)).toEqual([
+      1000,
+      1050,
+      1100,
+      1150,
+      1200,
+      1250,
+      1300,
+      1350,
+      1400,
+      1450,
+      1500,
+      1550,
+      1600,
+      1650,
+      1700,
+      1750,
+      1800,
+      1850,
+      1900,
+      1950,
+      2000,
+      2050,
+      2100,
+      2150,
+    ]);
   });
 
   it("adds a marker when no nearby marker exists", () => {

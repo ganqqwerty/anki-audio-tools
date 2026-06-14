@@ -40,6 +40,7 @@
   "settings.chorusing_pause_seconds": "コーラシング反復間の一時停止 (秒)",
   "settings.chorusing_auto_advance_by_default": "既定でコーラシングを自動送りする",
   "settings.chorusing_auto_advance_repeats": "自動送りまでのコーラシング反復回数",
+  "settings.chorusing_marker_interval_ms": "Xミリ秒ごとにマーカー",
   "settings.share_target": "既定の共有先",
   "settings.show_graph_by_default": "既定でグラフを表示する",
   "settings.selection_marker_shift_buttons_enabled": "選択範囲のマーカー移動ボタンを表示",

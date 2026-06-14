@@ -20,10 +20,11 @@ import {
   writeChorusingState,
 } from "./chorusing-dom.js";
 import { syncChorusingToolbarButtons } from "./chorusing-toolbar.js";
-import { getSplitButtonState } from "./split-button-state.js";
+import { getSplitButtonState, splitButtonDefaults } from "./split-button-state.js";
 import {
   activeMarkerIndexAfterMarkerToggle,
   chooseInitialActiveMarkerIndex,
+  clampChorusingMarkerIntervalMs,
   defaultChorusingMarkers,
   deriveActiveSuffix,
   emptyChorusingState,
@@ -178,7 +179,9 @@ function ensureChorusingBase(
   const baseRegion = state.baseRegion ?? wholeFileChorusingRegion(visualizer);
   if (!baseRegion) return null;
   const newBaseRegion = state.baseRegion === null;
-  const markersMs = newBaseRegion ? defaultChorusingMarkers(baseRegion) : state.markersMs;
+  const markersMs = newBaseRegion
+    ? defaultChorusingMarkers(baseRegion, chorusingMarkerIntervalMs())
+    : state.markersMs;
   const nextState = {
     ...state,
     activeMarkerIndex: newBaseRegion ? chooseInitialActiveMarkerIndex(markersMs) : state.activeMarkerIndex,
@@ -190,6 +193,10 @@ function ensureChorusingBase(
     writeState(visualizer, nextState);
   }
   return nextState;
+}
+
+function chorusingMarkerIntervalMs(): number {
+  return clampChorusingMarkerIntervalMs(splitButtonDefaults().chorusingMarkerIntervalMs);
 }
 
 function wholeFileChorusingRegion(visualizer: VisualizerElement) {

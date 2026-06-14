@@ -58,10 +58,10 @@ describe("editor inline selection marker shift playback integration", () => {
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       cursorMs: 0,
-      playbackEndMs: 667,
+      playbackEndMs: 500,
       playbackStartMs: 0,
       playbackState: "playing",
-      selectionEndMs: 667,
+      selectionEndMs: 500,
       selectionStartMs: 0,
     });
     expect(audio.pause).toHaveBeenCalled();
