@@ -8,7 +8,6 @@ import {
 } from "./selection-state.js";
 import {
   canonicalTimeViewport,
-  normalizeTimeViewport,
   type TimeViewport,
 } from "./time-viewport.js";
 import type { VisualizerElement } from "./types.js";
@@ -17,6 +16,12 @@ import {
   updateFieldState,
   writeFieldState,
 } from "./field-state-store.js";
+import {
+  readRuntimeTimeViewport,
+  readTargetDurationMsForVisualizer,
+  setPlaybackResetCursorMsRuntime,
+  writeRuntimeTimeViewport,
+} from "./visualizer-runtime-state.js";
 
 function fieldOrd(visualizer: VisualizerElement): number {
   return Number(visualizer.dataset.aqeFieldOrd || "0");
@@ -27,16 +32,15 @@ export function readVisualizerDurationMs(visualizer: VisualizerElement): number 
 }
 
 export function readVisualizerTargetDurationMs(visualizer: VisualizerElement): number {
-  const targetDurationMs = Number(visualizer.dataset.targetDurationMs || "0") || 0;
-  if (targetDurationMs > 0) return targetDurationMs;
-  return readFieldState(fieldOrd(visualizer)).graph.durationMs;
+  return readTargetDurationMsForVisualizer(
+    visualizer,
+    readFieldState(fieldOrd(visualizer)).graph.durationMs,
+  );
 }
 
 export function readVisualizerTimeViewport(visualizer: VisualizerElement): TimeViewport {
   const durationMs = readVisualizerDurationMs(visualizer);
-  const startMs = Number(visualizer.dataset.viewportStartMs || "0") || 0;
-  const endMs = Number(visualizer.dataset.viewportEndMs || String(durationMs)) || durationMs;
-  return normalizeTimeViewport(startMs, endMs, durationMs);
+  return readRuntimeTimeViewport(visualizer, durationMs);
 }
 
 export function resetVisualizerTimeViewport(
@@ -48,9 +52,7 @@ export function resetVisualizerTimeViewport(
 }
 
 export function writeVisualizerTimeViewport(visualizer: VisualizerElement, viewport: TimeViewport): void {
-  const normalized = normalizeTimeViewport(viewport.startMs, viewport.endMs, viewport.durationMs);
-  visualizer.dataset.viewportStartMs = String(Math.round(normalized.startMs));
-  visualizer.dataset.viewportEndMs = String(Math.round(normalized.endMs));
+  writeRuntimeTimeViewport(visualizer, viewport);
 }
 
 export function readVisualizerCursorMs(visualizer: VisualizerElement): number {
@@ -109,11 +111,12 @@ export function setVisualizerSelection(visualizer: VisualizerElement, range: Sel
 export function setVisualizerPlaybackRegion(visualizer: VisualizerElement, region: PlaybackRegion): void {
   const ord = fieldOrd(visualizer);
   const state = readFieldState(ord);
-  visualizer.dataset.playbackResetCursorMs = String(Math.round(
+  setPlaybackResetCursorMsRuntime(
+    visualizer,
     region.mode === "selection"
       ? region.startMs
       : state.cursor.anchorMs || state.cursor.ms,
-  ));
+  );
   writeFieldState(ord, {
     ...state,
     playback: {

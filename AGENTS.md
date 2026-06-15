@@ -54,6 +54,7 @@ Read [`DEVELOPMENT.md`](DEVELOPMENT.md) before changing dependencies or troubles
 When working on settings or editor webview bundles, read [`WEBVIEW_AND_TEMPLATES.md`](WEBVIEW_AND_TEMPLATES.md).
 When changing inline editor modification buttons, split-button quick settings, generated-file behavior, or editor/batch operation parity, also read [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md).
 Live Svelte UI tooltips should use `settings_ui/src/lib/AqeTooltip.svelte` and `settings_ui/src/lib/AqeTooltipProvider.svelte` (Bits UI). Do not add native HTML `title` or SVG `<title>` tooltips to shipped webview UI.
+Inline editor behavioral state must live in typed frontend stores (`field-state-store.ts`, `editor-control-state.ts`, `recording-state-store.ts`, `visualizer-runtime-state.ts`). Do not read DOM `dataset` attributes as a behavioral source of truth; keep them as derived CSS/test/compatibility projections or Anki DOM discovery only. Rule 33 and Rule 34 under `tests/test_architecture/` enforce this.
 
 ## Config Schema
 

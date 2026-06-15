@@ -28,6 +28,12 @@ import {
 } from "./visualizer-state.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
 import { graphRequested } from "./field-state.js";
+import {
+  readLearnerDurationMsForVisualizer,
+  setLearnerDurationMsForVisualizer,
+  setPlaybackPassRuntime,
+  setTargetDurationMsForVisualizer,
+} from "./visualizer-runtime-state.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -50,11 +56,15 @@ export function renderGraphRequested(visualizer: VisualizerElement, options: Lea
     delete visualizer.dataset.pendingLearnerOverlayTargetDurationMs;
   }
   writeFieldState(ord, graphRequested(readFieldState(ord)));
-  visualizer.dataset.targetDurationMs = "0";
-  if (!preserveLearnerOverlay) visualizer.dataset.learnerDurationMs = "0";
-  visualizer.dataset.learnerRecordingStatus = "idle";
-  visualizer.dataset.playbackResetCursorMs = "0";
-  visualizer.dataset.playbackLoop = "false";
+  setTargetDurationMsForVisualizer(visualizer, 0);
+  if (!preserveLearnerOverlay) setLearnerDurationMsForVisualizer(visualizer, 0);
+  setPlaybackPassRuntime(visualizer, {
+    endMs: 0,
+    loop: false,
+    regionMode: "full",
+    resetCursorMs: 0,
+    startMs: 0,
+  });
   resetVisualizerTimeViewport(visualizer, 0);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
@@ -82,13 +92,13 @@ export function renderVisualizerTrack(
     },
     sourceFilename: track.sourceFilename || "",
   });
-  visualizer.dataset.targetDurationMs = String(track.durationMs || 0);
+  setTargetDurationMsForVisualizer(visualizer, track.durationMs || 0);
   delete visualizer.dataset.pendingLearnerOverlayTargetDurationMs;
   if (preservedLearnerTrack) {
     visualizer.__aqeLearnerTrack = preservedLearnerTrack;
-    visualizer.dataset.learnerDurationMs = String(preservedLearnerTrack.durationMs || 0);
+    setLearnerDurationMsForVisualizer(visualizer, preservedLearnerTrack.durationMs || 0);
   } else {
-    visualizer.dataset.learnerDurationMs = "0";
+    setLearnerDurationMsForVisualizer(visualizer, 0);
     delete visualizer.__aqeLearnerTrack;
   }
   visualizer.__aqeTrack = track;
@@ -100,7 +110,7 @@ export function renderVisualizerTrack(
 export function renderLearnerVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
   if (!readFieldState(fieldOrd(visualizer)).graph.hasTrack || !visualizer.__aqeTrack) return;
   visualizer.__aqeLearnerTrack = track;
-  visualizer.dataset.learnerDurationMs = String(track.durationMs || 0);
+  setLearnerDurationMsForVisualizer(visualizer, track.durationMs || 0);
   renderProsodyTracks(visualizer);
 }
 
@@ -245,7 +255,7 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
   if (!target) return;
   const plot = syncVisualizerViewBox(visualizer);
   const learner = visualizer.__aqeLearnerTrack;
-  const learnerDurationMs = Math.max(Number(visualizer.dataset.learnerDurationMs || "0") || 0, learner?.durationMs || 0);
+  const learnerDurationMs = Math.max(readLearnerDurationMsForVisualizer(visualizer), learner?.durationMs || 0);
   const durationMs = Math.max(target.durationMs || 0, learnerDurationMs);
   const viewport = readVisualizerTimeViewport(visualizer);
   const pitchRange = combinedPitchRange(target, learner);
@@ -255,8 +265,8 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
     ...state,
     graph: { ...state.graph, durationMs },
   });
-  visualizer.dataset.targetDurationMs = String(target.durationMs || 0);
-  visualizer.dataset.learnerDurationMs = String(learnerDurationMs);
+  setTargetDurationMsForVisualizer(visualizer, target.durationMs || 0);
+  setLearnerDurationMsForVisualizer(visualizer, learnerDurationMs);
   const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
   if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs, viewport, plot));
   drawPitch(visualizer, target, {

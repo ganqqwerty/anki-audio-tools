@@ -40,6 +40,7 @@ import {
   readVisualizerTargetDurationMs,
   readVisualizerTimeViewport,
 } from "./visualizer-state.js";
+import { setPlaybackLoopRuntime } from "./visualizer-runtime-state.js";
 
 const MARKER_HIT_TOLERANCE_MS = 35;
 
@@ -368,7 +369,7 @@ function writeRepeatForPractice(visualizer: VisualizerElement, enabled: boolean)
     ...state,
     playback: { ...state.playback, repeat: enabled },
   }));
-  visualizer.dataset.playbackLoop = enabled ? "true" : "false";
+  setPlaybackLoopRuntime(visualizer, enabled);
 }
 
 function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: ChorusingState): void {

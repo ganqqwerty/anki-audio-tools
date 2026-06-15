@@ -36,6 +36,10 @@ import {
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
+import {
+  setPlaybackClockRuntime,
+  setRepeatPauseWaitingRuntime,
+} from "./visualizer-runtime-state.js";
 
 export { clearPlaybackFrame };
 export {
@@ -239,8 +243,7 @@ export function startProgressClock(
     ...fresh,
     playback: { ...fresh.playback, engine: selectedEngine, state: "playing" },
   });
-  visualizer.dataset.playStartedAt = String(performance.now());
-  visualizer.dataset.playStartMs = String(clampedStartMs);
+  setPlaybackClockRuntime(visualizer, clampedStartMs);
   const pass = setPlaybackPass(visualizer, clampedStartMs, deps);
   if (s.graph.durationMs) {
     deps.setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
@@ -281,14 +284,13 @@ function scheduleRepeatLoopPlayback(
   clearPlaybackFrame(visualizer);
   pauseAudioClock(visualizer);
   writePlaybackPass(visualizer, pass);
-  visualizer.dataset.playStartedAt = String(performance.now());
-  visualizer.dataset.playStartMs = String(loopStartMs);
+  setPlaybackClockRuntime(visualizer, loopStartMs);
   const s = fieldState(visualizer);
   writeFieldState(s.ord, {
     ...s,
     playback: { ...s.playback, state: "playing", clockMode: "stopped" },
   });
-  visualizer.dataset.repeatPauseWaiting = "true";
+  setRepeatPauseWaitingRuntime(visualizer, true);
   deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
   ensurePlaybackCursorVisible(visualizer, loopStartMs);
   deps.setPlaybackButtonLabel(visualizer, "Pause");
@@ -314,8 +316,7 @@ function restartLoopPlaybackNow(
   const loopStartMs = pass.startMs;
   clearRepeatPauseTimer(visualizer);
   writePlaybackPass(visualizer, pass);
-  visualizer.dataset.playStartedAt = String(performance.now());
-  visualizer.dataset.playStartMs = String(loopStartMs);
+  setPlaybackClockRuntime(visualizer, loopStartMs);
   const s = fieldState(visualizer);
   writeFieldState(s.ord, {
     ...s,

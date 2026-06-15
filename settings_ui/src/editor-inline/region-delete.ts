@@ -3,16 +3,13 @@ import { focusAndSendCommand, setPendingRegionDeleteRequest } from "./bridge.js"
 import { logger } from "./logger.js";
 import { rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
 import { setControlsBusy, stopProgressClock } from "./actions.js";
+import { isEditorBusy } from "./editor-control-state.js";
 import { regionDeleteRequestFor } from "./region-delete-state.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import type { RegionDeleteRequest } from "./types.js";
 
 type RegionDeleteOperation = RegionDeleteRequest["operation"];
-
-function anyBusy(): boolean {
-  return document.body.dataset.aqeBusy === "true";
-}
 
 function commandForOperation(operation: RegionDeleteOperation): "aqe:delete-rest" | "aqe:delete-selection" {
   return operation === "delete-rest" ? "aqe:delete-rest" : "aqe:delete-selection";
@@ -24,7 +21,7 @@ export function sendRegionDelete(
   ord: number,
   operation: RegionDeleteOperation = "delete-selection",
 ): void {
-  if (anyBusy()) return;
+  if (isEditorBusy()) return;
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
   const request = regionDeleteRequestFor(visualizer, trigger, operation);
@@ -53,7 +50,7 @@ export function sendRegionDelete(
 export function handleVisualizerKeyDown(event: KeyboardEvent, ord: number): void {
   if (event.key !== "Backspace") return;
   const visualizer = visualizerForOrd(ord);
-  if (!visualizer || document.activeElement !== visualizer || anyBusy()) return;
+  if (!visualizer || document.activeElement !== visualizer || isEditorBusy()) return;
   if (!regionDeleteRequestFor(visualizer, "backspace")) {
     syncSelectionToolbar(visualizer);
     return;

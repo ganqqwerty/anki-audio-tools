@@ -79,6 +79,19 @@ afterEach(() => {
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Closed settings.");
   });
 
+  it("keeps post-edit playback blocked when the legacy busy attribute is corrupted", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 400);
+    window.__aqeSetBusy?.(0, true, "Still processing. Please wait.");
+
+    document.body.dataset.aqeBusy = "false";
+
+    expect(window.__aqePlayAfterEdit?.(0)).toBe(false);
+    expect(bridgeCommands()).not.toContain("aqe:play");
+  });
+
   it("keeps the final edit summary after a successful graph redraw", async () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],

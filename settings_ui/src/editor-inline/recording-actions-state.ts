@@ -8,6 +8,21 @@ import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import type { LearnerPlaybackStatus, LearnerRecordingStatePayload, LearnerRecordingStatus } from "./recording-state.js";
 import { normalizeTrack, type NormalizedProsodyTrack, type ProsodyPoint, type VisualizerElement } from "./types.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
+import {
+  learnerPlaybackStatusForOrdState,
+  learnerRecordingStatusForOrdState,
+  learnerStartCursorMsForOrdState,
+  resetLearnerRecordingStateStore,
+  writeLearnerRecordingState,
+  type LearnerRecordingFieldState,
+} from "./recording-state-store.js";
+import {
+  fieldOrdForVisualizer,
+  setLearnerDurationMsForVisualizer,
+  setTargetDurationMsForVisualizer,
+} from "./visualizer-runtime-state.js";
+import { stableStatusState } from "./editor-control-state.js";
+import { isUserFacingError } from "../lib/user-facing-error.js";
 
 export const RECORDING_BLOCKING_STATUSES = new Set<LearnerRecordingStatus>([
   "countdown",
@@ -20,34 +35,19 @@ export function setLearnerRecordingState(payload: LearnerRecordingStatePayload):
   const ord = resolveFieldOrd(payload.fieldOrd);
   const controls = controlsForOrd(ord);
   if (!controls) return false;
-  const status = payload.status || "idle";
-  controls.dataset.learnerRecordingStatus = status;
-  controls.dataset.learnerRecordingGeneration = payload.generation == null ? "" : String(payload.generation);
-  controls.dataset.learnerRecordingMediaFilename = payload.mediaFilename || "";
-  controls.dataset.learnerRecordingFailureMessage = payload.failureMessage || "";
-  controls.dataset.learnerPlaybackStatus = playbackStatusForPayload(payload);
-  if (payload.startCursorMs != null) {
-    controls.dataset.learnerStartCursorMs = String(payload.startCursorMs);
-  } else if (status === "idle") {
-    controls.dataset.learnerStartCursorMs = "0";
-  }
+  const state = writeLearnerRecordingState(ord, payload);
+  projectLearnerRecordingControls(controls, state);
 
   const visualizer = visualizerForOrd(ord);
   if (visualizer) {
-    visualizer.dataset.learnerRecordingStatus = status;
-    visualizer.dataset.learnerPlaybackStatus = playbackStatusForPayload(payload);
+    projectLearnerRecordingVisualizer(visualizer, state);
     if (payload.targetDurationMs != null) {
-      visualizer.dataset.targetDurationMs = String(payload.targetDurationMs);
-    }
-    if (payload.startCursorMs != null) {
-      visualizer.dataset.learnerStartCursorMs = String(payload.startCursorMs);
-    } else if (status === "idle") {
-      visualizer.dataset.learnerStartCursorMs = "0";
+      setTargetDurationMsForVisualizer(visualizer, payload.targetDurationMs);
     }
     if (payload.recordingDurationMs != null) {
       syncActiveRecordingTimeline(visualizer, payload.recordingDurationMs);
     }
-    if (status === "recording") {
+    if (state.recordingStatus === "recording") {
       startRecordingCursor(
         visualizer,
         learnerStartCursorMsForVisualizer(visualizer),
@@ -71,6 +71,7 @@ export function setLearnerVisualizer(ord: number, rawTrack: ProsodyPayload): boo
 }
 
 export function resetLearnerRecordingState(ord: number, options: { clearOverlay?: boolean } = {}): boolean {
+  resetLearnerRecordingStateStore(ord);
   const visualizer = visualizerForOrd(ord);
   if (visualizer?.__aqeRecordCountdownTimer) {
     window.clearTimeout(visualizer.__aqeRecordCountdownTimer);
@@ -81,8 +82,7 @@ export function resetLearnerRecordingState(ord: number, options: { clearOverlay?
     if (options.clearOverlay !== false) {
       clearLearnerVisualizerTrack(visualizer);
       delete visualizer.__aqeLearnerTrack;
-      visualizer.dataset.learnerDurationMs = "0";
-      visualizer.dataset.learnerStartCursorMs = "0";
+      setLearnerDurationMsForVisualizer(visualizer, 0);
     }
   }
   return setLearnerRecordingState({ fieldOrd: ord, status: "idle" });
@@ -103,7 +103,7 @@ export function recordingStartCursorMs(visualizer: VisualizerElement, targetDura
 }
 
 export function learnerStartCursorMsForVisualizer(visualizer: VisualizerElement): number {
-  return Math.max(0, Number(visualizer.dataset.learnerStartCursorMs || "0") || 0);
+  return learnerStartCursorMsForOrdState(fieldOrdForVisualizer(visualizer));
 }
 
 export function offsetLearnerTrack(track: NormalizedProsodyTrack, startCursorMs: number): NormalizedProsodyTrack {
@@ -125,18 +125,8 @@ export function learnerRecordingStatusForOrd(ord: number): LearnerRecordingStatu
 }
 
 export function learnerRecordingStatusForControls(controls: HTMLElement | null): LearnerRecordingStatus {
-  const status = controls?.dataset.learnerRecordingStatus;
-  if (
-    status === "countdown"
-    || status === "recording"
-    || status === "stopping"
-    || status === "analyzing"
-    || status === "ready"
-    || status === "failed"
-  ) {
-    return status;
-  }
-  return "idle";
+  if (!controls) return "idle";
+  return learnerRecordingStatusForOrdState(Number(controls.dataset.aqeFieldOrd || "0"));
 }
 
 export function playbackStatusForPayload(payload: LearnerRecordingStatePayload): LearnerPlaybackStatus {
@@ -147,9 +137,8 @@ export function playbackStatusForPayload(payload: LearnerRecordingStatePayload):
 }
 
 export function learnerPlaybackStatusForControls(controls: HTMLElement | null): LearnerPlaybackStatus {
-  const status = controls?.dataset.learnerPlaybackStatus;
-  if (status === "playing" || status === "paused") return status;
-  return "stopped";
+  if (!controls) return "stopped";
+  return learnerPlaybackStatusForOrdState(Number(controls.dataset.aqeFieldOrd || "0"));
 }
 
 export function resolveFieldOrd(fieldOrd: number | null | undefined): number {
@@ -198,7 +187,7 @@ function syncActiveRecordingTimeline(visualizer: VisualizerElement, recordingDur
   const effectiveLearnerDurationMs = activeRecordingLearnerDurationMs(visualizer, recordingDurationMs);
   const targetDurationMs = targetDurationForRecording(visualizer);
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  visualizer.dataset.learnerDurationMs = String(Math.round(effectiveLearnerDurationMs));
+  setLearnerDurationMsForVisualizer(visualizer, effectiveLearnerDurationMs);
   if (readFieldState(ord).graph.hasTrack && visualizer.__aqeTrack) {
     renderProsodyTracks(visualizer);
     return readFieldState(ord).graph.durationMs;
@@ -223,8 +212,9 @@ function renderRecordingStatus(controls: HTMLElement, payload: LearnerRecordingS
   const status = payload.status || "idle";
   const message = recordingStatusText(payload);
   if (status === "idle" && !message) {
-    statusNode.textContent = statusNode.dataset.stableMessage || "";
-    statusNode.dataset.kind = statusNode.dataset.stableKind || "info";
+    const stable = stableStatusState(Number(controls.dataset.aqeFieldOrd || "0"));
+    statusNode.textContent = isUserFacingError(stable.message) ? stable.message.message : stable.message;
+    statusNode.dataset.kind = stable.kind || "info";
     return;
   }
   statusNode.textContent = message;
@@ -233,6 +223,27 @@ function renderRecordingStatus(controls: HTMLElement, payload: LearnerRecordingS
     : RECORDING_BLOCKING_STATUSES.has(status)
       ? "processing"
       : "info";
+}
+
+function projectLearnerRecordingControls(
+  controls: HTMLElement,
+  state: LearnerRecordingFieldState,
+): void {
+  controls.dataset.learnerRecordingStatus = state.recordingStatus;
+  controls.dataset.learnerRecordingGeneration = state.generation == null ? "" : String(state.generation);
+  controls.dataset.learnerRecordingMediaFilename = state.mediaFilename;
+  controls.dataset.learnerRecordingFailureMessage = state.failureMessage;
+  controls.dataset.learnerPlaybackStatus = state.playbackStatus;
+  controls.dataset.learnerStartCursorMs = String(state.startCursorMs);
+}
+
+function projectLearnerRecordingVisualizer(
+  visualizer: VisualizerElement,
+  state: LearnerRecordingFieldState,
+): void {
+  visualizer.dataset.learnerRecordingStatus = state.recordingStatus;
+  visualizer.dataset.learnerPlaybackStatus = state.playbackStatus;
+  visualizer.dataset.learnerStartCursorMs = String(state.startCursorMs);
 }
 
 function recordingStatusText(payload: LearnerRecordingStatePayload): string {

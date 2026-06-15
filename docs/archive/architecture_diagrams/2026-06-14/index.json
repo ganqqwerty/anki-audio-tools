@@ -4,17 +4,17 @@
   "description": "Machine-readable architecture data for LLM consumption",
   "files": {
     "python-modules.json": "170 Python modules cataloged by layer, imports, and purpose",
-    "svelte-modules.json": "189 Svelte/TypeScript modules cataloged by category and imports",
+    "svelte-modules.json": "193 Svelte/TypeScript modules cataloged by category and imports",
     "bridge-commands.json": "77 bridge commands (pycmd protocol) across editor, settings, batch, and window contract",
     "webview-injection.json": "4 webview screens mapped to Anki hooks, Python handlers, and Svelte bundles",
     "architecture-layers.json": "5-layer architecture model with rules and module assignments",
-    "relationships.json": "1653 cross-module relationships (Python, Svelte, and bridge)"
+    "relationships.json": "1701 cross-module relationships (Python, Svelte, and bridge)"
   },
   "totals": {
     "python_modules": 170,
-    "svelte_modules": 189,
+    "svelte_modules": 193,
     "bridge_commands": 77,
     "webview_screens": 4,
-    "relationships": 1653
+    "relationships": 1701
   }
 }

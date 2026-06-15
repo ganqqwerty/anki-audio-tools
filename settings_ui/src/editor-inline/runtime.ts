@@ -24,6 +24,9 @@ import {
 import {audioSourceForNode} from "./sound-source.js";
 import type {EditorRuntimeConfig, FieldTarget} from "./types.js";
 import {installEditorWindowContract} from "./window-contract.js";
+import {isEditorBusy, resetEditorControlState} from "./editor-control-state.js";
+import {clearLearnerRecordingStateStore} from "./recording-state-store.js";
+import {clearVisualizerRuntimeStates} from "./visualizer-runtime-state.js";
 
 let scheduledScanTimers: number[] = [];
 let mutationScanTimer: number | null = null;
@@ -84,6 +87,9 @@ export function disposeEditorRuntime(): void {
     editorDomObserver?.disconnect();
     editorDomObserver = null;
     disposeAllControllers();
+    resetEditorControlState();
+    clearLearnerRecordingStateStore();
+    clearVisualizerRuntimeStates();
 }
 
 export function scan(config: EditorRuntimeConfig = editorRuntimeConfig()): void {
@@ -187,7 +193,7 @@ function enqueueConfiguredDefaultGraphs(config: EditorRuntimeConfig, targets: re
     enqueueDefaultGraphs(
         targets.map(({ord, sourceFilename}) => ({ord, sourceFilename})),
         {
-            anyBusy: () => document.body.dataset.aqeBusy === "true",
+            anyBusy: isEditorBusy,
             requestDefaultGraph,
         },
     );

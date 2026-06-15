@@ -48,10 +48,14 @@ import {
   updateButtonTooltipForDisabledState,
   clearStatus,
   hasStableStatusForOrd,
+  projectEditorBusyState,
   restoreStatusForOrd,
 } from "./control-actions.js";
+import { resetEditorControlState } from "./editor-control-state.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { resetVisualizerTimeViewport } from "./visualizer-state.js";
+import { resetVisualizerRuntimeState, clearVisualizerRuntimeStates } from "./visualizer-runtime-state.js";
+import { clearLearnerRecordingStateStore } from "./recording-state-store.js";
 import { initFieldState, readFieldState, updateFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
 
@@ -239,12 +243,14 @@ function pendingGraphRedrawMatches(ord: number, sourceFilename: string): boolean
 export function prepareForNewNote(): void {
   clearPendingNoteScopedBridgeRequests();
   clearSourceMetadataRequests();
-  document.body.dataset.aqeBusy = "false";
+  resetEditorControlState();
+  clearVisualizerRuntimeStates();
+  clearLearnerRecordingStateStore();
+  projectEditorBusyState();
   window.__aqeActiveField = null;
   window.__aqeLastCursorIntent = null;
   window.__aqeHistoryAvailabilityByField = {};
   document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {
-    controls.dataset.busy = "false";
     controls.dataset.aqeSourceFilename = "";
     const ord = Number(controls.dataset.aqeFieldOrd || "0");
     controls.querySelectorAll<HTMLButtonElement>(".aqe-button").forEach((button) => {
@@ -266,13 +272,7 @@ export function prepareForNewNote(): void {
     visualizer.hidden = true;
     initFieldState(ord, initialFieldState({ ord, repeatByDefault: repeatDefaultFromConfig() }));
     resetVisualizerTimeViewport(visualizer, 0);
-    visualizer.dataset.targetDurationMs = "0";
-    visualizer.dataset.learnerDurationMs = "0";
-    visualizer.dataset.learnerRecordingStatus = "idle";
-    visualizer.dataset.playStartedAt = "0";
-    visualizer.dataset.playStartMs = "0";
-    visualizer.dataset.playbackResetCursorMs = "0";
-    visualizer.dataset.playbackLoop = "false";
+    resetVisualizerRuntimeState(ord, visualizer);
     setRepeatEnabled(visualizer, repeatDefaultFromConfig());
     clearSelection(visualizer, { origin: "system" });
     resetVisualizerPlot(visualizer);

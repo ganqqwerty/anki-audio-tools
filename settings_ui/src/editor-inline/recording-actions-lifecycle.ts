@@ -13,6 +13,7 @@ import {
   targetDurationForRecording,
 } from "./recording-actions-state.js";
 import { clearGraphCountdownOverlay } from "./graph-countdown-overlay.js";
+import { setLearnerDurationMsForVisualizer } from "./visualizer-runtime-state.js";
 
 export function dispatchLearnerRecordingPrimary(node: HTMLElement, ord: number): boolean {
   const status = learnerRecordingStatusForOrd(ord);
@@ -34,8 +35,13 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
   clearLearnerVisualizerTrack(visualizer);
   delete visualizer.__aqeLearnerTrack;
   const startCursorMs = recordingStartCursorMs(visualizer, targetDurationMs);
-  visualizer.dataset.learnerDurationMs = "0";
-  visualizer.dataset.learnerStartCursorMs = String(startCursorMs);
+  setLearnerDurationMsForVisualizer(visualizer, 0);
+  setLearnerRecordingState({
+    fieldOrd: ord,
+    startCursorMs,
+    status: "idle",
+    targetDurationMs,
+  });
   setRecordingCursor(visualizer, startCursorMs, targetDurationMs);
 
   const countdownSeconds = getSplitButtonState(ord).voiceRecordingCountdownSeconds;
@@ -73,6 +79,7 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
       fieldOrd: ord,
       status: "countdown",
       countdownSeconds: remaining,
+      startCursorMs,
       targetDurationMs,
     });
     remaining -= 1;

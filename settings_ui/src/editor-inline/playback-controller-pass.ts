@@ -11,6 +11,10 @@ import type { PlaybackControllerDependencies } from "./playback-controller.js";
 import { liveProgressMs } from "./playback-plan-state.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
+import {
+  readPlaybackPassRuntime,
+  setPlaybackPassRuntime,
+} from "./visualizer-runtime-state.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
@@ -69,11 +73,12 @@ export function activePlaybackPass(visualizer: VisualizerElement, deps: Playback
     : s.cursor.anchorMs;
   const rawEndMs = s.playback.endMs ?? region.endMs; // ?? is dead (store ms are non-nullable), kept as safety
   const endMs = s.graph.durationMs > 0 ? Math.min(rawEndMs, s.graph.durationMs) : rawEndMs;
+  const runtimePass = readPlaybackPassRuntime(visualizer, fallbackResetCursorMs);
   return {
     endMs: Math.round(Math.max(0, endMs)),
-    loop: visualizer.dataset.playbackLoop === "true",
+    loop: runtimePass.loop,
     regionMode,
-    resetCursorMs: Math.round(readDomStoredMs(visualizer.dataset.playbackResetCursorMs, fallbackResetCursorMs)),
+    resetCursorMs: Math.round(runtimePass.resetCursorMs),
     startMs: Math.round(s.playback.startMs ?? region.startMs), // ?? is dead (store ms are non-nullable), kept as safety
   };
 }
@@ -89,8 +94,7 @@ export function writePlaybackPass(visualizer: VisualizerElement, pass: PlaybackP
       startMs: Math.round(pass.startMs),
     },
   });
-  visualizer.dataset.playbackResetCursorMs = String(Math.round(pass.resetCursorMs));
-  visualizer.dataset.playbackLoop = pass.loop ? "true" : "false";
+  setPlaybackPassRuntime(visualizer, pass);
 }
 
 function playbackStateForDataset(value: string | undefined): PlaybackState {
@@ -104,12 +108,6 @@ function playbackEngineForDataset(value: string | undefined): PlaybackEngine {
 
 function playbackRegionModeForDataset(value: string | undefined): PlaybackRegionMode {
   return value === "selection" ? "selection" : "full";
-}
-
-function readDomStoredMs(rawValue: string | undefined, fallbackMs: number): number {
-  if (!rawValue) return fallbackMs;
-  const value = Number(rawValue);
-  return Number.isFinite(value) ? value : fallbackMs;
 }
 
 function currentProgressMs(visualizer: VisualizerElement): number | null {

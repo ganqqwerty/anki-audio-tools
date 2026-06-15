@@ -4,6 +4,7 @@ import {
   invalidatePlaybackFrames,
 } from "./playback-plan-state.js";
 import type { VisualizerElement } from "./types.js";
+import { setRepeatPauseWaitingRuntime } from "./visualizer-runtime-state.js";
 
 export function clearPlaybackFrame(visualizer: VisualizerElement): void {
   if (visualizer.__aqePlaybackTimer) {
@@ -21,5 +22,5 @@ export function clearRepeatPauseTimer(visualizer: VisualizerElement): void {
     visualizer.__aqeRepeatPauseTimer = null;
   }
   clearRepeatPauseCountdownOverlay(visualizer);
-  visualizer.dataset.repeatPauseWaiting = "false";
+  setRepeatPauseWaitingRuntime(visualizer, false);
 }

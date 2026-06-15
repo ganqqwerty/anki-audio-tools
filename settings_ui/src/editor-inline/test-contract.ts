@@ -20,6 +20,12 @@ import { chorusingControlsForVisualizer, chorusingStateForVisualizer } from "./c
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
+import { readLearnerRecordingState } from "./recording-state-store.js";
+import {
+  isRepeatPauseWaitingRuntime,
+  readLearnerDurationMsForVisualizer,
+  readRepeatPauseSecondsRuntime,
+} from "./visualizer-runtime-state.js";
 import type { EditorFieldState } from "./field-state.js";
 import type {
   CursorPositionForTest,
@@ -199,6 +205,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const viewport = readVisualizerTimeViewport(visualizer);
   const chorusing = chorusingControlsForVisualizer(visualizer);
+  const learnerRecording = readLearnerRecordingState(ord);
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -208,10 +215,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     targetDurationMs: readVisualizerTargetDurationMs(visualizer),
     viewportStartMs: viewport.startMs,
     viewportEndMs: viewport.endMs,
-    learnerDurationMs: Number(visualizer.dataset.learnerDurationMs || "0"),
-    learnerRecordingStatus: visualizer.dataset.learnerRecordingStatus || "idle",
-    learnerPlaybackStatus: visualizer.dataset.learnerPlaybackStatus || "stopped",
-    learnerStartCursorMs: Number(visualizer.dataset.learnerStartCursorMs || "0"),
+    learnerDurationMs: readLearnerDurationMsForVisualizer(visualizer),
+    learnerRecordingStatus: learnerRecording.recordingStatus,
+    learnerPlaybackStatus: learnerRecording.playbackStatus,
+    learnerStartCursorMs: learnerRecording.startCursorMs,
     anchorMs: Number(visualizer.dataset.anchorMs || "0"),
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
     progressMs: Math.round(currentProgressMs(visualizer) ?? Number(visualizer.dataset.progressMs || "0")),
@@ -233,8 +240,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionEndHandleVisible: endHandle ? !endHandle.hidden : false,
     selectionEndHandleX: selectionHandleLeftPx(plot, "--aqe-selection-end-edge-px"),
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
-    repeatPauseSeconds: Number(visualizer.dataset.repeatPauseSeconds || "0"),
-    repeatPauseWaiting: visualizer.dataset.repeatPauseWaiting === "true",
+    repeatPauseSeconds: readRepeatPauseSecondsRuntime(visualizer),
+    repeatPauseWaiting: isRepeatPauseWaitingRuntime(visualizer),
     repeatControlDisabled: !!(repeatMenu?.disabled || repeatButtonForOrd(ord)?.disabled),
     regionDeleteButtonDisabled: !!regionDelete?.disabled,
     regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,

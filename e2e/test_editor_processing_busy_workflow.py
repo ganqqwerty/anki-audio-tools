@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from e2e.editor_graph_helpers import _click_graph_and_wait
 from e2e.editor_note_helpers import (
+    DEFAULT_VISIBLE_EDITOR_BUTTONS,
     _basic_audio_note,
     _button_selector,
     _configure_ffmpeg,
@@ -125,6 +127,132 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         assert _sound_filename(note.fields[1]) == sources[1].name
         assert _sound_filename(note.fields[2]) == sources[2].name
         assert list(media_dir.glob("editor_three_fields_one__aqe_*")) == [media_dir / generated_name]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_processing_command_locks_playback_recording_history_graph_and_modification_controls(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    sources = (
+        media_dir / "editor_busy_controls_one.wav",
+        media_dir / "editor_busy_controls_two.wav",
+        media_dir / "editor_busy_controls_three.wav",
+    )
+    for source in sources:
+        generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        visible_editor_buttons=[
+            *DEFAULT_VISIBLE_EDITOR_BUTTONS,
+            "aqe:record-voice",
+            "aqe:play-recording",
+            "aqe:share-recording",
+            "aqe:show-recording-file",
+        ],
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == sources[0].name, ord_=0)
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == sources[1].name, ord_=1)
+        wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const record0 = document.querySelector('[data-testid="aqe-button-0-record-voice"]');
+              const record1 = document.querySelector('[data-testid="aqe-button-1-record-voice"]');
+              return !!record0 && !!record1 && !record0.disabled && !record1.disabled;
+            })()
+            """,
+            lambda value: value is True,
+            timeout=5.0,
+        )
+
+        run_js(
+            editor.web,
+            """
+            window.__aqeSetHistorySnapshot(0, {
+              canRedo: false,
+              canUndo: true,
+              redoItems: [],
+              undoItems: [{ id: "seed", label: "Seeded history" }],
+            });
+            """,
+        )
+        wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const undo = document.querySelector('[data-testid="aqe-button-0-undo"]');
+              const record1 = document.querySelector('[data-testid="aqe-button-1-record-voice"]');
+              return !!undo && !!record1 && !undo.disabled && !record1.disabled;
+            })()
+            """,
+            lambda value: value is True,
+            timeout=5.0,
+        )
+
+        locked = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const button = (ord, slug) => document.querySelector(`[data-testid="aqe-button-${ord}-${slug}"]`);
+              button(0, "graph").click();
+              return {
+                field0Playback: button(0, "play")?.disabled === true,
+                field1Playback: button(1, "play")?.disabled === true,
+                field1Recording: button(1, "record-voice")?.disabled === true,
+                field0History: button(0, "undo")?.disabled === true,
+                field1Graph: button(1, "graph")?.disabled === true,
+                field2Modification: button(2, "volume-up")?.disabled === true,
+              };
+            })()
+            """,
+            lambda state: state is not None and all(state.values()),
+            timeout=5.0,
+        )
+        unlocked = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const button = (ord, slug) => document.querySelector(`[data-testid="aqe-button-${ord}-${slug}"]`);
+              return {
+                field0Playback: button(0, "play")?.disabled === false,
+                field1Recording: button(1, "record-voice")?.disabled === false,
+                field0History: button(0, "undo")?.disabled === false,
+                field1Graph: button(1, "graph")?.disabled === false,
+                field2Modification: button(2, "volume-up")?.disabled === false,
+              };
+            })()
+            """,
+            lambda state: state is not None and all(state.values()),
+            timeout=5.0,
+        )
+
+        assert locked == {
+            "field0Playback": True,
+            "field1Playback": True,
+            "field1Recording": True,
+            "field0History": True,
+            "field1Graph": True,
+            "field2Modification": True,
+        }
+        assert unlocked == {
+            "field0Playback": True,
+            "field1Recording": True,
+            "field0History": True,
+            "field1Graph": True,
+            "field2Modification": True,
+        }
+        assert _sound_filename(note.fields[0]) == sources[0].name
+        assert _sound_filename(note.fields[1]) == sources[1].name
+        assert _sound_filename(note.fields[2]) == sources[2].name
     finally:
         editor.set_note(None)
         parent.close()
