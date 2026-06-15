@@ -154,6 +154,16 @@ describe("frontend architecture guardrails", () => {
     expect(selectorSource).toContain("reviewerPanelTargetForTrigger");
   });
 
+  it("keeps AQE editor disabled buttons insulated from Anki editor disabled styles", () => {
+    const controlsCss = readFileSync(join(projectRoot, "src/editor-inline/styles/controls.css"), "utf-8");
+    const editorCss = editorStyleFiles().map((path) => readFileSync(path, "utf-8")).join("\n");
+
+    expect(controlsCss).toContain(".aqe-ui-root button:not(.btn, .btn-close):disabled");
+    expect(controlsCss).toContain(".aqe-ui-root button.aqe-button:disabled");
+    expect(controlsCss).toContain("border-bottom-color: var(--aqe-border-color);");
+    expect(editorCss).not.toMatch(/var\(--border-subtle\)|border-(?:block|inline)-color/);
+  });
+
   it("keeps persisted settings UI and per-field editor split state separated", () => {
     const offenders = productionFiles()
       .map((path) => ({
@@ -231,6 +241,11 @@ function productionFiles(): string[] {
     .filter((path) => /\.(svelte|ts)$/.test(path))
     .filter((path) => isHandMaintainedFrontendFile(toRelPath(path)))
     .filter((path) => !path.endsWith("/main.ts"));
+}
+
+function editorStyleFiles(): string[] {
+  return walk(join(sourceRoot, "editor-inline", "styles"))
+    .filter((path) => path.endsWith(".css"));
 }
 
 function isHandMaintainedFrontendFile(relPath: string): boolean {

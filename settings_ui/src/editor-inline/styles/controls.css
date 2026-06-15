@@ -111,8 +111,6 @@ body.nightMode .aqe-controls,
   background: transparent;
   border: 1px solid;
   border-color: var(--aqe-border-color);
-  border-block-color: var(--aqe-border-color);
-  border-inline-color: var(--aqe-border-color);
   border-radius: 7px;
   color: inherit;
   cursor: pointer;
@@ -295,7 +293,35 @@ body.nightMode .aqe-controls,
   opacity: 0.45;
 }
 
-.aqe-button:disabled:hover {
+.aqe-ui-root button:not(.btn, .btn-close):disabled,
+.aqe-ui-root button:not(.btn, .btn-close):disabled:hover,
+.aqe-mount-host button:not(.btn, .btn-close):disabled,
+.aqe-mount-host button:not(.btn, .btn-close):disabled:hover {
+  border-bottom-color: var(--aqe-border-color);
+  box-shadow: none;
+}
+
+.aqe-ui-root button.aqe-button:disabled,
+.aqe-ui-root button.aqe-button:disabled:hover,
+.aqe-mount-host button.aqe-button:disabled,
+.aqe-mount-host button.aqe-button:disabled:hover {
+  background-color: transparent;
+  border-color: var(--aqe-border-color);
+  box-shadow: none;
+  color: inherit;
+  cursor: not-allowed;
+}
+
+.aqe-ui-root .aqe-toolbar-panel button.aqe-button:disabled,
+.aqe-ui-root .aqe-toolbar-panel button.aqe-button:disabled:hover,
+.aqe-mount-host .aqe-toolbar-panel button.aqe-button:disabled,
+.aqe-mount-host .aqe-toolbar-panel button.aqe-button:disabled:hover {
+  background-color: color-mix(in srgb, Canvas 90%, transparent);
+}
+
+.aqe-button:disabled:hover,
+.aqe-ui-root button.aqe-button:disabled:hover,
+.aqe-mount-host button.aqe-button:disabled:hover {
   text-decoration: none;
 }
 

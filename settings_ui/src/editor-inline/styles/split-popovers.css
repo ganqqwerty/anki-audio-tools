@@ -60,8 +60,6 @@
   background: var(--aqe-surface-color);
   border: 1px solid;
   border-color: var(--aqe-border-color);
-  border-block-color: var(--aqe-border-color);
-  border-inline-color: var(--aqe-border-color);
   border-radius: 8px;
   box-sizing: border-box;
   box-shadow: 0 10px 24px rgb(0 0 0 / 22%);
