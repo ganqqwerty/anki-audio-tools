@@ -3,8 +3,10 @@
     choiceTooltip,
     shareTargetTooltip,
   } from "$lib/audio-option-tooltips.js";
+  import AqeTooltip from "$lib/AqeTooltip.svelte";
   import { t } from "$lib/i18n.js";
   import UnitNumberInput from "$lib/UnitNumberInput.svelte";
+  import selectionMarkerShiftButtonsDemoUrl from "./assets/settings-selection-marker-shift-buttons-demo-800x180.gif?inline";
   import type { Config } from "$lib/types.js";
   import type { EditorCommand } from "$lib/editor-toolbar-buttons.js";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
@@ -38,14 +40,36 @@
     />
   </label>
 {:else if command === "aqe:analyze"}
-  <label class="settings-toggle">
-    <input
-      data-testid="selection-marker-shift-buttons-enabled"
-      type="checkbox"
-      bind:checked={config.selection_marker_shift_buttons_enabled}
-    />
-    <span class="settings-label-text">{t("settings.selection_marker_shift_buttons_enabled")}</span>
-  </label>
+  {@const selectionMarkerShiftTooltip = t("settings.selection_marker_shift_buttons_enabled.tooltip")}
+  <AqeTooltip content={selectionMarkerShiftTooltip} side="bottom" align="start" sideOffset={6}>
+    {#snippet trigger({ props })}
+      <label
+        {...props}
+        class="settings-toggle aqe-tooltip-target"
+        data-aqe-tooltip-content={selectionMarkerShiftTooltip}
+      >
+        <input
+          data-testid="selection-marker-shift-buttons-enabled"
+          type="checkbox"
+          bind:checked={config.selection_marker_shift_buttons_enabled}
+        />
+        <span class="settings-label-text">{t("settings.selection_marker_shift_buttons_enabled")}</span>
+      </label>
+    {/snippet}
+    {#snippet richContent()}
+      <div class="selection-marker-shift-tooltip">
+        <p>{selectionMarkerShiftTooltip}</p>
+        <img
+          src={selectionMarkerShiftButtonsDemoUrl}
+          alt=""
+          aria-hidden="true"
+          class="selection-marker-shift-tooltip-image"
+          width="320"
+          height="72"
+        />
+      </div>
+    {/snippet}
+  </AqeTooltip>
   <label class="settings-toggle">
     <input
       data-testid="show-graph-by-default"
@@ -129,3 +153,24 @@
     />
   </label>
 {/if}
+
+<style>
+  .selection-marker-shift-tooltip {
+    display: grid;
+    gap: 8px;
+  }
+
+  .selection-marker-shift-tooltip p {
+    color: inherit;
+    margin: 0;
+  }
+
+  .selection-marker-shift-tooltip-image {
+    border: 1px solid color-mix(in srgb, var(--border, ButtonBorder) 72%, transparent);
+    border-radius: 6px;
+    display: block;
+    height: auto;
+    max-width: 100%;
+    width: min(320px, calc(100vw - 48px));
+  }
+</style>

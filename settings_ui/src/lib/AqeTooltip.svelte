@@ -11,6 +11,7 @@
     align = "center",
     content,
     disabled = false,
+    richContent,
     side = "top",
     sideOffset = 8,
     trigger,
@@ -18,6 +19,7 @@
     align?: TooltipAlign;
     content?: string;
     disabled?: boolean;
+    richContent?: Snippet;
     side?: TooltipSide;
     sideOffset?: number;
     trigger: Snippet<[{ props: Record<string, unknown> }]>;
@@ -47,9 +49,10 @@
   });
 
   const resolvedContent = $derived.by(() => (content ?? observedContent).trim());
+  const hasRichContent = $derived(Boolean(richContent));
 </script>
 
-<Tooltip.Root disabled={disabled || resolvedContent.length === 0}>
+<Tooltip.Root disabled={disabled || (resolvedContent.length === 0 && !hasRichContent)}>
   <Tooltip.Trigger bind:ref={triggerRef}>
     {#snippet child({ props })}
       {@render trigger({ props })}
@@ -58,12 +61,18 @@
   <Tooltip.Portal>
     <Tooltip.Content
       align={align}
-      class="aqe-ui-root aqe-rich-tooltip"
+      class={hasRichContent
+        ? "aqe-ui-root aqe-rich-tooltip aqe-rich-tooltip-with-media"
+        : "aqe-ui-root aqe-rich-tooltip"}
       collisionPadding={8}
       side={side}
       sideOffset={sideOffset}
     >
-      {resolvedContent}
+      {#if richContent}
+        {@render richContent()}
+      {:else}
+        {resolvedContent}
+      {/if}
     </Tooltip.Content>
   </Tooltip.Portal>
 </Tooltip.Root>
@@ -89,6 +98,13 @@
     text-transform: none;
     white-space: pre-line;
     z-index: 2147483647;
+  }
+
+  :global(.aqe-rich-tooltip-with-media),
+  :global(.aqe-ui-root.aqe-rich-tooltip-with-media) {
+    max-width: min(360px, calc(100vw - 24px));
+    padding: 8px;
+    white-space: normal;
   }
 
   :global(.aqe-rich-tooltip[data-starting-style]) {

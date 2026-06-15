@@ -27,7 +27,7 @@ describe("App settings behavior", () => {
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
-    expect(screen.getByText("Show selection marker shift buttons")).toBeInTheDocument();
+    expect(screen.getByText("Show right/left buttons near cursor")).toBeInTheDocument();
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
