@@ -201,6 +201,7 @@ Recommended workflow:
 | Runtime import safety | UI layers must not leak into import-safe modules, including shared WebView bridge/shell and frontend log helpers. |
 | Editor bridge contract | Injected editor UI commands and registered bridge commands must stay in sync. |
 | Editor panel button settings | Configurable editor panel command buttons must be accepted by settings visibility and display-mode config. |
+| Inline editor canonical state | Rule 33 and Rule 34 require field, control, recording, and visualizer runtime behavior to read typed stores instead of DOM `dataset` projections. |
 | Module classification | Every production module must be listed in one architecture layer. |
 | Prosody boundaries | Optional Parselmouth/Praat dependencies stay isolated and do not become package-level imports. |
 | Settings/backend isolation | Settings backend modules do not import UI modules; the settings shell remains thin. |

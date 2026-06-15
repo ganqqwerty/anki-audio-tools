@@ -3,6 +3,7 @@ import { t } from "../lib/i18n.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { logger } from "./logger.js";
+import { isEditorBusy } from "./editor-control-state.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import { selectionForVisualizer } from "./selection-controller.js";
 import type { RegionDeleteRequest, VisualizerElement } from "./types.js";
@@ -14,10 +15,6 @@ export interface RegionDeleteAvailability {
   hasSelection: boolean;
   valid: boolean;
   wholeSelection: boolean;
-}
-
-function anyBusy(): boolean {
-  return document.body.dataset.aqeBusy === "true";
 }
 
 function regionDeleteButtonForOrd(ord: number): HTMLButtonElement | null {
@@ -50,11 +47,12 @@ function syncRegionDeleteButton(
 ): void {
   if (!button) return;
   button.hidden = !valid;
-  button.disabled = anyBusy() || !valid;
+  const busy = isEditorBusy();
+  button.disabled = busy || !valid;
   button.dataset.aqeButtonState = valid ? "destructive" : "unavailable";
   const validTitle = titleForOperation(operation, true);
   const invalidTitle = titleForOperation(operation, false);
-  const reason = anyBusy() && valid ? t("tooltip.disabled.editor_busy") : (!valid ? invalidTitle : undefined);
+  const reason = busy && valid ? t("tooltip.disabled.editor_busy") : (!valid ? invalidTitle : undefined);
   const enabledTitle = button.dataset.aqeEnabledTitle || validTitle;
   setButtonTooltipContent(button, tooltipWithDisabledClarification(enabledTitle, reason));
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");

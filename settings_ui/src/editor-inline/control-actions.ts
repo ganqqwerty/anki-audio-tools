@@ -12,11 +12,8 @@ import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { notifyMountedPostEditPlaybackReady } from "./post-edit-playback.js";
 import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
-import { errorHelpUrl } from "../lib/error-links.js";
-import { openEditorExternalLink } from "./external-links.js";
-import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
+import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
-import { isUserFacingError, type UserFacingError } from "../lib/user-facing-error.js";
 import {
   editorRuntimeConfig,
   repeatPlaybackByDefault as configRepeatPlaybackByDefault,
@@ -25,14 +22,36 @@ import type { EditorCommand, HistorySnapshot } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
 import { readFieldState } from "./field-state-store.js";
+import {
+  clearStatusState,
+  currentStatusState,
+  emptyHistorySnapshot as emptyHistorySnapshotState,
+  hasStableStatusState,
+  historyAvailabilityState,
+  historySnapshotState,
+  isEditorBusy,
+  restoreStableStatusState,
+  setEditorBusy,
+  setHistorySnapshotState,
+  setStatusState,
+  setTransientStatusState,
+  type EditorStatusMessage,
+  type StatusOwner,
+} from "./editor-control-state.js";
+import {
+  defaultStatusOwner,
+  projectStableStatus,
+  renderStatus,
+  restoreStableStatus,
+  statusForOrd,
+} from "./control-status-renderer.js";
 
 export type InitialEditorStatus = { kind?: string; message: string };
-export type StatusOwner = "edit" | "error" | "graph" | "playback";
-
-type EditorStatusMessage = string | UserFacingError;
+export type { EditorStatusMessage, StatusOwner } from "./editor-control-state.js";
+export { defaultStatusOwner } from "./control-status-renderer.js";
 
 export function anyBusy(): boolean {
-  return document.body.dataset.aqeBusy === "true";
+  return isEditorBusy();
 }
 
 export function repeatDefaultFromConfig(): boolean {
@@ -44,6 +63,32 @@ export function playRepeatOptionsTitle(enabled: boolean): string {
 }
 
 export function setControlsBusy(ord: number, busy: boolean, message = "", command = ""): void {
+  setEditorBusy(busy);
+  projectEditorBusyState();
+  if (!busy) {
+    queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
+    queueMicrotask(notifyMountedPostEditPlaybackReady);
+  }
+  const status = statusForOrd(ord);
+  if (busy) {
+    const next = setStatusState(ord, message || "", "processing", command || "", "graph");
+    if (!status) return;
+    renderStatus(status, next.message, next.kind, next.command, next.owner);
+    return;
+  }
+  if (message || command) {
+    setStatusForOrd(ord, message, "info", command, "edit");
+    return;
+  }
+  if (!status) {
+    restoreStableStatusState(ord);
+    return;
+  }
+  restoreStableStatus(ord, status);
+}
+
+export function projectEditorBusyState(): void {
+  const busy = isEditorBusy();
   document.body.dataset.aqeBusy = busy ? "true" : "false";
   document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {
     controls.dataset.busy = busy ? "true" : "false";
@@ -54,21 +99,6 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   });
   syncAllRecordingControls();
   syncAllSelectionToolbars();
-  if (!busy) {
-    queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
-    queueMicrotask(notifyMountedPostEditPlaybackReady);
-  }
-  const status = statusForOrd(ord);
-  if (!status) return;
-  if (busy) {
-    renderStatus(status, message || "", "processing", command || "", "graph");
-    return;
-  }
-  if (message || command) {
-    setStatusForOrd(ord, message, "info", command, "edit");
-    return;
-  }
-  restoreStableStatus(status);
 }
 
 export function setStatus(message: EditorStatusMessage, kind = "info", owner: StatusOwner = defaultStatusOwner(kind)): void {
@@ -83,19 +113,11 @@ export function setStatusForOrd(
   command = "",
   owner: StatusOwner = defaultStatusOwner(kind),
 ): void {
+  const next = setStatusState(ord, message, kind, command, owner);
   const status = statusForOrd(ord);
   if (!status) return;
-  if (storesStableStatus(owner)) {
-    status.dataset.stableMessage = statusText(message || "");
-    if (isUserFacingError(message)) {
-      status.dataset.stableUserError = JSON.stringify(message);
-    } else {
-      delete status.dataset.stableUserError;
-    }
-    status.dataset.stableKind = kind || "info";
-    status.dataset.stableCommand = command || "";
-  }
-  renderStatus(status, message || "", kind || "info", command || "", owner);
+  projectStableStatus(status, ord);
+  renderStatus(status, next.message, next.kind, next.command, next.owner);
 }
 
 export function setTransientStatusForOrd(
@@ -104,36 +126,41 @@ export function setTransientStatusForOrd(
   kind = "info",
   owner: StatusOwner = "graph",
 ): void {
+  const next = setTransientStatusState(ord, message, kind, owner);
   const status = statusForOrd(ord);
   if (!status) return;
-  renderStatus(status, message || "", kind || "info", "", owner);
+  renderStatus(status, next.message, next.kind, next.command, next.owner);
 }
 
 export function hasStableStatusForOrd(ord: number): boolean {
-  const status = statusForOrd(ord);
-  return Boolean(status?.dataset.stableMessage || status?.dataset.stableUserError);
+  return hasStableStatusState(ord);
 }
 
 export function clearStatus(ord: number): void {
+  const next = clearStatusState(ord);
   const status = statusForOrd(ord);
   if (!status) return;
-  status.dataset.stableMessage = "";
-  delete status.dataset.stableUserError;
-  status.dataset.stableKind = "info";
-  status.dataset.stableCommand = "";
-  renderStatus(status, "", "info", "", "edit");
+  projectStableStatus(status, ord);
+  renderStatus(status, next.message, next.kind, next.command, next.owner);
 }
 
 export function clearPlaybackStatusForOrd(ord: number): void {
   const status = statusForOrd(ord);
-  if (!status || status.dataset.statusOwner !== "playback") return;
-  restoreStableStatus(status);
+  if (currentStatusState(ord).owner !== "playback") return;
+  if (!status) {
+    restoreStableStatusState(ord);
+    return;
+  }
+  restoreStableStatus(ord, status);
 }
 
 export function restoreStatusForOrd(ord: number): void {
   const status = statusForOrd(ord);
-  if (!status) return;
-  restoreStableStatus(status);
+  if (!status) {
+    restoreStableStatusState(ord);
+    return;
+  }
+  restoreStableStatus(ord, status);
 }
 
 export function consumeInitialStatusForOrd(ord: number): InitialEditorStatus | null {
@@ -184,20 +211,15 @@ export function setCommandButtonLabel(ord: number, command: EditorCommand, label
 }
 
 export function emptyHistorySnapshot(): HistorySnapshot {
-  return { canRedo: false, canUndo: false, redoItems: [], undoItems: [] };
+  return emptyHistorySnapshotState();
 }
 
 export function setHistorySnapshot(ord: number, snapshot: HistorySnapshot): void {
+  const limit = Math.min(100, Math.max(1, Math.trunc(editorRuntimeConfig().editorHistorySize ?? 100)));
+  const normalized = setHistorySnapshotState(ord, snapshot, limit);
   if (!window.__aqeHistorySnapshotsByField) {
     window.__aqeHistorySnapshotsByField = {};
   }
-  const limit = Math.min(100, Math.max(1, Math.trunc(editorRuntimeConfig().editorHistorySize ?? 100)));
-  const normalized = {
-    canRedo: !!snapshot.canRedo,
-    canUndo: !!snapshot.canUndo,
-    redoItems: snapshot.redoItems.slice(0, limit),
-    undoItems: snapshot.undoItems.slice(0, limit),
-  };
   window.__aqeHistorySnapshotsByField[ord] = normalized;
   if (!window.__aqeHistoryAvailabilityByField) {
     window.__aqeHistoryAvailabilityByField = {};
@@ -227,12 +249,11 @@ export function setHistoryAvailability(ord: number, canUndo: boolean, canRedo: b
 }
 
 export function historySnapshot(ord: number): HistorySnapshot {
-  return window.__aqeHistorySnapshotsByField?.[ord] ?? emptyHistorySnapshot();
+  return historySnapshotState(ord);
 }
 
 export function historyAvailability(ord: number): { canRedo: boolean; canUndo: boolean } {
-  const snapshot = historySnapshot(ord);
-  return { canRedo: snapshot.canRedo, canUndo: snapshot.canUndo };
+  return historyAvailabilityState(ord);
 }
 
 function localizedButtonLabel(command: EditorCommand, label: string): string {
@@ -245,78 +266,6 @@ function localizedButtonLabel(command: EditorCommand, label: string): string {
 
 export function processingBusyMessage(command: EditorCommand): string {
   return PROCESSING_COMMANDS.has(command) ? processingMessage(command) : "";
-}
-
-function statusForOrd(ord: number): HTMLElement | null {
-  return controlsForOrd(ord)?.querySelector<HTMLElement>(".aqe-status") ?? null;
-}
-
-function statusText(message: EditorStatusMessage): string {
-  return isUserFacingError(message) ? message.message : message;
-}
-
-function defaultStatusOwner(kind: string): StatusOwner {
-  if (kind === "error") return "error";
-  if (kind === "processing") return "graph";
-  return "edit";
-}
-
-function storesStableStatus(owner: StatusOwner): boolean {
-  return owner === "edit" || owner === "error";
-}
-
-function renderStatusContent(status: HTMLElement, message: EditorStatusMessage): void {
-  status.textContent = "";
-  if (!isUserFacingError(message)) {
-    status.textContent = message;
-    return;
-  }
-  const code = document.createElement("span");
-  code.className = "aqe-error-code";
-  code.textContent = `${message.code}:`;
-  const link = document.createElement("a");
-  link.className = "aqe-error-help-link";
-  link.href = errorHelpUrl(message.code);
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.textContent = "Help";
-  link.addEventListener("click", (event) => openEditorExternalLink(event, link.href));
-  status.append(code, ` ${message.message} `, link);
-}
-
-function renderStatus(
-  status: HTMLElement,
-  message: EditorStatusMessage,
-  kind: string,
-  command: string,
-  owner: StatusOwner,
-): void {
-  renderStatusContent(status, message);
-  status.dataset.kind = kind;
-  status.dataset.statusOwner = owner;
-  setTooltipContent(status, command);
-  const spinner = status.closest<HTMLElement>(".aqe-status-row")?.querySelector<HTMLElement>(".aqe-spinner");
-  if (spinner) spinner.hidden = kind !== "processing";
-}
-
-function restoreStableStatus(status: HTMLElement): void {
-  let message: EditorStatusMessage = status.dataset.stableMessage || "";
-  const rawUserError = status.dataset.stableUserError;
-  if (rawUserError) {
-    try {
-      const parsed = JSON.parse(rawUserError) as unknown;
-      if (isUserFacingError(parsed)) message = parsed;
-    } catch {
-      delete status.dataset.stableUserError;
-    }
-  }
-  renderStatus(
-    status,
-    message,
-    status.dataset.stableKind || "info",
-    status.dataset.stableCommand || "",
-    defaultStatusOwner(status.dataset.stableKind || "info"),
-  );
 }
 
 function updateHistoryButtonState(ord: number, command: "aqe:redo" | "aqe:undo"): void {

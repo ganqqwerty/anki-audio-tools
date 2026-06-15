@@ -148,7 +148,7 @@ describe("editor inline post-edit playback integration", () => {
         sourceFilename: "clip one.mp3",
       },
     });
-    document.body.dataset.aqeBusy = "true";
+    window.__aqeSetBusy?.(0, true);
     scan(window.__AQE_EDITOR_CONFIG__!);
     await Promise.resolve();
 

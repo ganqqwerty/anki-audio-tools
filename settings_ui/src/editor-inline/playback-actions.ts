@@ -32,6 +32,7 @@ import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
 import { t } from "../lib/i18n.js";
+import { setPreserveStatusOnPlaybackEndRuntime } from "./visualizer-runtime-state.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
@@ -205,7 +206,7 @@ export function sendPlaybackRequest(request: PlaybackRequest): void {
       ...state,
       playback: { ...state.playback, engine: request.engine || "" },
     }));
-    visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
+    setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
   }
   setPendingPlaybackRequest(request);
   window.__aqeActiveField = request.ord;
@@ -214,7 +215,7 @@ export function sendPlaybackRequest(request: PlaybackRequest): void {
 }
 
 export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
-  visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
+  setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
   startProgressClock(visualizer, request.cursorMs, {
     engine: "html",
     manualFallback: false,
@@ -307,7 +308,7 @@ export function getPlaybackRequest(): PlaybackRequest {
       ...state,
       playback: { ...state.playback, engine: request.engine || "" },
     }));
-    visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
+    setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
   }
   return request;
 }

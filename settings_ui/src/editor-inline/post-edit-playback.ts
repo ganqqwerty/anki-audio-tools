@@ -6,6 +6,8 @@ import {
 } from "./editor-runtime-config.js";
 import { logger } from "./logger.js";
 import { readFieldState } from "./field-state-store.js";
+import { isEditorBusy } from "./editor-control-state.js";
+import { readRepeatPauseSecondsRuntime } from "./visualizer-runtime-state.js";
 import type { EditorCommandPayload, PostEditPlaybackIntent } from "./types.js";
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
@@ -14,7 +16,7 @@ export function rememberPostEditPlaybackIntent(ord: number): void {
   postEditPlaybackIntents()[ord] = {
     repeat: s ? s.playback.repeat : repeatDefaultFromConfig(),
     repeatPauseSeconds: normalizedRepeatPauseSeconds(
-      visualizer ? Number(visualizer.dataset.repeatPauseSeconds || "0") : 0,
+      visualizer ? readRepeatPauseSecondsRuntime(visualizer) : 0,
     ),
   };
 }
@@ -35,7 +37,7 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     logger.warn("post-edit playback ready deferred: source mismatch", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
   }
-  if (document.body.dataset.aqeBusy === "true") {
+  if (isEditorBusy()) {
     logger.info("post-edit playback ready deferred: editor busy", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
   }
@@ -64,9 +66,10 @@ function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolea
 
 export function notifyMountedPostEditPlaybackReady(): void {
   allControls().forEach((controls) => {
+    const ord = Number(controls.dataset.aqeFieldOrd || "0");
     notifyPostEditPlaybackReady(
-      Number(controls.dataset.aqeFieldOrd || "0"),
-      controls.dataset.aqeSourceFilename || "",
+      ord,
+      readFieldState(ord).sourceFilename,
     );
   });
 }
@@ -76,7 +79,7 @@ function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string):
   const visualizer = visualizerForOrd(ord);
   const s = visualizer ? readFieldState(ord) : null;
   return {
-    bodyBusy: document.body.dataset.aqeBusy || "",
+    bodyBusy: String(isEditorBusy()),
     controlSourceFilename: sourceFilename,
     graphBusy: s ? String(s.graph.busy) : "",
     hasPending: !!pending,

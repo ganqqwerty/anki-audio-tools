@@ -18,6 +18,7 @@ import {
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { mountTrack } from "./editor-inline.actions.helpers.js";
 import { readFieldState, updateFieldState } from "../src/editor-inline/field-state-store.js";
+import { setTargetDurationMsForVisualizer } from "../src/editor-inline/visualizer-runtime-state.js";
 
 describe("editor inline selection workflows", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -119,7 +120,7 @@ describe("editor inline selection workflows", () => {
     expect(request).toMatchObject({ cursorMs: 100, endMs: 300, regionMode: "selection" });
     expect(readFieldState(0).playback.engine).toBe(request.engine);
 
-    visualizer.dataset.targetDurationMs = "0";
+    setTargetDurationMsForVisualizer(visualizer, 0);
     updateFieldState(0, (state) => ({
       ...state,
       graph: { ...state.graph, durationMs: 0 },

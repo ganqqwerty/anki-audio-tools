@@ -6,6 +6,11 @@ import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { applyVisualizerTimeViewport } from "../src/editor-inline/viewport-actions.js";
 import { readVisualizerTimeViewport } from "../src/editor-inline/visualizer-state.js";
 import {
+  clearVisualizerRuntimeStates,
+  setTargetDurationMsForVisualizer,
+  writeRuntimeTimeViewport,
+} from "../src/editor-inline/visualizer-runtime-state.js";
+import {
   renderLearnerVisualizerTrack,
   renderCursor,
   renderVisualizerTrack,
@@ -41,6 +46,7 @@ const gappedTrack: NormalizedProsodyTrack = {
 describe("editor inline visualizer renderer", () => {
   afterEach(() => {
     removeFieldState(0);
+    clearVisualizerRuntimeStates();
     document.body.innerHTML = "";
   });
 
@@ -261,9 +267,8 @@ describe("editor inline visualizer renderer", () => {
 
   it("clips selection rendering to the visible viewport while preserving selected milliseconds", () => {
     const visualizer = mountVisualizer(voicedTrack);
-    visualizer.dataset.targetDurationMs = "1000";
-    visualizer.dataset.viewportStartMs = "250";
-    visualizer.dataset.viewportEndMs = "750";
+    setTargetDurationMsForVisualizer(visualizer, 1000);
+    writeRuntimeTimeViewport(visualizer, { durationMs: 1000, startMs: 250, endMs: 750 });
 
     renderSelection(visualizer, { startMs: 100, endMs: 500, mode: "selection" }, null);
 
@@ -290,8 +295,7 @@ describe("editor inline visualizer renderer", () => {
   it("hides the visible cursor when the cursor is outside the zoomed viewport", () => {
     const visualizer = mountVisualizer(voicedTrack);
     const cssCursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor")!;
-    visualizer.dataset.viewportStartMs = "250";
-    visualizer.dataset.viewportEndMs = "750";
+    writeRuntimeTimeViewport(visualizer, { durationMs: 1000, startMs: 250, endMs: 750 });
 
     renderCursor(visualizer, 900, voicedTrack.durationMs);
 

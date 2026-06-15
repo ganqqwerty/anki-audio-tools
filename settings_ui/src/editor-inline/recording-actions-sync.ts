@@ -2,6 +2,7 @@ import { t } from "../lib/i18n.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { buttonTooltipContent, tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { allControls, buttonFor, buttonsFor, controlsForOrd } from "./dom-selectors.js";
+import { historyAvailabilityState, isEditorBusy } from "./editor-control-state.js";
 import { recordingTargetReady, RECORDING_BLOCKING_STATUSES, learnerPlaybackStatusForControls, learnerRecordingStatusForControls } from "./recording-actions-state.js";
 
 export function syncAllRecordingControls(): void {
@@ -16,7 +17,7 @@ export function syncRecordingControls(ord: number): void {
   const status = learnerRecordingStatusForControls(controls);
   const playbackStatus = learnerPlaybackStatusForControls(controls);
   const blocking = RECORDING_BLOCKING_STATUSES.has(status);
-  const bodyBusy = document.body.dataset.aqeBusy === "true" || controls.dataset.busy === "true";
+  const bodyBusy = isEditorBusy();
   const targetReady = recordingTargetReady(ord);
   const recordButtons = buttonsFor(ord, "aqe:record-voice");
   const playButtons = buttonsFor(ord, "aqe:play-recording");
@@ -149,10 +150,10 @@ function toolbarButtonsForControls(controls: HTMLElement): HTMLButtonElement[] {
 
 function buttonDisabledOutsideRecording(ord: number, command: string, bodyBusy: boolean): boolean {
   if (command === "aqe:undo") {
-    return bodyBusy || !window.__aqeHistoryAvailabilityByField?.[ord]?.canUndo;
+    return bodyBusy || !historyAvailabilityState(ord).canUndo;
   }
   if (command === "aqe:redo") {
-    return bodyBusy || !window.__aqeHistoryAvailabilityByField?.[ord]?.canRedo;
+    return bodyBusy || !historyAvailabilityState(ord).canRedo;
   }
   return bodyBusy;
 }

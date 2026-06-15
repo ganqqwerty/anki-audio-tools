@@ -6,13 +6,14 @@ import { buttonFor } from "./dom-selectors.js";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { readFieldState } from "./field-state-store.js";
+import { isEditorBusy } from "./editor-control-state.js";
 
 export function syncChorusingToolbarButtons(visualizer: VisualizerElement): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   const controls = chorusingControlsForVisualizer(visualizer);
   const fieldState = readFieldState(ord);
   const hasPlayableTrack = fieldState.graph.hasTrack && readVisualizerTargetDurationMs(visualizer) > 0;
-  const busy = document.body.dataset.aqeBusy === "true" || fieldState.graph.busy;
+  const busy = isEditorBusy() || fieldState.graph.busy;
   const practiceButton = buttonFor(ord, "aqe:chorusing-practice");
   if (practiceButton) {
     const playing = controls.practiceState === "playing";

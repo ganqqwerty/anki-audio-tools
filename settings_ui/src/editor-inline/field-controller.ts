@@ -66,6 +66,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     target: host,
     props: { initialStatus, target },
   });
+  applyInitialStatus(target.ord, initialStatus);
   applyInitialHistoryAvailabilityForOrd(target.ord);
   const controller = {
     component,

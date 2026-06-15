@@ -14,6 +14,7 @@
   import { controlsForOrd, visualizerForOrd } from "./dom-selectors.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { requestGraph } from "./graph-actions.js";
+  import { isEditorBusy } from "./editor-control-state.js";
   import {
     GRAPH_SPLIT_STATE_CHANGED_EVENT,
     setGraphConnectShortDropoutsForField,
@@ -64,11 +65,8 @@
   }
 
   function syncFromDom(): void {
-    const controls = controlsForOrd(target.ord);
     const fieldState = readFieldState(target.ord);
-    busy = document.body.dataset.aqeBusy === "true"
-      || controls?.dataset.busy === "true"
-      || fieldState.graph.busy;
+    busy = isEditorBusy() || fieldState.graph.busy;
     syncFromState(getSplitButtonState(target.ord));
   }
 
@@ -88,7 +86,7 @@
       visualizer
       && fieldState.graph.active
       && !fieldState.graph.busy
-      && document.body.dataset.aqeBusy !== "true",
+      && !isEditorBusy(),
     );
   }
 

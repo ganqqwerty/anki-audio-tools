@@ -12,6 +12,7 @@ import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { buttonTooltipContent, tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import type { VisualizerElement } from "./types.js";
 import { readFieldState } from "./field-state-store.js";
+import { isEditorBusy } from "./editor-control-state.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -21,10 +22,6 @@ export type SelectionToolbarPreview = "none" | "region" | "rest";
 
 const PLAY_SELECTION_TITLE = "Play selection";
 const PAUSE_SELECTION_TITLE = "Pause selection";
-
-function anyBusy(): boolean {
-  return document.body.dataset.aqeBusy === "true";
-}
 
 function toolbarFor(visualizer: VisualizerElement): HTMLElement | null {
   return visualizer.querySelector<HTMLElement>(".aqe-selection-toolbar");
@@ -46,7 +43,7 @@ export function syncSelectionToolbar(visualizer: VisualizerElement): void {
   const toolbar = toolbarFor(visualizer);
   const availability = regionDeleteAvailabilityFor(visualizer);
   const s = readFieldState(fieldOrd(visualizer));
-  const busy = anyBusy() || s.graph.busy;
+  const busy = isEditorBusy() || s.graph.busy;
   const hasTrack = s.graph.hasTrack;
   const draftActive = draftSelectionForVisualizer(visualizer) !== null;
 

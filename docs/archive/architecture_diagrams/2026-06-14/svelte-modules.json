@@ -331,6 +331,7 @@
         "src/editor-inline/actions.js",
         "src/editor-inline/commands.js",
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/graph-actions.js",
         "src/editor-inline/graph-settings.js",
@@ -759,6 +760,7 @@
         "src/editor-inline/playback-actions.js",
         "src/editor-inline/types.js",
         "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/lib/audio-operation-parameters.js",
         "src/lib/i18n.js",
         "src/lib/rich-tooltip.js"
@@ -789,6 +791,7 @@
         "src/editor-inline/selection-toolbar-state.js",
         "src/editor-inline/types.js",
         "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/visualizer-state.js"
       ],
       "external": []
@@ -887,6 +890,7 @@
         "src/editor-inline/selection-toolbar-state.js",
         "src/editor-inline/split-button-state.js",
         "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/visualizer-state.js"
       ],
       "external": []
@@ -930,6 +934,7 @@
       "internal": [
         "src/editor-inline/chorusing-dom.js",
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/types.js",
         "src/editor-inline/visualizer-state.js",
@@ -990,10 +995,11 @@
       "internal": [
         "src/editor-inline/chorusing-dom.js",
         "src/editor-inline/commands.js",
+        "src/editor-inline/control-status-renderer.js",
         "src/editor-inline/default-graph-queue.js",
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/editor-runtime-config.js",
-        "src/editor-inline/external-links.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/graph-actions.js",
         "src/editor-inline/post-edit-playback.js",
@@ -1002,8 +1008,23 @@
         "src/editor-inline/types.js",
         "src/editor-inline/visualizer-state.js",
         "src/lib/disabled-tooltip.js",
-        "src/lib/error-links.js",
         "src/lib/i18n.js",
+        "src/lib/rich-tooltip.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/control-status-renderer.ts",
+    "file": "src/editor-inline/control-status-renderer.ts",
+    "category": "logic",
+    "summary": "control-status-renderer",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
+        "src/editor-inline/external-links.js",
+        "src/lib/error-links.js",
         "src/lib/rich-tooltip.js",
         "src/lib/user-facing-error.js"
       ],
@@ -1033,6 +1054,19 @@
       "internal": [
         "src/editor-inline/sound-source.js",
         "src/editor-inline/types.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/editor-control-state.ts",
+    "file": "src/editor-inline/editor-control-state.ts",
+    "category": "state",
+    "summary": "editor-control-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js",
+        "src/lib/user-facing-error.js"
       ],
       "external": []
     }
@@ -1188,6 +1222,7 @@
         "src/editor-inline/control-actions.js",
         "src/editor-inline/default-graph-queue.js",
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/editor-runtime-config.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/field-state.js",
@@ -1195,9 +1230,11 @@
         "src/editor-inline/graph-split-state.js",
         "src/editor-inline/logger.js",
         "src/editor-inline/recording-actions.js",
+        "src/editor-inline/recording-state-store.js",
         "src/editor-inline/source-metadata-requests.js",
         "src/editor-inline/types.js",
         "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/visualizer-state.js",
         "src/lib/generated/contracts.js",
         "src/lib/i18n.js",
@@ -1342,6 +1379,7 @@
         "src/editor-inline/post-edit-playback.js",
         "src/editor-inline/selection-toolbar-state.js",
         "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/visualizer-state.js",
         "src/lib/i18n.js"
       ],
@@ -1359,7 +1397,8 @@
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/field-state.js",
         "src/editor-inline/playback-plan-state.js",
-        "src/editor-inline/types.js"
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1373,7 +1412,8 @@
       "internal": [
         "src/editor-inline/graph-countdown-overlay.js",
         "src/editor-inline/playback-plan-state.js",
-        "src/editor-inline/types.js"
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1390,7 +1430,8 @@
         "src/editor-inline/playback-controller.js",
         "src/editor-inline/playback-model.js",
         "src/editor-inline/playback-plan-state.js",
-        "src/editor-inline/types.js"
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1411,7 +1452,8 @@
         "src/editor-inline/playback-controller.js",
         "src/editor-inline/playback-model.js",
         "src/editor-inline/types.js",
-        "src/editor-inline/viewport-actions.js"
+        "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1436,7 +1478,8 @@
         "src/editor-inline/playback-plan-state.js",
         "src/editor-inline/types.js",
         "src/editor-inline/viewport-actions.js",
-        "src/editor-inline/visualizer-renderer.js"
+        "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1463,7 +1506,8 @@
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/playback-progress-clock.js",
         "src/editor-inline/types.js",
-        "src/editor-inline/visualizer-renderer.js"
+        "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1513,10 +1557,12 @@
       "internal": [
         "src/editor-inline/bridge.js",
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/editor-runtime-config.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/logger.js",
-        "src/editor-inline/types.js"
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1534,7 +1580,8 @@
         "src/editor-inline/graph-split-state.js",
         "src/editor-inline/recording-actions-state.js",
         "src/editor-inline/split-button-state.js",
-        "src/editor-inline/visualizer-renderer.js"
+        "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -1547,15 +1594,19 @@
     "imports": {
       "internal": [
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/graph-countdown-overlay.js",
+        "src/editor-inline/recording-state-store.js",
         "src/editor-inline/recording-state.js",
         "src/editor-inline/types.js",
         "src/editor-inline/viewport-actions.js",
         "src/editor-inline/visualizer-renderer.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/visualizer-state.js",
         "src/lib/generated/contracts.js",
-        "src/lib/i18n.js"
+        "src/lib/i18n.js",
+        "src/lib/user-facing-error.js"
       ],
       "external": []
     }
@@ -1568,6 +1619,7 @@
     "imports": {
       "internal": [
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/recording-actions-state.js",
         "src/lib/disabled-tooltip.js",
         "src/lib/i18n.js",
@@ -1593,6 +1645,18 @@
     }
   },
   {
+    "module": "src/editor-inline/recording-state-store.ts",
+    "file": "src/editor-inline/recording-state-store.ts",
+    "category": "state",
+    "summary": "recording-state-store",
+    "imports": {
+      "internal": [
+        "src/editor-inline/recording-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
     "module": "src/editor-inline/recording-state.ts",
     "file": "src/editor-inline/recording-state.ts",
     "category": "state",
@@ -1610,6 +1674,7 @@
     "imports": {
       "internal": [
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/logger.js",
         "src/editor-inline/playback-state.js",
@@ -1633,6 +1698,7 @@
         "src/editor-inline/bridge.js",
         "src/editor-inline/commands.js",
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/logger.js",
         "src/editor-inline/post-edit-playback.js",
         "src/editor-inline/region-delete-state.js",
@@ -1663,12 +1729,15 @@
       "internal": [
         "src/editor-inline/actions.js",
         "src/editor-inline/default-graph-queue.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/editor-runtime-config.js",
         "src/editor-inline/field-controller.js",
         "src/editor-inline/logger.js",
+        "src/editor-inline/recording-state-store.js",
         "src/editor-inline/reviewer-panel-trigger.js",
         "src/editor-inline/sound-source.js",
         "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/window-contract.js",
         "src/lib/i18n.js"
       ],
@@ -1728,10 +1797,12 @@
     "imports": {
       "internal": [
         "src/editor-inline/chorusing-dom.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/selection-controller.js",
         "src/editor-inline/selection-marker-shift.js",
         "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-state.js",
         "src/lib/disabled-tooltip.js",
         "src/lib/i18n.js",
         "src/lib/rich-tooltip.js"
@@ -1769,6 +1840,7 @@
     "imports": {
       "internal": [
         "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/editor-control-state.js",
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/region-delete-state.js",
         "src/editor-inline/selection-controller.js",
@@ -2033,8 +2105,10 @@
         "src/editor-inline/field-state-store.js",
         "src/editor-inline/field-state.js",
         "src/editor-inline/plot.js",
+        "src/editor-inline/recording-state-store.js",
         "src/editor-inline/types.js",
         "src/editor-inline/viewport-actions.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/visualizer-state.js"
       ],
       "external": []
@@ -2087,7 +2161,8 @@
     "summary": "visualizer-learner-overlay",
     "imports": {
       "internal": [
-        "src/editor-inline/types.js"
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }
@@ -2106,8 +2181,24 @@
         "src/editor-inline/time-viewport.js",
         "src/editor-inline/types.js",
         "src/editor-inline/visualizer-learner-overlay.js",
+        "src/editor-inline/visualizer-runtime-state.js",
         "src/editor-inline/visualizer-selection-renderer.js",
         "src/editor-inline/visualizer-state.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/visualizer-runtime-state.ts",
+    "file": "src/editor-inline/visualizer-runtime-state.ts",
+    "category": "state",
+    "summary": "visualizer-runtime-state",
+    "imports": {
+      "internal": [
+        "src/editor-inline/dom-selectors.js",
+        "src/editor-inline/playback-model.js",
+        "src/editor-inline/time-viewport.js",
+        "src/editor-inline/types.js"
       ],
       "external": []
     }
@@ -2139,7 +2230,8 @@
         "src/editor-inline/playback-state.js",
         "src/editor-inline/selection-state.js",
         "src/editor-inline/time-viewport.js",
-        "src/editor-inline/types.js"
+        "src/editor-inline/types.js",
+        "src/editor-inline/visualizer-runtime-state.js"
       ],
       "external": []
     }

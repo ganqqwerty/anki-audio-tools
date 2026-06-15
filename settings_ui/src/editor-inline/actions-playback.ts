@@ -32,6 +32,10 @@ import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { notifySelectionChanged } from "./selection-events.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
 import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
+import {
+  setPlaybackPassRuntime,
+  setRepeatPauseSecondsRuntime,
+} from "./visualizer-runtime-state.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -49,7 +53,7 @@ export function setRepeatEnabledForOrd(ord: number, enabled: boolean): boolean {
 }
 
 export function setRepeatPauseSeconds(visualizer: VisualizerElement, seconds: number): void {
-  visualizer.dataset.repeatPauseSeconds = String(Math.max(0, Math.min(10, Number(seconds) || 0)));
+  setRepeatPauseSecondsRuntime(visualizer, seconds);
 }
 
 export function setRepeatPauseSecondsForOrd(ord: number, seconds: number): boolean {
@@ -148,8 +152,13 @@ export function initializePlaybackRegionState(visualizer: VisualizerElement): vo
       startMs: 0,
     },
   });
-  visualizer.dataset.playbackResetCursorMs = "0";
-  visualizer.dataset.playbackLoop = repeatDefaultFromConfig() ? "true" : "false";
+  setPlaybackPassRuntime(visualizer, {
+    endMs: s.graph.durationMs || 0,
+    loop: repeatDefaultFromConfig(),
+    regionMode: "full",
+    resetCursorMs: 0,
+    startMs: 0,
+  });
   setRepeatEnabled(visualizer, repeatDefaultFromConfig());
   clearSelectionFromController(visualizer, { resetPlaybackRegion: false });
   notifySelectionChanged(visualizer, "system");

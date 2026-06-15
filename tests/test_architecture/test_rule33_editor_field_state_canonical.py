@@ -46,6 +46,14 @@ FIELD_STATE_PROJECTION_FILES = {
     "test-contract.ts",
 }
 
+AQE_SOURCE_FILENAME_DATASET_FILES = {
+    "dom-selectors.ts",
+    "field-controller.ts",
+    "field-state-dom-sync.ts",
+    "graph-actions.ts",
+    "runtime.ts",
+}
+
 
 def test_field_state_store_does_not_read_field_state_from_dom() -> None:
     violations: list[str] = []
@@ -83,6 +91,21 @@ def test_production_editor_code_does_not_read_canonical_field_state_from_dataset
             for field in CANONICAL_FIELD_STATE_DATASET_FIELDS:
                 if f".dataset.{field}" in stripped:
                     violations.append(f"{path.relative_to(ROOT)}:{line_no}: {stripped}")
+
+    assert violations == [], "\n".join(violations)
+
+
+def test_aqe_source_filename_dataset_is_limited_to_discovery_and_projection() -> None:
+    violations: list[str] = []
+    for path in sorted(EDITOR_INLINE.rglob("*")):
+        if path.suffix not in {".svelte", ".ts"}:
+            continue
+        if path.name in AQE_SOURCE_FILENAME_DATASET_FILES:
+            continue
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            stripped = line.strip()
+            if ".dataset.aqeSourceFilename" in stripped:
+                violations.append(f"{path.relative_to(ROOT)}:{line_no}: {stripped}")
 
     assert violations == [], "\n".join(violations)
 

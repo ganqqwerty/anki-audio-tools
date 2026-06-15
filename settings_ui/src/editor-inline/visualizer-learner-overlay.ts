@@ -1,4 +1,5 @@
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
+import { readTargetDurationMsForVisualizer } from "./visualizer-runtime-state.js";
 
 const DURATION_TOLERANCE_MS = 120;
 
@@ -16,7 +17,7 @@ export function learnerTrackForReplacement(
   if (!learner) return undefined;
   const previousDurationMs = Number(
     visualizer.dataset.pendingLearnerOverlayTargetDurationMs
-      || visualizer.dataset.targetDurationMs
+      || readTargetDurationMsForVisualizer(visualizer, 0)
       || "0",
   ) || 0;
   const nextDurationMs = track.durationMs || 0;

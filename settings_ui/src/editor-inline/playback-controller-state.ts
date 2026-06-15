@@ -13,6 +13,10 @@ import type { EditorFieldState } from "./field-state.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
 import { currentProgressMs } from "./playback-controller-audio.js";
 import { activePlaybackPass } from "./playback-controller-pass.js";
+import {
+  preserveStatusOnPlaybackEndRuntime,
+  setPreserveStatusOnPlaybackEndRuntime,
+} from "./visualizer-runtime-state.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
@@ -21,7 +25,7 @@ function fieldState(visualizer: VisualizerElement): EditorFieldState {
 export function completePlayback(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
   const s = fieldState(visualizer);
   const resetCursorMs = playbackCompletionCursor(activePlaybackPass(visualizer, deps));
-  const preserveStatus = visualizer.dataset.preserveStatusOnPlaybackEnd === "true";
+  const preserveStatus = preserveStatusOnPlaybackEndRuntime(visualizer);
   stopProgressClock(visualizer, deps);
   deps.setCursor(visualizer, resetCursorMs, false, { updateAnchor: false });
   ensurePlaybackCursorVisible(visualizer, resetCursorMs);
@@ -33,7 +37,7 @@ export function completePlayback(visualizer: VisualizerElement, deps: PlaybackCo
   } else {
     deps.clearStatus(s.ord);
   }
-  visualizer.dataset.preserveStatusOnPlaybackEnd = "false";
+  setPreserveStatusOnPlaybackEndRuntime(visualizer, false);
   window.__aqeActiveField = s.ord;
   deps.focusAndSendCommand(s.ord, "aqe:play-ended");
 }

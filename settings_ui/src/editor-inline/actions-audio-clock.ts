@@ -19,6 +19,12 @@ import { completePlayback, handlePlaybackBoundary, playbackStateFor, startManual
 import { renderCursor } from "./visualizer-renderer.js";
 import type { VisualizerElement } from "./types.js";
 import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
+import {
+  isRepeatPauseWaitingRuntime,
+  readRepeatPauseSecondsRuntime,
+  readTargetDurationMsForVisualizer,
+  setTargetDurationMsForVisualizer,
+} from "./visualizer-runtime-state.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -58,8 +64,8 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
         graph: { ...s.graph, durationMs },
         playback: { ...s.playback, endMs: durationMs },
       }));
-      if ((Number(visualizer.dataset.targetDurationMs || "0") || 0) <= 0) {
-        visualizer.dataset.targetDurationMs = String(durationMs);
+      if (readTargetDurationMsForVisualizer(visualizer, 0) <= 0) {
+        setTargetDurationMsForVisualizer(visualizer, durationMs);
       }
       renderCursor(visualizer, readFieldState(ord).cursor.ms, durationMs);
     },
@@ -95,7 +101,7 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
   }
   const menuButton = playRepeatMenuButtonForOrd(ord);
   if (menuButton) {
-    const pause = formatRepeatPauseSeconds(Number(visualizer.dataset.repeatPauseSeconds || "0"));
+    const pause = formatRepeatPauseSeconds(readRepeatPauseSecondsRuntime(visualizer));
     const title = t("editor.play.menu_title", {
       value: t("editor.play.current_value", {
         pause,
@@ -104,7 +110,7 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
     });
     setButtonTooltipContent(menuButton, title);
   }
-  if (!enabled && visualizer.dataset.repeatPauseWaiting === "true") {
+  if (!enabled && isRepeatPauseWaitingRuntime(visualizer)) {
     completePlayback(visualizer);
   }
 }

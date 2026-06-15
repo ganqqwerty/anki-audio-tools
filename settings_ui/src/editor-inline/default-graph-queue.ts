@@ -68,7 +68,7 @@ export function continueDefaultGraphQueue(dependencies: DefaultGraphQueueDepende
       retryDefaultGraph(next, dependencies);
       return;
     }
-    const mountedSource = controls.dataset.aqeSourceFilename || next.sourceFilename;
+    const mountedSource = readFieldState(next.ord).sourceFilename || next.sourceFilename;
     if (mountedSource !== next.sourceFilename) continue;
     if (
       readFieldState(next.ord).graph.hasTrack

@@ -8,6 +8,10 @@ import {
   stopPlaybackCursorTransition,
 } from "./visualizer-renderer.js";
 import { readFieldState, writeFieldState, setCachedProgressMs } from "./field-state-store.js";
+import {
+  readRepeatPauseSecondsRuntime,
+  setPlaybackClockRuntime,
+} from "./visualizer-runtime-state.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -21,8 +25,7 @@ export function startPlaybackPlan(visualizer: VisualizerElement, startMs: number
   visualizer.__aqeLiveProgressMs = Math.round(plan.startMs);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
-  visualizer.dataset.playStartedAt = String(nowMs);
-  visualizer.dataset.playStartMs = String(Math.round(plan.startMs));
+  setPlaybackClockRuntime(visualizer, plan.startMs, nowMs);
   const ord = fieldOrd(visualizer);
   writeFieldState(ord, {
     ...readFieldState(ord),
@@ -57,7 +60,7 @@ export function invalidatePlaybackFrames(visualizer: VisualizerElement): void {
 }
 
 export function repeatPauseDelayMs(visualizer: VisualizerElement): number {
-  const seconds = Number(visualizer.dataset.repeatPauseSeconds || "0");
+  const seconds = readRepeatPauseSecondsRuntime(visualizer);
   if (!Number.isFinite(seconds) || seconds <= 0) return 0;
   return Math.round(Math.min(10, seconds) * 1000);
 }

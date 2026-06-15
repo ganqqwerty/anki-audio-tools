@@ -19,6 +19,7 @@ import {
 import { updateFieldState } from "../src/editor-inline/field-state-store.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
+import { syncRecordingControls } from "../src/editor-inline/recording-actions.js";
 
 describe("editor inline learner recording integration", () => {
   let restoreConsole: () => void;
@@ -280,6 +281,44 @@ describe("editor inline learner recording integration", () => {
       command: "aqe:share-recording",
       fieldOrd: 0,
       shareTarget: "litterbox",
+    });
+  });
+
+  it("keeps recording and graph behavior tied to typed state after legacy attributes are corrupted", async () => {
+    initAndScan(recordingConfig());
+    await setupAudioTrack();
+
+    const controls = document.querySelector<HTMLElement>(".aqe-controls[data-aqe-field-ord='0']")!;
+    const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
+    const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
+
+    window.__aqeSetLearnerRecordingState?.({
+      fieldOrd: 0,
+      generation: 1,
+      mediaFilename: "target__aqe_voice.wav",
+      playbackStatus: "playing",
+      startCursorMs: 400,
+      status: "ready",
+      targetDurationMs: track.durationMs,
+    });
+
+    controls.dataset.learnerRecordingStatus = "idle";
+    controls.dataset.learnerPlaybackStatus = "stopped";
+    controls.dataset.learnerStartCursorMs = "0";
+    visualizer.dataset.learnerRecordingStatus = "idle";
+    visualizer.dataset.learnerPlaybackStatus = "stopped";
+    visualizer.dataset.learnerStartCursorMs = "0";
+    visualizer.dataset.targetDurationMs = "0";
+
+    syncRecordingControls(0);
+
+    expect(playYoursButton.dataset.aqeButtonState).toBe("pause");
+    expect(playYoursButton.textContent).toContain("Pause yours");
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      learnerPlaybackStatus: "playing",
+      learnerRecordingStatus: "ready",
+      learnerStartCursorMs: 400,
+      targetDurationMs: 1000,
     });
   });
 

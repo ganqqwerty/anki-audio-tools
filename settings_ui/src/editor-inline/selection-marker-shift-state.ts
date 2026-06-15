@@ -11,6 +11,8 @@ import {
 import { selectionForVisualizer } from "./selection-controller.js";
 import type { VisualizerElement } from "./types.js";
 import { readFieldState } from "./field-state-store.js";
+import { isEditorBusy } from "./editor-control-state.js";
+import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 
 const BUTTON_SPECS = [
   { edge: "start", direction: "previous" },
@@ -50,7 +52,7 @@ export function syncSelectionMarkerShiftButtons(visualizer: VisualizerElement): 
   const selection = selectionForVisualizer(visualizer);
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   const s = readFieldState(ord);
-  const busy = document.body.dataset.aqeBusy === "true" || s.graph.busy;
+  const busy = isEditorBusy() || s.graph.busy;
   const buttonsEnabled = visualizer.dataset.selectionMarkerShiftButtonsEnabled === "true";
   const hasTrack = s.graph.hasTrack;
   const draftActive = s.selection.draftActive;
@@ -78,7 +80,7 @@ export function syncSelectionMarkerShiftButtons(visualizer: VisualizerElement): 
       spec.edge,
       spec.direction,
       chorusingStateForVisualizer(visualizer).markersMs,
-      Number(visualizer.dataset.targetDurationMs || "0"),
+      readVisualizerTargetDurationMs(visualizer),
     );
     const reason = resolution.disabledReason ? disabledReasonMessage(resolution.disabledReason) : undefined;
     const tooltip = tooltipWithDisabledClarification(buttonTitle(spec.edge, spec.direction), busy && !reason ? t("tooltip.disabled.editor_busy") : reason);

@@ -183,6 +183,7 @@ The enforced rules are located in [`tests/test_architecture/`](tests/test_archit
 - Python bridge command registration and injected editor UI commands must stay in sync.
 - Editor TypeScript/Svelte source is part of that bridge-command sync check, not only Python injection code.
 - Editor panel command buttons must stay accepted by settings visibility/display-mode config.
+- Inline editor field, control, recording, and visualizer runtime state must stay canonical in typed frontend modules (`field-state-store.ts`, `editor-control-state.ts`, `recording-state-store.ts`, `visualizer-runtime-state.ts`). DOM `dataset` attributes are only a derived projection for CSS, compatibility, and tests, or an input for Anki DOM identity/discovery.
 - Shared batch operations must stay free of editor bridge strings and editor-adapter imports.
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.
