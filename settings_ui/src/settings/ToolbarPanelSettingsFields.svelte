@@ -16,6 +16,7 @@
     pausePreset,
     PAUSE_DETECTION_ALGORITHM_VALUES,
   } from "$lib/audio-operation-parameters.js";
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
   import PauseAdvancedParamsFields from "$lib/PauseAdvancedParamsFields.svelte";
   import UnitNumberInput from "$lib/UnitNumberInput.svelte";
@@ -166,18 +167,20 @@
     />
   </label>
 {:else if command === "aqe:slower"}
-  <label class="settings-field">
-    <span>{t("settings.speed_step")}</span>
-    <UnitNumberInput
-      inputClass="settings-input"
-      min="1.01"
-      max="5"
-      step="0.01"
-      unit="x"
-      unitPosition="prefix"
-      bind:value={config.speed_step}
-    />
-  </label>
+  <FieldTooltipTarget block content={t("settings.speed_step.slower.tooltip")}>
+    <label class="settings-field">
+      <span>{t("settings.speed_step")}</span>
+      <UnitNumberInput
+        inputClass="settings-input"
+        min="1.01"
+        max="5"
+        step="0.01"
+        unit="x"
+        unitPosition="prefix"
+        bind:value={config.speed_step}
+      />
+    </label>
+  </FieldTooltipTarget>
   <label class="settings-field">
     <span>{t("settings.min_speed")}</span>
     <UnitNumberInput
@@ -191,6 +194,20 @@
     />
   </label>
 {:else if command === "aqe:faster"}
+  <FieldTooltipTarget block content={t("settings.speed_step.faster.tooltip")}>
+    <label class="settings-field">
+      <span>{t("settings.speed_step")}</span>
+      <UnitNumberInput
+        inputClass="settings-input"
+        min="1.01"
+        max="5"
+        step="0.01"
+        unit="x"
+        unitPosition="prefix"
+        bind:value={config.speed_step}
+      />
+    </label>
+  </FieldTooltipTarget>
   <label class="settings-field">
     <span>{t("settings.max_speed")}</span>
     <UnitNumberInput

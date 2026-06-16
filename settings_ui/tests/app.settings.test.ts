@@ -53,10 +53,13 @@ describe("App settings behavior", () => {
     expect(screen.getByTestId("settings-pause-preprocess-denoise-help")).toBeInTheDocument();
     expect(screen.getByText("Default convert format")).toBeInTheDocument();
     expect(screen.getByText("Default denoise algorithm")).toBeInTheDocument();
+    expect(screen.getByText("Removes noise and sometimes background music.")).toBeInTheDocument();
     expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
+    expect(screen.getByText("Shows a countdown after you click the Record button.")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
+    expect(within(screen.getByTestId("button-settings-faster")).getByText("Speed factor")).toBeInTheDocument();
     expect(screen.queryByText("Edge silence threshold (dB)")).not.toBeInTheDocument();
     expect(screen.queryByText("Internal pause silence threshold (dB)")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-pause-advanced-params")).not.toHaveAttribute("open");

@@ -23,8 +23,9 @@
 
 <label>
   <span>{t("batch.operation")}</span>
-  <FieldTooltipTarget block content={t("batch.operation")} {disabledReason}>
-    <select bind:value={form.operation} data-testid="batch-operation" disabled={disabled}>
+  <span class="batch-field-help">{t("batch.operation.help")}</span>
+  <FieldTooltipTarget block content={t("batch.operation.help")} {disabledReason}>
+    <select aria-label={t("batch.operation")} bind:value={form.operation} data-testid="batch-operation" disabled={disabled}>
       {#each state.operations as operation}
         <option value={operation.operation}>{operation.label}</option>
       {/each}
@@ -45,8 +46,9 @@
 
 <label>
   <span>{t("batch.source_field")}</span>
-  <FieldTooltipTarget block content={t("batch.source_field")} {disabledReason}>
-    <select bind:value={form.sourceField} disabled={disabled}>
+  <span class="batch-field-help">{t("batch.source_field.help")}</span>
+  <FieldTooltipTarget block content={t("batch.source_field.help")} {disabledReason}>
+    <select aria-label={t("batch.source_field")} bind:value={form.sourceField} disabled={disabled}>
       {#each state.field_groups as group}
         {#each group.fields as field}
           <option value={field}>{group.notetype_name} / {field}</option>
@@ -59,8 +61,9 @@
 {#if selected?.requires_target_field}
   <label>
     <span>{t("batch.target_field")}</span>
-    <FieldTooltipTarget block content={t("batch.target_field")} {disabledReason}>
-      <select bind:value={form.targetField} disabled={disabled}>
+    <span class="batch-field-help">{t("batch.target_field.help")}</span>
+    <FieldTooltipTarget block content={t("batch.target_field.help")} {disabledReason}>
+      <select aria-label={t("batch.target_field")} bind:value={form.targetField} disabled={disabled}>
         {#each state.field_groups as group}
           {#each group.fields as field}
             <option value={field}>{group.notetype_name} / {field}</option>
@@ -107,6 +110,11 @@
     color: var(--fg-subtle, currentColor);
     font-size: 11px;
     font-weight: 700;
+  }
+
+  .batch-field-help {
+    font-weight: 500;
+    line-height: 1.35;
   }
 
   select {

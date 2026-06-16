@@ -12,6 +12,8 @@
   import type { ToolbarPanelSpec } from "$lib/editor-toolbar-visibility.js";
   import ButtonSettingsCard from "./ButtonSettingsCard.svelte";
   import ToolbarPanelSettingsFields from "./ToolbarPanelSettingsFields.svelte";
+  import chorusingDemoUrl from "./assets/settings-toolbar-chorusing-demo-800x276.gif?inline";
+  import shortenPausesDemoUrl from "./assets/settings-toolbar-shorten-pauses-demo-800x264.gif?inline";
 
   let { config = $bindable() }: { config: Config } = $props();
   const buttons = settingsToolbarButtons();
@@ -119,6 +121,21 @@
       visible: isCommandVisible(button.command),
     }));
   }
+
+  function cardDescription(panel: ToolbarPanelSpec): string {
+    if (panel.primaryButton.command === "aqe:denoise-standard") {
+      return t("settings.toolbar_visibility.description.denoise");
+    }
+    return panel.description;
+  }
+
+  function tooltipMedia(panel: ToolbarPanelSpec) {
+    if (panel.slug === "chorusing") return { height: 276, src: chorusingDemoUrl, width: 800 };
+    if (panel.primaryButton.command === "aqe:remove-pauses") {
+      return { height: 264, src: shortenPausesDemoUrl, width: 800 };
+    }
+    return undefined;
+  }
 </script>
 
 <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
@@ -142,7 +159,7 @@
       {@const button = panel.primaryButton}
       {@const mode = displayMode(button.command)}
       <ButtonSettingsCard
-        description={panel.description}
+        description={cardDescription(panel)}
         hasSettings={panelHasSettings(panel, visible)}
         icon={panel.icon}
         mode={mode}
@@ -150,6 +167,7 @@
         onSetMode={(nextMode) => setDisplayMode(button.command, nextMode)}
         onToggle={() => toggle(panel)}
         testId={`button-settings-${panel.slug}`}
+        tooltipMedia={tooltipMedia(panel)}
         title={panel.label}
         {visible}
       >

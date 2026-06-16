@@ -63,6 +63,7 @@ describe("BatchApp audio export surface", () => {
     const { container } = render(BatchApp);
 
     expect(screen.getByRole("heading", { name: "Export Audio" })).toBeInTheDocument();
+    expect(screen.getByText("Export audio files from the selected notes. If you choose more than 50 audio files, this can get very, very slow.")).toBeInTheDocument();
     expect(screen.getByTestId("audio-export-controls")).toBeInTheDocument();
     expect(screen.getByLabelText("Destination")).toBeInTheDocument();
     expect(screen.queryByTestId("batch-operation")).not.toBeInTheDocument();
