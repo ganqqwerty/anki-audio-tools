@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from .audio_state import (
     AudioEditState,
@@ -13,6 +13,9 @@ from .editor_history_settings import (
     DEFAULT_EDITOR_HISTORY_SIZE,
     normalize_editor_history_size,
 )
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import ProcessingGuardDeps
 
 RegionDeleteOperation = Literal["delete-selection", "delete-rest"]
 LearnerRecordingStatus = Literal["idle", "recording", "stopping", "analyzing", "ready", "failed"]
@@ -250,7 +253,7 @@ def processing_guard_matches_editor(
     editor: Any,
     session: EditorSession | None,
     guard: EditorProcessingGuard,
-    deps: Any,
+    deps: ProcessingGuardDeps,
 ) -> bool:
     """Return whether a guarded completion still matches session and focused field."""
     if session is None or not is_current_processing_guard(session, guard):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from .editor_reload_status import reload_editor_with_pending_status
 from .editor_runtime import SettingsLifecycleCallbacks
@@ -19,10 +19,13 @@ from .file_reveal import open_external_url as open_url
 from .file_reveal import reveal_file
 from .i18n import t
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import SettingsActionDeps
+
 SettingsOpener = Callable[[SettingsLifecycleCallbacks | None], None]
 
 
-def open_settings_from_editor(editor: Any, settings_opener: SettingsOpener | None, deps: Any) -> None:
+def open_settings_from_editor(editor: Any, settings_opener: SettingsOpener | None, deps: SettingsActionDeps) -> None:
     """Open add-on settings from the editor toolbar command."""
     if settings_opener is None:
         message = t("editor.status.settings_unavailable")
@@ -54,7 +57,11 @@ def open_settings_from_editor(editor: Any, settings_opener: SettingsOpener | Non
     deps.eval_status(editor, t("editor.status.settings_opened"))
 
 
-def refresh_editor_after_settings_save(editor: Any, deps: Any, status_after_reload: str = "") -> None:
+def refresh_editor_after_settings_save(
+    editor: Any,
+    deps: SettingsActionDeps,
+    status_after_reload: str = "",
+) -> None:
     """Reload editor controls after settings are saved."""
     field_index = deps.current_field_index(editor)
     session = deps.sessions.get(editor)
@@ -75,7 +82,7 @@ def refresh_editor_after_settings_save(editor: Any, deps: Any, status_after_relo
     )
 
 
-def show_current_audio_file(editor: Any, deps: Any) -> None:
+def show_current_audio_file(editor: Any, deps: SettingsActionDeps) -> None:
     """Reveal the current audio file in the platform file manager."""
     try:
         session, media_path = deps.current_media_path(editor)
@@ -96,7 +103,7 @@ def show_current_audio_file(editor: Any, deps: Any) -> None:
     show_media_file(editor, session, media_path, deps)
 
 
-def show_learner_recording_file(editor: Any, deps: Any) -> None:
+def show_learner_recording_file(editor: Any, deps: SettingsActionDeps) -> None:
     """Reveal the latest learner recording sidecar in the platform file manager."""
     session = deps.sessions.get(editor)
     media_path = ready_learner_recording_media_path(session)
@@ -107,7 +114,7 @@ def show_learner_recording_file(editor: Any, deps: Any) -> None:
     show_media_file(editor, session, media_path, deps)
 
 
-def show_media_file(editor: Any, session: Any, media_path: Any, deps: Any) -> None:
+def show_media_file(editor: Any, session: Any, media_path: Any, deps: SettingsActionDeps) -> None:
     """Reveal an already-resolved editor media file."""
     if deps.is_busy(session):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 from .audio_processor import (
     format_ffmpeg_command,
@@ -26,7 +26,18 @@ from .audio_processor import (
     temp_final_path,
 )
 from .audio_recording import NativeRecordingController
-from .editor_deps_protocols import RegionDeleteDeps
+from .editor_deps_protocols import (
+    AnalysisDeps,
+    BridgeDeps,
+    FrontendDeps,
+    HistoryDeps,
+    PlaybackDeps,
+    ProcessingDeps,
+    RecordingDeps,
+    RegionDeleteDeps,
+    SettingsActionDeps,
+    ShareDeps,
+)
 from .editor_media import (
     current_field_index,
     resolve_requested_field_media,
@@ -41,10 +52,10 @@ def _native_recorder_factory(output_path: Any, mw: Any, parent: Any) -> NativeRe
     return NativeRecordingController(output_path, mw=mw, parent=parent)
 
 
-def frontend_deps(frontend_callbacks: Any) -> SimpleNamespace:
+def frontend_deps(frontend_callbacks: Any) -> FrontendDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(FrontendDeps, SimpleNamespace(
         eval_with_callback=frontend_callbacks.eval_with_callback,
         graph_redraw_expression=frontend_callbacks.graph_redraw_expression,
         history_availability_expression=frontend_callbacks.history_availability_expression,
@@ -61,13 +72,13 @@ def frontend_deps(frontend_callbacks: Any) -> SimpleNamespace:
         schedule_history_snapshot_attempt=frontend_callbacks.schedule_history_snapshot_attempt,
         sessions=editor_runtime.SESSIONS,
         set_busy_for_field=frontend_callbacks.set_busy_for_field,
-    )
+    ))
 
 
-def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> BridgeDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(BridgeDeps, SimpleNamespace(
         analyze_current_async=callbacks.analyze_current_async,
         analyze_field_from_frontend=callbacks.analyze_field_from_frontend,
         config=editor_runtime.config,
@@ -112,14 +123,14 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         undo=callbacks.undo,
         update_state_and_render=callbacks.update_state_and_render,
         voice_only_async=callbacks.voice_only_async,
-    )
+    ))
 
 
-def recording_deps(_callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def recording_deps(_callbacks: Any, frontend_callbacks: Any) -> RecordingDeps:
     from . import editor_runtime
     from .editor_media import current_field_index, resolve_requested_field_media
 
-    return SimpleNamespace(
+    return cast(RecordingDeps, SimpleNamespace(
         analyze_prosody_cached=analyze_prosody_cached,
         config=editor_runtime.config,
         current_field_index=current_field_index,
@@ -133,15 +144,15 @@ def recording_deps(_callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
         stop_session_playback=editor_runtime.stop_session_playback,
         threading=threading,
-    )
+    ))
 
 
-def share_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def share_deps(callbacks: Any, frontend_callbacks: Any) -> ShareDeps:
     from . import editor_runtime
     from .file_sharing import upload_file
     from .i18n import t
 
-    return SimpleNamespace(
+    return cast(ShareDeps, SimpleNamespace(
         current_media_path=editor_runtime.current_media_path,
         eval_status=frontend_callbacks.eval_status,
         finish_shared_audio=callbacks.finish_shared_audio,
@@ -154,13 +165,13 @@ def share_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
         t=t,
         upload_file=upload_file,
-    )
+    ))
 
 
-def history_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def history_deps(callbacks: Any, frontend_callbacks: Any) -> HistoryDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(HistoryDeps, SimpleNamespace(
         can_persistent_undo=callbacks.can_persistent_undo,
         config=editor_runtime.config,
         current_field_audio_missing=editor_runtime.CURRENT_FIELD_AUDIO_MISSING,
@@ -183,13 +194,13 @@ def history_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         session_and_source=editor_runtime.session_and_source,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
         stop_session_playback=editor_runtime.stop_session_playback,
-    )
+    ))
 
 
-def processing_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def processing_deps(callbacks: Any, frontend_callbacks: Any) -> ProcessingDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(ProcessingDeps, SimpleNamespace(
         artifact_root=editor_runtime.artifact_root,
         can_persistent_undo=callbacks.can_persistent_undo,
         config=editor_runtime.config,
@@ -242,13 +253,13 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         temp_final_path=temp_final_path,
         threading=threading,
         write_generated_media=callbacks.write_generated_media,
-    )
+    ))
 
 
-def settings_action_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def settings_action_deps(callbacks: Any, frontend_callbacks: Any) -> SettingsActionDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(SettingsActionDeps, SimpleNamespace(
         current_field_index=current_field_index,
         current_media_path=editor_runtime.current_media_path,
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
@@ -258,13 +269,13 @@ def settings_action_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNames
         sessions=editor_runtime.SESSIONS,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
         stop_session_playback=editor_runtime.stop_session_playback,
-    )
+    ))
 
 
-def playback_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def playback_deps(callbacks: Any, frontend_callbacks: Any) -> PlaybackDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(PlaybackDeps, SimpleNamespace(
         cleanup_temp_playback=callbacks.cleanup_temp_playback,
         config=editor_runtime.config,
         can_persistent_undo=callbacks.can_persistent_undo,
@@ -291,13 +302,13 @@ def playback_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         stop_session_playback=editor_runtime.stop_session_playback,
         threading=threading,
         visualized_duration_for_field=visualized_duration_for_field,
-    )
+    ))
 
 
-def analysis_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def analysis_deps(callbacks: Any, frontend_callbacks: Any) -> AnalysisDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(AnalysisDeps, SimpleNamespace(
         analysis_failed=callbacks.analysis_failed,
         analysis_finished=callbacks.analysis_finished,
         analyze_prosody_cached=analyze_prosody_cached,
@@ -321,13 +332,13 @@ def analysis_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         start_field_analysis_async=callbacks.start_field_analysis_async,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
         threading=threading,
-    )
+    ))
 
 
 def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> RegionDeleteDeps:
     from . import editor_runtime
 
-    return SimpleNamespace(
+    return cast(RegionDeleteDeps, SimpleNamespace(
         can_persistent_undo=callbacks.can_persistent_undo,
         config=editor_runtime.config,
         current_field_audio_missing=editor_runtime.CURRENT_FIELD_AUDIO_MISSING,
@@ -364,4 +375,4 @@ def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> RegionDeleteD
         temp_final_path=temp_final_path,
         threading=threading,
         write_generated_media=callbacks.write_generated_media,
-    )
+    ))

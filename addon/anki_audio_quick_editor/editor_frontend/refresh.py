@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..editor_deps_protocols import FrontendDeps
 
 
 def eval_history_snapshot(
@@ -46,7 +49,7 @@ def eval_history_availability(
 
 def request_graph_redraw(
     editor: Any,
-    deps: Any,
+    deps: FrontendDeps,
     expected_filename: str | None = None,
     graph_settings: dict[str, object] | None = None,
     *,
@@ -74,7 +77,7 @@ def request_history_snapshot_after_edit(
     editor: Any,
     field_index: int,
     snapshot: dict[str, object],
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Schedule undo/redo history snapshot sync after a field replacement remount."""
     deps.schedule_history_snapshot_attempt(
@@ -91,7 +94,7 @@ def request_history_availability_after_edit(
     field_index: int,
     can_undo: bool,
     can_redo: bool,
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Schedule undo/redo availability sync after a field replacement remount."""
     deps.schedule_history_availability_attempt(
@@ -113,7 +116,7 @@ def schedule_graph_redraw_attempt(
     preserve_learner_overlay: bool = False,
     remaining: int,
     delay_ms: int,
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Schedule one delayed graph redraw attempt."""
     from aqt.qt import QTimer
@@ -153,7 +156,7 @@ def schedule_history_snapshot_attempt(
     *,
     remaining: int,
     delay_ms: int,
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Schedule one delayed undo/redo history snapshot sync attempt."""
     from aqt.qt import QTimer
@@ -187,7 +190,7 @@ def schedule_history_availability_attempt(
     *,
     remaining: int,
     delay_ms: int,
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Schedule one delayed undo/redo availability sync attempt."""
     from aqt.qt import QTimer
@@ -280,7 +283,7 @@ def retry_graph_redraw(
     preserve_learner_overlay: bool,
     started: bool,
     remaining: int,
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Retry graph redraw when the frontend was not ready."""
     if started or remaining <= 0:
@@ -302,7 +305,7 @@ def retry_history_snapshot(
     snapshot: dict[str, object],
     synced: bool,
     remaining: int,
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Retry history snapshot sync when the remounted frontend is not ready."""
     if synced or remaining <= 0:
@@ -323,7 +326,7 @@ def retry_history_availability(
     can_redo: bool,
     synced: bool,
     remaining: int,
-    deps: Any,
+    deps: FrontendDeps,
 ) -> None:
     """Retry history availability sync when the remounted frontend is not ready."""
     if synced or remaining <= 0:

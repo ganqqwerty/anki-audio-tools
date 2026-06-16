@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .editor_recording_frontend import (
     eval_learner_recording_state,
@@ -15,13 +15,16 @@ from .editor_session import learner_recording_is_current
 from .error_codes import AQE_RECORDING_FAILED, coded_error
 from .prosody_types import ProsodyTrack
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import RecordingDeps
+
 
 def learner_recording_analysis_finished(
     editor: Any,
     generation: int,
     request: LearnerRecordingRequest,
     track: ProsodyTrack,
-    deps: Any,
+    deps: RecordingDeps,
 ) -> None:
     """Apply a learner prosody result if it is still current."""
     session = deps.sessions.get(editor)
@@ -50,7 +53,7 @@ def fail_learner_recording(
     generation: int,
     request: LearnerRecordingRequest,
     message: str,
-    deps: Any,
+    deps: RecordingDeps,
 ) -> None:
     """Mark a learner recording attempt failed if it is still current."""
     session = deps.sessions.get(editor)

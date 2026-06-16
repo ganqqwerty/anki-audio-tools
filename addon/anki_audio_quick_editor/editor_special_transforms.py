@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
@@ -45,10 +45,13 @@ from .support import (
     record_latest_spleeter_support_incident,
 )
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import ProcessingDeps
+
 logger = logging.getLogger(__name__)
 
 
-def denoise_standard_async(editor: Any, deps: Any) -> None:
+def denoise_standard_async(editor: Any, deps: ProcessingDeps) -> None:
     deps.run_special_audio_transform_async(
         editor,
         label=t("editor.status.denoising_standard"),
@@ -61,10 +64,10 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
 def reduce_size_async(
     editor: Any,
     command: EditorCommandPayload | None = None,
-    deps: Any = None,
+    deps: ProcessingDeps | None = None,
 ) -> None:
     if deps is None:
-        deps = command
+        deps = cast("ProcessingDeps", command)
         command = EditorCommandPayload(command="aqe:reduce-size")
     mode = command.overrides.size_reduction_mode if command is not None else None
 
@@ -93,7 +96,7 @@ def reduce_size_async(
     )
 
 
-def rnnoise_async(editor: Any, deps: Any) -> None:
+def rnnoise_async(editor: Any, deps: ProcessingDeps) -> None:
     deps.run_special_audio_transform_async(
         editor,
         label=t("editor.status.denoising_rnnoise"),
@@ -108,10 +111,10 @@ def rnnoise_async(editor: Any, deps: Any) -> None:
 def dpdfnet_async(
     editor: Any,
     command: EditorCommandPayload | None = None,
-    deps: Any = None,
+    deps: ProcessingDeps | None = None,
 ) -> None:
     if deps is None:
-        deps = command
+        deps = cast("ProcessingDeps", command)
         command = EditorCommandPayload(command="aqe:dpdfnet")
     deps.run_special_audio_transform_async(
         editor,
@@ -124,7 +127,7 @@ def dpdfnet_async(
     )
 
 
-def voice_only_async(editor: Any, deps: Any) -> None:
+def voice_only_async(editor: Any, deps: ProcessingDeps) -> None:
     deps.run_special_audio_transform_async(
         editor,
         label=t("editor.status.extracting_voice"),
@@ -139,10 +142,10 @@ def voice_only_async(editor: Any, deps: Any) -> None:
 def pitch_hum_async(
     editor: Any,
     command: EditorCommandPayload | None = None,
-    deps: Any = None,
+    deps: ProcessingDeps | None = None,
 ) -> None:
     if deps is None:
-        deps = command
+        deps = cast("ProcessingDeps", command)
         command = EditorCommandPayload(command="aqe:pitch-hum")
     config = AudioProcessingConfig.from_config(deps.config(editor))
     deps.run_special_audio_transform_async(
@@ -156,13 +159,13 @@ def pitch_hum_async(
 
 def _pitch_hum_renderer(
     command: EditorCommandPayload | None,
-    deps: Any,
+    deps: ProcessingDeps,
     default_mode: str,
 ) -> Callable[..., Any]:
     mode = command.overrides.pitch_hum_mode if command is not None else None
     if (mode or default_mode) == "pitch_tier":
-        return cast(Callable[..., Any], deps.render_pitch_tier_hum_audio)
-    return cast(Callable[..., Any], deps.render_pitch_hum_audio)
+        return deps.render_pitch_tier_hum_audio
+    return deps.render_pitch_hum_audio
 
 
 def run_special_audio_transform_async(
@@ -175,7 +178,7 @@ def run_special_audio_transform_async(
     failure_context_recorder: Callable[[Path, AudioProcessingConfig, Exception], None] | None = None,
     command: EditorCommandPayload | None = None,
     output_format: object = DEFAULT_OUTPUT_FORMAT,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     operation_id = new_operation_id("transform")
     existing = deps.sessions.get(editor)
@@ -248,7 +251,7 @@ def _special_transform_config(
 def replace_current_field_after_noise_removal(
     editor: Any,
     saved_name: str,
-    deps: Any,
+    deps: ProcessingDeps,
     *,
     guard: EditorProcessingGuard | None = None,
     output_path: Path | None = None,

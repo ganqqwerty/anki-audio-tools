@@ -3,23 +3,26 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any
 
 from .errors import AudioProcessingError
 from .media_paths import media_filenames_match
 from .sound_refs import replace_sound_reference, select_first_sound_reference
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import EditorMediaReplacementDeps
 
 
 def persist_generated_media(
     editor: Any,
     saved_name: str,
     output_path: Path | None,
-    deps: Any,
+    deps: EditorMediaReplacementDeps,
 ) -> str:
     """Persist generated media when a worker returned a temp path."""
     if output_path is None:
         return saved_name
-    return cast(str, deps.write_generated_media(editor, saved_name, output_path))
+    return deps.write_generated_media(editor, saved_name, output_path)
 
 
 def replace_first_sound_reference_in_field(

@@ -5,17 +5,20 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .i18n import t
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import BridgeDeps
+
 logger = logging.getLogger(__name__)
 _SOURCE_INFO_ERROR = "settings.size_reduction_source_metadata.error"
 
 
-def request_source_metadata(editor: Any, deps: Any) -> None:
+def request_source_metadata(editor: Any, deps: BridgeDeps) -> None:
     """Pop one frontend source metadata request and answer it asynchronously."""
     expression = """
     (() => window.__aqePopPendingSourceMetadataRequest
@@ -69,7 +72,7 @@ def _start_probe(
     request: dict[str, Any],
     media_path: Path,
     processing_config: AudioProcessingConfig,
-    deps: Any,
+    deps: BridgeDeps,
 ) -> None:
     operation_id = new_operation_id("source-meta")
     record_breadcrumb(

@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .editor_playback_bounds import requested_end_ms
 from .editor_session import EditorSession
 from .i18n import t
 from .prosody_types import clamp_cursor_ms
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import PlaybackDeps
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ def playback_request_values(
     session: EditorSession,
     request: Any,
     field_index: int,
-    deps: Any,
+    deps: PlaybackDeps,
 ) -> tuple[str, str, int, int | None, str, str]:
     """Normalize action, engine, cursor, and selected-region end values from a playback payload."""
     if not isinstance(request, dict):
@@ -39,7 +42,7 @@ def toggle_native_pause_resume(
     field_index: int,
     action: str,
     cursor_ms: int,
-    deps: Any,
+    deps: PlaybackDeps,
 ) -> bool:
     """Toggle native playback pause/resume when possible."""
     if action not in {"pause", "resume"} or not session.playback_active:
@@ -66,7 +69,7 @@ def apply_html_playback_request(
     action: str,
     cursor_ms: int,
     source: str,
-    deps: Any,
+    deps: PlaybackDeps,
 ) -> None:
     """Update backend state for frontend-owned HTML audio playback."""
     if action == "pause":

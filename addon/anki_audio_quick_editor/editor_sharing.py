@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .diagnostics_runtime import capture_exception, new_operation_id
 from .editor_actions import EditorCommandPayload, decode_editor_command_payload
@@ -17,13 +17,16 @@ from .error_codes import (
 )
 from .errors import AudioProcessingError, MissingMediaError
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import ShareDeps
+
 logger = logging.getLogger(__name__)
 
 
 def share_current_audio_file(
     editor: Any,
     command: str | EditorCommandPayload,
-    deps: Any,
+    deps: ShareDeps,
 ) -> None:
     """Upload the current editor audio file and copy the resulting URL."""
     payload = decode_editor_command_payload(command)
@@ -55,7 +58,7 @@ def share_current_audio_file(
 def share_learner_recording_file(
     editor: Any,
     command: str | EditorCommandPayload,
-    deps: Any,
+    deps: ShareDeps,
 ) -> None:
     """Upload the latest learner recording sidecar and copy the resulting URL."""
     payload = decode_editor_command_payload(command)
@@ -73,7 +76,7 @@ def share_learner_recording_file(
     share_media_path(editor, payload, session, media_path, deps)
 
 
-def reject_invalid_share_target(editor: Any, deps: Any) -> None:
+def reject_invalid_share_target(editor: Any, deps: ShareDeps) -> None:
     deps.set_busy(editor, False)
     message = deps.t("editor.status.share_invalid_target")
     deps.eval_status(
@@ -88,7 +91,7 @@ def share_media_path(
     payload: EditorCommandPayload,
     session: Any,
     media_path: Any,
-    deps: Any,
+    deps: ShareDeps,
 ) -> None:
     """Upload one already-resolved media path."""
     if deps.is_busy(session):
@@ -148,7 +151,7 @@ def finish_shared_audio(
     share_target: str,
     filename: str,
     url: str,
-    deps: Any,
+    deps: ShareDeps,
 ) -> None:
     """Finalize a successful upload on the main thread."""
     from aqt.qt import QApplication
@@ -174,7 +177,7 @@ def finish_shared_audio(
     deps.set_busy(editor, False)
 
 
-def share_failed(editor: Any, error: str, deps: Any) -> None:
+def share_failed(editor: Any, error: str, deps: ShareDeps) -> None:
     """Clear the busy state after a failed upload."""
     deps.set_busy(editor, False)
     message = deps.t("editor.status.share_failed", {"error": error})

@@ -5,12 +5,11 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from . import editor_region_delete_request as _request
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
-from .editor_deps_protocols import RegionDeleteDeps
 from .editor_media_replacement import (
     persist_generated_media,
     replace_first_sound_reference_in_field,
@@ -51,6 +50,9 @@ from .error_codes import (
 from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
 from .permission_guidance import message_with_permission_guidance
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import RegionDeleteDeps
 
 logger = logging.getLogger(__name__)
 parse_region_delete_request = _request.parse_region_delete_request

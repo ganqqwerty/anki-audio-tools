@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioProcessingConfig
@@ -18,6 +18,9 @@ from .editor_session import (
 )
 from .errors import AudioAlreadyCompactError
 from .permission_guidance import message_with_permission_guidance
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import ProcessingDeps
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,7 @@ def run_special_transform_worker(
     output_format: object,
     guard: EditorProcessingGuard,
     operation_id: str,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     """Render a special transform and schedule a guarded main-thread completion."""
     output_path: Path | None = None
@@ -81,7 +84,7 @@ def _schedule_special_transform_finish(
     desired_name: str,
     output_path: Path,
     guard: EditorProcessingGuard,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     if not is_current_processing_guard(session, guard):
         shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -115,7 +118,7 @@ def _handle_special_transform_worker_failure(
     guard: EditorProcessingGuard,
     operation_id: str,
     exc: Exception,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     if output_path is not None:
         shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -145,7 +148,7 @@ def _handle_already_compact(
     output_path: Path | None,
     guard: EditorProcessingGuard,
     message: str,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     if output_path is not None:
         shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -162,6 +165,6 @@ def _handle_already_compact(
     deps.main(editor, _finish)
 
 
-def _discard_stale_special_transform(editor: Any, guard: EditorProcessingGuard, deps: Any) -> None:
+def _discard_stale_special_transform(editor: Any, guard: EditorProcessingGuard, deps: ProcessingDeps) -> None:
     if clear_processing_for_stale_guard(deps.sessions.get(editor), guard):
         deps.set_busy(editor, False)

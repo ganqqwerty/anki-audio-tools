@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_operation_params import parameters_from_raw
 from .error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
 from .i18n import t
 from .prosody_settings import sanitize_graph_settings
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import BridgeDeps
 
 MAX_REPEAT_PAUSE_SECONDS = 10.0
 MAX_CHORUSING_REPEAT_COUNT = 20
@@ -27,7 +30,7 @@ AUDIO_PARAMETER_CONFIG_KEYS = (
 )
 
 
-def save_split_defaults_from_frontend(editor: Any, deps: Any) -> None:
+def save_split_defaults_from_frontend(editor: Any, deps: BridgeDeps) -> None:
     """Read a pending split-default request from the editor webview and persist it."""
     expression = """
     (() => {

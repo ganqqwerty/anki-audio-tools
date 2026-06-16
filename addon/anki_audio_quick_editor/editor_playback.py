@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
@@ -29,6 +29,9 @@ from .i18n import t
 from .media_paths import existing_media_file_path
 from .permission_guidance import message_with_permission_guidance
 from .prosody_types import clamp_cursor_ms
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import PlaybackDeps
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +62,7 @@ def stop_audio_playback() -> None:
         logger.info("audio stop failed: %s", exc)
 
 
-def stop_session_playback(session: EditorSession, deps: Any) -> None:
+def stop_session_playback(session: EditorSession, deps: PlaybackDeps) -> None:
     """Stop playback and clear transient playback state for an editor session."""
     session.playback_generation += 1
     session.playback_preparing = False
@@ -85,7 +88,7 @@ def cleanup_temp_playback(session: EditorSession) -> None:
         logger.info("temporary playback cleanup failed: %s", exc)
 
 
-def play(editor: Any, deps: Any) -> None:
+def play(editor: Any, deps: PlaybackDeps) -> None:
     """Ask the frontend for a playback request and apply it."""
     deps.eval_with_callback(
         editor,
@@ -95,14 +98,14 @@ def play(editor: Any, deps: Any) -> None:
     )
 
 
-def play_ended(editor: Any, deps: Any) -> None:
+def play_ended(editor: Any, deps: PlaybackDeps) -> None:
     """Handle the frontend/native playback-ended callback."""
     preserve_status = stop_playback(editor, deps)
     if not preserve_status:
         deps.eval_status(editor, "")
 
 
-def stop_playback(editor: Any, deps: Any) -> bool:
+def stop_playback(editor: Any, deps: PlaybackDeps) -> bool:
     """Stop active playback without clearing editor status text."""
     session = deps.sessions.get(editor)
     preserve_status = False
@@ -120,7 +123,7 @@ def stop_playback(editor: Any, deps: Any) -> bool:
     return preserve_status
 
 
-def play_with_request(editor: Any, request: Any, deps: Any) -> None:
+def play_with_request(editor: Any, request: Any, deps: PlaybackDeps) -> None:
     """Apply a frontend playback request."""
     if getattr(editor, "note", None) is None:
         return
@@ -166,7 +169,7 @@ def start_playback_from_cursor(
     field_index: int,
     cursor_ms: int,
     end_ms: int | None,
-    deps: Any,
+    deps: PlaybackDeps,
     source: str = "user",
 ) -> None:
     """Start native playback, rendering a temporary segment when seeking or trimming is needed."""
@@ -282,7 +285,7 @@ def playback_segment_ready(
     field_index: int,
     cursor_ms: int,
     playback_path: Path,
-    deps: Any,
+    deps: PlaybackDeps,
     source: str = "user",
 ) -> None:
     """Start native playback once an offset playback segment has rendered."""
@@ -309,7 +312,7 @@ def playback_segment_ready(
         deps.eval_status(editor, t("editor.playback.playing"))
 
 
-def playback_segment_failed(editor: Any, generation: int, message: str, deps: Any) -> None:
+def playback_segment_failed(editor: Any, generation: int, message: str, deps: PlaybackDeps) -> None:
     """Report playback segment render failure if it belongs to the active generation."""
     session = deps.sessions.get(editor)
     if session is None or generation != session.playback_generation:
@@ -327,7 +330,7 @@ def playback_segment_failed(editor: Any, generation: int, message: str, deps: An
     )
 
 
-def _coded_playback_error(message: str, deps: Any) -> dict[str, str]:
+def _coded_playback_error(message: str, deps: PlaybackDeps) -> dict[str, str]:
     if message == deps.current_field_audio_missing:
         return coded_error(AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING, message)
     if message == deps.referenced_audio_missing:
@@ -335,7 +338,7 @@ def _coded_playback_error(message: str, deps: Any) -> dict[str, str]:
     return coded_error(AQE_AUDIO_PROCESSING_FAILED, message)
 
 
-def set_cursor_from_web(editor: Any, deps: Any) -> None:
+def set_cursor_from_web(editor: Any, deps: PlaybackDeps) -> None:
     """Update the session cursor from frontend state."""
 
     def _apply(value: Any) -> None:

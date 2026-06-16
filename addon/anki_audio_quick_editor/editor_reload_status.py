@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .editor_session import EditorSession, PendingEditorStatus
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import EditorReloadDeps
 
 
 def reload_editor_with_pending_status(
@@ -14,7 +17,7 @@ def reload_editor_with_pending_status(
     *,
     message: str = "",
     kind: str = "info",
-    deps: Any,
+    deps: EditorReloadDeps,
 ) -> None:
     """Reload editor controls after assigning the next injected status."""
     if session is not None:
