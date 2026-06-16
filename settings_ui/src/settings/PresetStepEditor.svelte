@@ -257,7 +257,10 @@
         </label>
       </FieldTooltipTarget>
     {:else if step.operation === Operation.Slower || step.operation === Operation.Faster}
-      <FieldTooltipTarget block content={t("settings.speed_step.tooltip")}>
+      <FieldTooltipTarget
+        block
+        content={step.operation === Operation.Faster ? t("settings.speed_step.faster.tooltip") : t("settings.speed_step.slower.tooltip")}
+      >
         <label class="settings-field">
           <span>{t("settings.speed_step")}</span>
           <input

@@ -191,6 +191,9 @@
   <main class="batch-root" dir={batchState.direction} lang={batchState.locale}>
     <header>
       <h1>{isAudioExportSurface ? t("audio_export.window_title") : t("batch.window_title")}</h1>
+      {#if isAudioExportSurface}
+        <p class="batch-feature-description">{t("audio_export.description")}</p>
+      {/if}
       <p><ErrorMessage error={status} /></p>
       <BatchResourceLinks />
     </header>

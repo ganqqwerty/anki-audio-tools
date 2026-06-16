@@ -113,6 +113,9 @@ describe("BatchApp", () => {
     render(BatchApp);
 
     expect(screen.getByText("Choose an operation and fields for the selected notes.")).toBeInTheDocument();
+    expect(screen.getByText("What do you want to do to the audio?")).toBeInTheDocument();
+    expect(screen.getByText("Which field contains the audio?")).toBeInTheDocument();
+    expect(screen.getByText("Where should the resulting audio file go?")).toBeInTheDocument();
     expect(screen.getByLabelText("Target field")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "GitHub Pages" })).toHaveAttribute(
       "href",

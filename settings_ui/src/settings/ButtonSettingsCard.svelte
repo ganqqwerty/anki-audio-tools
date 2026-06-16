@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AqeTooltip from "$lib/AqeTooltip.svelte";
   import CommandIcon from "$lib/CommandIcon.svelte";
   import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
@@ -18,6 +19,7 @@
     onSetMode,
     onToggle,
     testId,
+    tooltipMedia,
     title,
     visible,
     children,
@@ -32,6 +34,11 @@
     onSetMode?: ((mode: EditorButtonDisplayMode) => void) | undefined;
     onToggle: () => void;
     testId: string;
+    tooltipMedia?: {
+      height: number;
+      src: string;
+      width: number;
+    } | undefined;
     title: string;
     visible: boolean;
   } = $props();
@@ -48,15 +55,46 @@
 
 <section class="button-settings-card" data-testid={testId}>
   <header class="button-settings-card-header">
-    <div class="button-settings-card-title">
-      <CommandIcon className="button-settings-card-icon" {icon} />
-      <div class="button-settings-card-title-copy">
-        <h4>{title}</h4>
-        {#if description}
-          <p class="button-settings-card-description" data-testid={`${testId}-description`}>{description}</p>
-        {/if}
+    {#if tooltipMedia && description}
+      <AqeTooltip content={description} side="bottom" align="start" sideOffset={6}>
+        {#snippet trigger({ props })}
+          <div
+            {...props}
+            class="button-settings-card-title aqe-tooltip-target"
+            data-aqe-tooltip-content={description}
+          >
+            <CommandIcon className="button-settings-card-icon" {icon} />
+            <div class="button-settings-card-title-copy">
+              <h4>{title}</h4>
+              <p class="button-settings-card-description" data-testid={`${testId}-description`}>{description}</p>
+            </div>
+          </div>
+        {/snippet}
+        {#snippet richContent()}
+          <div class="button-settings-media-tooltip">
+            <p>{description}</p>
+            <img
+              src={tooltipMedia.src}
+              alt=""
+              aria-hidden="true"
+              class="button-settings-media-tooltip-image"
+              width={tooltipMedia.width}
+              height={tooltipMedia.height}
+            />
+          </div>
+        {/snippet}
+      </AqeTooltip>
+    {:else}
+      <div class="button-settings-card-title">
+        <CommandIcon className="button-settings-card-icon" {icon} />
+        <div class="button-settings-card-title-copy">
+          <h4>{title}</h4>
+          {#if description}
+            <p class="button-settings-card-description" data-testid={`${testId}-description`}>{description}</p>
+          {/if}
+        </div>
       </div>
-    </div>
+    {/if}
 
     <span class="button-settings-controls">
       <label class="button-settings-checkbox">
@@ -181,6 +219,11 @@
     margin: 0;
   }
 
+  .button-settings-checkbox :global(.field-tooltip-target) {
+    align-items: center;
+    gap: 6px;
+  }
+
   .button-settings-card-body {
     display: grid;
     align-content: start;
@@ -197,6 +240,25 @@
     font-size: 0.85rem;
     line-height: 1.4;
     margin: 0;
+  }
+
+  .button-settings-media-tooltip {
+    display: grid;
+    gap: 8px;
+  }
+
+  .button-settings-media-tooltip p {
+    color: inherit;
+    margin: 0;
+  }
+
+  .button-settings-media-tooltip-image {
+    border: 1px solid color-mix(in srgb, var(--border, ButtonBorder) 72%, transparent);
+    border-radius: 6px;
+    display: block;
+    height: auto;
+    max-width: 100%;
+    width: min(320px, calc(100vw - 48px));
   }
 
   @media (max-width: 720px) {

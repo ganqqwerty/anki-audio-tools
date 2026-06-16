@@ -50,6 +50,12 @@
     return tooltipWithDisabledClarification(content, disabledReason);
   }
 
+  function speedStepTooltip(): string {
+    if (selected?.operation === "faster") return t("settings.speed_step.faster.tooltip");
+    if (selected?.operation === "slower") return t("settings.speed_step.slower.tooltip");
+    return t("settings.speed_step.tooltip");
+  }
+
   function applyPausePreset(value: BatchPauseAggressiveness): void {
     const algorithm = activeBatchPauseAlgorithm(form);
     const preset = pausePreset(algorithm, value);
@@ -74,7 +80,7 @@
   {#if selected?.parameter_kind === BatchParameterKind.Speed}
     <label>
       <span>{t("settings.speed_step")}</span>
-      <FieldTooltipTarget block content={t("settings.speed_step")} {disabledReason}>
+      <FieldTooltipTarget block content={speedStepTooltip()} {disabledReason}>
         <UnitNumberInput
           block
           bind:value={form.speedStep}

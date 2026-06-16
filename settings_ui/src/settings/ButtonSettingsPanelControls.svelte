@@ -168,6 +168,11 @@
     margin: 0;
   }
 
+  .button-settings-checkbox :global(.field-tooltip-target) {
+    align-items: center;
+    gap: 6px;
+  }
+
   @media (max-width: 720px) {
     .button-settings-panel {
       grid-column: 1;

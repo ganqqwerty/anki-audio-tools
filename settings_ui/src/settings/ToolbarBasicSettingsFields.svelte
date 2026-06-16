@@ -91,6 +91,7 @@
       unit="s"
       bind:value={config.voice_recording_countdown_seconds}
     />
+    <span class="settings-field-note">{t("settings.voice_recording_countdown_seconds.help")}</span>
   </label>
 {:else if command === "aqe:chorusing-practice"}
   <label class="settings-field">
