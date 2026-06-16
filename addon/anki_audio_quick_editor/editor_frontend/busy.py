@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..editor_deps_protocols import FrontendDeps
 
 
-def set_busy(editor: Any, busy: bool, message: str, command: str, deps: Any) -> None:
+def set_busy(editor: Any, busy: bool, message: str, command: str, deps: FrontendDeps) -> None:
     """Set busy state for the active field."""
     field_index = getattr(editor, "currentField", None)
     if field_index is None:

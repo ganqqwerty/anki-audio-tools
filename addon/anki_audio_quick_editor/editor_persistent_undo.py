@@ -6,7 +6,7 @@ import hashlib
 import logging
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_state import AudioEditState
 from .editor_history_settings import normalize_editor_history_size
@@ -31,6 +31,9 @@ from .persistent_undo_chain import (
     restored_field_html,
 )
 from .runtime_paths import user_files_dir
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import PersistentUndoDeps
 
 DB_FILENAME = "persistent_undo.sqlite3"
 STANDARD_RENDER_OPERATION = "standard-render"
@@ -179,12 +182,12 @@ def record_standard_persistent_undo(
     )
 
 
-def restore_persistent_undo(editor: Any, session: EditorSession, deps: Any) -> bool:
+def restore_persistent_undo(editor: Any, session: EditorSession, deps: PersistentUndoDeps) -> bool:
     """Restore the latest persistent undo operation for the current field."""
     return restore_persistent_undo_steps(editor, session, 1, deps)
 
 
-def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: int, deps: Any) -> bool:
+def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: int, deps: PersistentUndoDeps) -> bool:
     """Restore a selected depth from persistent undo history."""
     field_index = int(deps.current_field_index(editor))
     try:
@@ -324,7 +327,7 @@ def _undo_chain_for_field(
     return result.operations
 
 
-def _show_persistent_undo_unavailable(editor: Any, deps: Any) -> None:
+def _show_persistent_undo_unavailable(editor: Any, deps: PersistentUndoDeps) -> None:
     deps.eval_status(
         editor,
         coded_error(

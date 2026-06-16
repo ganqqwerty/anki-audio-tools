@@ -66,7 +66,7 @@ def _exports() -> SimpleNamespace:
     )
 
 
-def _deps(builder: Callable[[Any, Any], SimpleNamespace]) -> SimpleNamespace:
+def _deps[DepsT](builder: Callable[[Any, Any], DepsT]) -> DepsT:
     """Build a dependency namespace for the given builder.
 
     Passes the same ``_exports()`` namespace to both ``callbacks`` and
@@ -79,11 +79,11 @@ def _deps(builder: Callable[[Any, Any], SimpleNamespace]) -> SimpleNamespace:
     return builder(exports, exports)
 
 
-def _bridge_deps() -> SimpleNamespace:
+def _bridge_deps() -> editor_deps_protocols.BridgeDeps:
     return _deps(editor_dependencies.bridge_deps)
 
 
-def _processing_deps() -> SimpleNamespace:
+def _processing_deps() -> editor_deps_protocols.ProcessingDeps:
     return _deps(editor_dependencies.processing_deps)
 
 
@@ -92,27 +92,27 @@ def _region_delete_deps() -> editor_deps_protocols.RegionDeleteDeps:
     return editor_dependencies.region_delete_deps(exports, exports)
 
 
-def _playback_deps() -> SimpleNamespace:
+def _playback_deps() -> editor_deps_protocols.PlaybackDeps:
     return _deps(editor_dependencies.playback_deps)
 
 
-def _history_deps() -> SimpleNamespace:
+def _history_deps() -> editor_deps_protocols.HistoryDeps:
     return _deps(editor_dependencies.history_deps)
 
 
-def _settings_action_deps() -> SimpleNamespace:
+def _settings_action_deps() -> editor_deps_protocols.SettingsActionDeps:
     return _deps(editor_dependencies.settings_action_deps)
 
 
-def _analysis_deps() -> SimpleNamespace:
+def _analysis_deps() -> editor_deps_protocols.AnalysisDeps:
     return _deps(editor_dependencies.analysis_deps)
 
 
-def _recording_deps() -> SimpleNamespace:
+def _recording_deps() -> editor_deps_protocols.RecordingDeps:
     return _deps(editor_dependencies.recording_deps)
 
 
-def _share_deps() -> SimpleNamespace:
+def _share_deps() -> editor_deps_protocols.ShareDeps:
     return _deps(editor_dependencies.share_deps)
 
 

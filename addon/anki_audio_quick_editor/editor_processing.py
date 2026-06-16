@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from . import editor_special_transforms as _special_transforms
 from .audio_state import AudioEditState, AudioProcessingConfig
@@ -47,6 +47,9 @@ from .error_codes import (
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import ProcessingDeps
+
 logger = logging.getLogger(__name__)
 convert_async = _convert_async
 denoise_standard_async = _special_transforms.denoise_standard_async
@@ -63,7 +66,7 @@ run_special_audio_transform_async = _special_transforms.run_special_audio_transf
 voice_only_async = _special_transforms.voice_only_async
 
 
-def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: Any) -> None:
+def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: ProcessingDeps) -> None:
     """Apply a frontend processing command and start the render worker."""
     existing = deps.sessions.get(editor)
     if existing and existing.processing:
@@ -96,7 +99,7 @@ def render_and_replace_async(
     source_path: Path,
     updated_state: AudioEditState,
     config: AudioProcessingConfig,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     """Render an edited audio file and replace the current field on completion."""
     operation_id = new_operation_id("render")
@@ -133,7 +136,7 @@ def _run_standard_render_worker(
     config: AudioProcessingConfig,
     guard: EditorProcessingGuard,
     operation_id: str,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     output_path: Path | None = None
     try:
@@ -169,7 +172,7 @@ def _schedule_standard_render_finish(
     desired_name: str,
     output_path: Path,
     guard: EditorProcessingGuard,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     if not is_current_processing_guard(session, guard):
         shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -200,7 +203,7 @@ def _handle_standard_render_worker_failure(
     guard: EditorProcessingGuard,
     operation_id: str,
     exc: Exception,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     if output_path is not None:
         shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -220,7 +223,7 @@ def _handle_standard_render_worker_failure(
     deps.main(editor, lambda: deps.render_failed(editor, message, guard=guard))
 
 
-def _discard_stale_standard_render(editor: Any, guard: EditorProcessingGuard, deps: Any) -> None:
+def _discard_stale_standard_render(editor: Any, guard: EditorProcessingGuard, deps: ProcessingDeps) -> None:
     if clear_processing_for_stale_guard(deps.sessions.get(editor), guard):
         deps.set_busy(editor, False)
 
@@ -229,7 +232,7 @@ def replace_current_field_after_render(
     editor: Any,
     updated_state: AudioEditState,
     saved_name: str,
-    deps: Any,
+    deps: ProcessingDeps,
     *,
     guard: EditorProcessingGuard | None = None,
     output_path: Path | None = None,
@@ -291,7 +294,7 @@ def _accept_guarded_render_replacement(
     editor: Any,
     session: EditorSession | None,
     guard: EditorProcessingGuard | None,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> bool:
     if guard is None or processing_guard_matches_editor(editor, session, guard, deps):
         return True
@@ -301,7 +304,7 @@ def _accept_guarded_render_replacement(
 
 
 
-def _render_replacement_field_index(editor: Any, session: EditorSession | None, deps: Any) -> int:
+def _render_replacement_field_index(editor: Any, session: EditorSession | None, deps: ProcessingDeps) -> int:
     if session and session.field_index is not None:
         return int(session.field_index)
     return int(deps.current_field_index(editor))
@@ -336,7 +339,7 @@ def _replace_standard_render_session_state(
 
 
 # noinspection PyInconsistentReturns
-def write_generated_media(editor: Any, desired_name: str, output_path: Path, _deps: Any) -> str:
+def write_generated_media(editor: Any, desired_name: str, output_path: Path, _deps: ProcessingDeps) -> str:
     """Persist a rendered media file through Anki's media manager."""
     with output_path.open("rb") as file:
         return cast(str, editor.mw.col.media.write_data(desired_name, file.read()))
@@ -345,7 +348,7 @@ def write_generated_media(editor: Any, desired_name: str, output_path: Path, _de
 def render_failed(
     editor: Any,
     message: str,
-    deps: Any,
+    deps: ProcessingDeps,
     *,
     guard: EditorProcessingGuard | None = None,
 ) -> None:

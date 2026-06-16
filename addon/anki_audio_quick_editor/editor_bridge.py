@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .diagnostics_runtime import (
     capture_exception,
@@ -46,10 +46,13 @@ from .errors import AudioQuickEditorError
 from .frontend_logs import handle_frontend_log_payload
 from .i18n import t
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import BridgeDeps
+
 logger = logging.getLogger(__name__)
 
 
-def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
+def handle_bridge_command(editor: Any, command: str, deps: BridgeDeps) -> None:
     """Decode and dispatch one command from Anki's editor bridge."""
     operation_id = new_operation_id("editor")
     record_breadcrumb(
@@ -107,7 +110,7 @@ def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
         )
 
 
-def handle_pending_command_payload(editor: Any, deps: Any) -> None:
+def handle_pending_command_payload(editor: Any, deps: BridgeDeps) -> None:
     """Pop a rich command payload from the webview and dispatch it."""
     expression = """
     (() => {
@@ -128,7 +131,7 @@ def handle_pending_command_payload(editor: Any, deps: Any) -> None:
     deps.eval_with_callback(editor, expression, _continue)
 
 
-def handle_non_processing_command(editor: Any, command: str | EditorCommandPayload, deps: Any) -> bool:
+def handle_non_processing_command(editor: Any, command: str | EditorCommandPayload, deps: BridgeDeps) -> bool:
     """Handle commands that do not apply an audio edit state."""
     payload = decode_editor_command_payload(command)
     if payload.command == "aqe:scan":
@@ -176,7 +179,7 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
     return True
 
 
-def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: Any) -> bool:
+def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: BridgeDeps) -> bool:
     """Handle non-processing commands that need the decoded payload."""
     handlers = {
         "aqe:analyze": lambda: deps.analyze_current_async(editor, graph_settings=payload.graph_settings),
@@ -202,7 +205,7 @@ def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: Any
     return True
 
 
-def handle_editor_frontend_log(editor: Any, deps: Any) -> None:
+def handle_editor_frontend_log(editor: Any, deps: BridgeDeps) -> None:
     """Read and log one frontend diagnostic payload."""
     deps.eval_with_callback(
         editor,

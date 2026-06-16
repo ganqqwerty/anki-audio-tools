@@ -6,7 +6,7 @@ import logging
 import shutil
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_processing_preset_runner import (
     ProcessingPresetRunnerAdapters,
@@ -33,13 +33,16 @@ from .error_codes import AQE_AUDIO_PROCESSING_FAILED, coded_error
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import ProcessingDeps
+
 logger = logging.getLogger(__name__)
 
 
 def run_processing_preset_async(
     editor: Any,
     command: EditorCommandPayload,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     """Run one saved processing preset against the active editor field."""
     existing = deps.sessions.get(editor)
@@ -98,7 +101,7 @@ def _run_preset_worker(
     guard: EditorProcessingGuard,
     operation_id: str,
     raw_config: dict[str, Any],
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     result: ProcessingPresetRunResult | None = None
     try:
@@ -133,7 +136,7 @@ def _schedule_preset_finish(
     preset: AudioProcessingPreset,
     result: ProcessingPresetRunResult,
     guard: EditorProcessingGuard,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     if not is_current_processing_guard(session, guard):
         _cleanup_result(result)
@@ -177,7 +180,7 @@ def _handle_preset_worker_failure(
     guard: EditorProcessingGuard,
     operation_id: str,
     exc: Exception,
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> None:
     _cleanup_result(result)
     message = message_with_permission_guidance(str(exc), exc)
@@ -196,7 +199,7 @@ def _handle_preset_worker_failure(
     deps.main(editor, lambda: deps.render_failed(editor, message, guard=guard))
 
 
-def _editor_preset_runner_adapters(deps: Any) -> ProcessingPresetRunnerAdapters:
+def _editor_preset_runner_adapters(deps: ProcessingDeps) -> ProcessingPresetRunnerAdapters:
     return ProcessingPresetRunnerAdapters(
         make_audio_output_filename=deps.make_output_filename,
         make_graph_output_filename=lambda filename: filename,
@@ -211,7 +214,7 @@ def _editor_preset_runner_adapters(deps: Any) -> ProcessingPresetRunnerAdapters:
 
 
 def _render_preset_audio(
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> Callable[[Path, Any, AudioProcessingConfig, Path, Path | None], None]:
     def _render(
         source_path: Path,
@@ -232,7 +235,7 @@ def _render_preset_audio(
 
 
 def _render_preset_converted_audio(
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> Callable[[Path, AudioProcessingConfig, str, Path], None]:
     def _render(
         source_path: Path,
@@ -246,7 +249,7 @@ def _render_preset_converted_audio(
 
 
 def _render_preset_size_reduced_audio(
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> Callable[[Path, AudioProcessingConfig, Path], None]:
     def _render(source_path: Path, config: AudioProcessingConfig, output_path: Path) -> None:
         deps.render_size_reduced_audio(
@@ -260,7 +263,7 @@ def _render_preset_size_reduced_audio(
 
 
 def _render_preset_denoise_audio(
-    deps: Any,
+    deps: ProcessingDeps,
 ) -> Callable[[Path, AudioProcessingConfig, Path], None]:
     def _render(source_path: Path, config: AudioProcessingConfig, output_path: Path) -> None:
         renderers = {
@@ -294,6 +297,6 @@ def _cleanup_result(result: ProcessingPresetRunResult | None) -> None:
         shutil.rmtree(result.final_audio_path.parent, ignore_errors=True)
 
 
-def _discard_stale_preset(editor: Any, guard: EditorProcessingGuard, deps: Any) -> None:
+def _discard_stale_preset(editor: Any, guard: EditorProcessingGuard, deps: ProcessingDeps) -> None:
     if clear_processing_for_stale_guard(deps.sessions.get(editor), guard):
         deps.set_busy(editor, False)

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from . import editor_dependencies, editor_frontend, editor_recording_frontend
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import FrontendDeps
 
 
 def _frontend_exports() -> SimpleNamespace:
@@ -28,7 +31,7 @@ def _frontend_exports() -> SimpleNamespace:
     )
 
 
-def _frontend_deps() -> SimpleNamespace:
+def _frontend_deps() -> FrontendDeps:
     return editor_dependencies.frontend_deps(_frontend_exports())
 
 

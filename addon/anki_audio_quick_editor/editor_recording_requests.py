@@ -6,7 +6,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .editor_session import EditorSession, LearnerRecordingState
 from .errors import AudioProcessingError
@@ -14,6 +14,9 @@ from .i18n import t
 from .sound_refs import safe_media_basename
 
 _FILENAME_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import RecordingDeps
 
 
 @dataclass(frozen=True)
@@ -35,7 +38,7 @@ def learner_recording_request(
     session: EditorSession,
     graph_settings: dict[str, object] | None,
     start_cursor_ms: int | None,
-    deps: Any,
+    deps: RecordingDeps,
 ) -> LearnerRecordingRequest:
     """Validate that the current field still matches a target graph."""
     field_index = deps.current_field_index(editor)

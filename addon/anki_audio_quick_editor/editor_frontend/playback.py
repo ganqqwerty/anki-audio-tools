@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..editor_deps_protocols import FrontendDeps
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +30,7 @@ def eval_playback_state(
 def request_playback_after_edit(
     editor: Any,
     field_index: int,
-    deps: Any,
+    deps: FrontendDeps,
     *,
     require_graph_redraw: bool = False,
 ) -> None:
@@ -69,7 +72,7 @@ def pending_post_edit_playback_payload(session: Any | None) -> dict[str, object]
     return payload
 
 
-def handle_post_edit_playback_ready(editor: Any, payload: Any, deps: Any) -> None:
+def handle_post_edit_playback_ready(editor: Any, payload: Any, deps: FrontendDeps) -> None:
     """Start pending post-edit playback after the frontend reports readiness."""
     session = deps.sessions.get(editor)
     logger.info(
@@ -94,21 +97,21 @@ def handle_post_edit_playback_ready(editor: Any, payload: Any, deps: Any) -> Non
             )
             return
         current = deps.sessions.get(editor)
-        if _post_edit_playback_ready_matches(current, payload):
-            current.pending_post_edit_playback_field_index = None
-            current.pending_post_edit_playback_generation = None
-            current.pending_post_edit_playback_requires_graph_redraw = False
-            current.pending_post_edit_playback_source_filename = None
-            logger.info(
-                "post-edit playback started; pending request cleared | payload=%s",
-                _post_edit_playback_payload_context(payload),
-            )
-        else:
+        if current is None or not _post_edit_playback_ready_matches(current, payload):
             logger.warning(
                 "post-edit playback started but pending request changed before clear | payload=%s pending=%s",
                 _post_edit_playback_payload_context(payload),
                 _post_edit_playback_session_context(current),
             )
+            return
+        current.pending_post_edit_playback_field_index = None
+        current.pending_post_edit_playback_generation = None
+        current.pending_post_edit_playback_requires_graph_redraw = False
+        current.pending_post_edit_playback_source_filename = None
+        logger.info(
+            "post-edit playback started; pending request cleared | payload=%s",
+            _post_edit_playback_payload_context(payload),
+        )
 
     deps.eval_with_callback(
         editor,

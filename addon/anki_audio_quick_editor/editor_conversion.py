@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from .audio_formats import format_label, is_same_visible_format
 from .audio_state import AudioProcessingConfig
@@ -11,15 +11,18 @@ from .editor_actions import EditorCommandPayload
 from .editor_session import EditorSession
 from .i18n import t
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import ProcessingDeps
+
 
 def convert_async(
     editor: Any,
     command: EditorCommandPayload | None = None,
-    deps: Any = None,
+    deps: ProcessingDeps | None = None,
 ) -> None:
     """Start format conversion for the current media."""
     if deps is None:
-        deps = command
+        deps = cast("ProcessingDeps", command)
         command = EditorCommandPayload(command="aqe:convert")
     existing = deps.sessions.get(editor)
     if existing and _has_blocking_work(existing):

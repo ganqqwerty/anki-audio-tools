@@ -7,7 +7,7 @@ import shutil
 import time
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_recording import (
     AudioRecordingError,
@@ -46,12 +46,15 @@ from .i18n import t
 from .permission_guidance import message_with_permission_guidance
 from .prosody_settings import config_with_graph_settings
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import RecordingDeps
+
 logger = logging.getLogger(__name__)
 
 
 def record_learner_voice(
     editor: Any,
-    deps: Any,
+    deps: RecordingDeps,
     *,
     graph_settings: dict[str, object] | None = None,
     start_cursor_ms: int | None = None,
@@ -108,7 +111,7 @@ def record_learner_voice(
     recorder.start(state.generation, on_started=on_started, on_failed=on_failed)
 
 
-def stop_learner_recording(editor: Any, deps: Any) -> None:
+def stop_learner_recording(editor: Any, deps: RecordingDeps) -> None:
     """Stop the active learner recording and process the result."""
     session = deps.sessions.get(editor)
     if session is None:
@@ -136,7 +139,7 @@ def learner_recording_completed(
     editor: Any,
     request: LearnerRecordingRequest,
     result: RecordingResult,
-    deps: Any,
+    deps: RecordingDeps,
 ) -> None:
     """Persist a completed recording and start learner prosody analysis."""
     session = deps.sessions.get(editor)
@@ -184,7 +187,7 @@ def analyze_learner_recording_async(
     generation: int,
     request: LearnerRecordingRequest,
     media_path: Path,
-    deps: Any,
+    deps: RecordingDeps,
 ) -> None:
     """Analyze learner pitch in the background and publish the overlay payload."""
     operation_id = new_operation_id("learner-graph")
@@ -233,7 +236,7 @@ def analyze_learner_recording_async(
     deps.threading.Thread(target=_run, daemon=True).start()
 
 
-def play_learner_recording(editor: Any, deps: Any) -> None:
+def play_learner_recording(editor: Any, deps: RecordingDeps) -> None:
     """Toggle playback for the latest learner recording if one exists."""
     session = deps.sessions.get(editor)
     if session is None:
@@ -308,7 +311,7 @@ def _schedule_learner_playback_finished(
     editor: Any,
     session: EditorSession,
     state: LearnerRecordingState,
-    deps: Any,
+    deps: RecordingDeps,
 ) -> None:
     duration_ms = int(state.recording_duration_ms or state.target_duration_ms or 0)
     remaining_ms = max(0, duration_ms - int(state.playback_position_ms or 0))

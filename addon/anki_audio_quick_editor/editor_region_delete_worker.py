@@ -5,11 +5,10 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception
-from .editor_deps_protocols import RegionDeleteDeps
 from .editor_region_delete_request import (
     REGION_KEEP_OPERATION,
     region_operation_command_status,
@@ -22,6 +21,9 @@ from .editor_session import (
     is_current_processing_guard,
 )
 from .permission_guidance import message_with_permission_guidance
+
+if TYPE_CHECKING:
+    from .editor_deps_protocols import RegionDeleteDeps
 
 logger = logging.getLogger(__name__)
 

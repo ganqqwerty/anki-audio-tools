@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .audio_state import AudioProcessingConfig
 from .contracts_generated import ProsodyPayload
@@ -25,6 +25,9 @@ from .prosody_settings import config_with_graph_settings, sanitize_graph_setting
 from .prosody_types import ProsodyTrack, clamp_cursor_ms
 from .sound_refs import safe_media_basename
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import AnalysisDeps
+
 
 @dataclass(frozen=True)
 class GraphAnalysisRequest:
@@ -37,7 +40,7 @@ class GraphAnalysisRequest:
 
 def analyze_current_async(
     editor: Any,
-    deps: Any,
+    deps: AnalysisDeps,
     *,
     graph_settings: dict[str, object] | None = None,
 ) -> None:
@@ -66,7 +69,7 @@ def analyze_current_async(
     deps.start_field_analysis_async(editor, field_index, filename, media_path, graph_settings)
 
 
-def analyze_field_from_frontend(editor: Any, deps: Any) -> None:
+def analyze_field_from_frontend(editor: Any, deps: AnalysisDeps) -> None:
     """Pop and process a field-addressed graph analysis request from the frontend."""
     deps.eval_with_callback(
         editor,
@@ -76,7 +79,7 @@ def analyze_field_from_frontend(editor: Any, deps: Any) -> None:
     )
 
 
-def analyze_requested_field_async(editor: Any, request: Any, deps: Any) -> None:
+def analyze_requested_field_async(editor: Any, request: Any, deps: AnalysisDeps) -> None:
     """Analyze a specific frontend-requested field if it still matches the request."""
     parsed = parse_graph_analysis_request(request)
     if parsed is None:
@@ -128,7 +131,7 @@ def start_field_analysis_async(
     filename: str,
     media_path: Path,
     graph_settings: dict[str, object] | None,
-    deps: Any,
+    deps: AnalysisDeps,
 ) -> None:
     """Start background prosody analysis for a field."""
     operation_id = new_operation_id("graph")
@@ -189,13 +192,13 @@ def begin_field_analysis(session: EditorSession, field_index: int, filename: str
     return generation
 
 
-def finish_ignored_field_analysis(editor: Any, field_index: int, deps: Any) -> None:
+def finish_ignored_field_analysis(editor: Any, field_index: int, deps: AnalysisDeps) -> None:
     """Clear busy state for an obsolete field analysis request."""
     deps.set_busy_for_field(editor, field_index, False)
     deps.eval_visualizer_status_for_field(editor, field_index, "", kind="info")
 
 
-def fail_field_analysis_without_generation(editor: Any, field_index: int, message: str, deps: Any) -> None:
+def fail_field_analysis_without_generation(editor: Any, field_index: int, message: str, deps: AnalysisDeps) -> None:
     """Report analysis failure before a generation is registered."""
     deps.set_busy_for_field(editor, field_index, False)
     display_message = message or t("editor.graph.failed")
@@ -212,7 +215,7 @@ def analysis_finished(
     generation: int,
     field_index: int,
     track: ProsodyTrack,
-    deps: Any,
+    deps: AnalysisDeps,
 ) -> None:
     """Apply a completed prosody analysis result to the frontend."""
     session = deps.sessions.get(editor)
@@ -236,7 +239,7 @@ def analysis_finished(
     deps.set_busy_for_field(editor, field_index, False)
 
 
-def analysis_failed(editor: Any, generation: int, field_index: int, message: str, deps: Any) -> None:
+def analysis_failed(editor: Any, generation: int, field_index: int, message: str, deps: AnalysisDeps) -> None:
     """Report a failed prosody analysis result."""
     session = deps.sessions.get(editor)
     if session is None or not is_current_field_analysis(session, field_index, generation):
@@ -252,7 +255,7 @@ def analysis_failed(editor: Any, generation: int, field_index: int, message: str
     )
 
 
-def _coded_analysis_error(message: str, deps: Any) -> dict[str, str]:
+def _coded_analysis_error(message: str, deps: AnalysisDeps) -> dict[str, str]:
     if message == deps.current_field_audio_missing:
         return coded_error(AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING, message)
     if message == deps.referenced_audio_missing:

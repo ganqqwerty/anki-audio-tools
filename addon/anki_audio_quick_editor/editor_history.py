@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .editor_history_settings import (
     DEFAULT_EDITOR_HISTORY_SIZE,
@@ -25,18 +25,21 @@ from .sound_refs import (
     select_first_sound_reference,
 )
 
+if TYPE_CHECKING:
+    from .editor_deps_protocols import HistoryDeps
 
-def sync_history_availability(editor: Any, session: EditorSession, deps: Any) -> None:
+
+def sync_history_availability(editor: Any, session: EditorSession, deps: HistoryDeps) -> None:
     """Reflect current undo/redo history into the editor toolbar."""
     deps.eval_history_snapshot(editor, session.field_index, history_snapshot(editor, session, deps))
 
 
-def request_history_availability_after_edit(editor: Any, session: EditorSession, deps: Any) -> None:
+def request_history_availability_after_edit(editor: Any, session: EditorSession, deps: HistoryDeps) -> None:
     """Retry history sync after the editor remounts controls."""
     deps.request_history_snapshot_after_edit(editor, session.field_index, history_snapshot(editor, session, deps))
 
 
-def history_snapshot(editor: Any, session: EditorSession, deps: Any) -> HistorySnapshot:
+def history_snapshot(editor: Any, session: EditorSession, deps: HistoryDeps) -> HistorySnapshot:
     """Return the current history snapshot for the session field."""
     latest_persistent_undo_item = getattr(deps, "latest_persistent_undo_item", lambda _editor, _field_index: None)
     persistent_undo_items = getattr(deps, "persistent_undo_items", None)
@@ -51,7 +54,7 @@ def history_snapshot(editor: Any, session: EditorSession, deps: Any) -> HistoryS
     )
 
 
-def _history_size(editor: Any, deps: Any) -> object:
+def _history_size(editor: Any, deps: HistoryDeps) -> object:
     if not hasattr(deps, "config"):
         return DEFAULT_EDITOR_HISTORY_SIZE
     try:
@@ -61,7 +64,7 @@ def _history_size(editor: Any, deps: Any) -> object:
     return config.get("editor_history_size", DEFAULT_EDITOR_HISTORY_SIZE)
 
 
-def undo(editor: Any, deps: Any) -> None:
+def undo(editor: Any, deps: HistoryDeps) -> None:
     """Restore the previous generated audio reference for the current field."""
     session, _source_path = deps.session_and_source(editor)
     if deps.is_busy(session):
@@ -84,7 +87,7 @@ def undo(editor: Any, deps: Any) -> None:
     )
 
 
-def redo(editor: Any, deps: Any) -> None:
+def redo(editor: Any, deps: HistoryDeps) -> None:
     """Restore the next generated audio reference for the current field."""
     session, _source_path = deps.session_and_source(editor)
     if deps.is_busy(session):
@@ -103,7 +106,7 @@ def redo(editor: Any, deps: Any) -> None:
     )
 
 
-def history_jump(editor: Any, payload: Any, deps: Any) -> None:
+def history_jump(editor: Any, payload: Any, deps: HistoryDeps) -> None:
     """Restore a selected undo/redo history depth."""
     session, _source_path = deps.session_and_source(editor)
     if deps.is_busy(session):
@@ -134,7 +137,7 @@ def _restore_persistent_history_jump(
     session: EditorSession,
     direction: str,
     steps: int,
-    deps: Any,
+    deps: HistoryDeps,
 ) -> bool:
     if direction != "undo" or session.undo_history.entries:
         return False
@@ -146,7 +149,7 @@ def _restore_persistent_history_jump(
     return True
 
 
-def _history_jump_request(editor: Any, payload: Any, deps: Any) -> tuple[str | None, int | None]:
+def _history_jump_request(editor: Any, payload: Any, deps: HistoryDeps) -> tuple[str | None, int | None]:
     field_ord = getattr(payload, "field_ord", None)
     if field_ord is None or int(field_ord) != int(deps.current_field_index(editor)):
         return None, None
@@ -182,7 +185,7 @@ def restore_history_entry(
     *,
     redo_current: bool,
     status: str,
-    deps: Any,
+    deps: HistoryDeps,
 ) -> None:
     """Replace the current audio field with a history entry."""
     deps.stop_session_playback(session)
