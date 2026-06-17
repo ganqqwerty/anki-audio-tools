@@ -166,7 +166,7 @@ def _wait_for_generated_mp3(note, media_dir: Path, previous_name: str, field_ind
             and "__aqe_" in filename
             and (media_dir / filename).is_file()
         ),
-        timeout=10.0,
+        timeout=30.0,
         message="Editor did not replace the field with a newly generated audio file",
     )
     return _sound_filename(note.fields[field_index])

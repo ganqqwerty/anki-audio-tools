@@ -29,6 +29,7 @@ AUDIO_SPLIT_MODULES = {
 EDITOR_SPLIT_MODULES = {
     "editor_analysis",
     "editor_bridge",
+    "editor_bridge_hooks",
     "editor_callbacks",
     "editor_dependencies",
     "editor_frontend",
@@ -41,6 +42,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_frontend.types",
     "editor_history",
     "editor_media",
+    "editor_note_load_hooks",
     "editor_playback",
     "editor_playback_request",
     "editor_processing",

@@ -11,13 +11,11 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_actions import BRIDGE_COMMANDS
+from anki_audio_quick_editor.editor_bridge_hooks import on_editor_did_init
 from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command, _set_busy
-from anki_audio_quick_editor.editor_integration import (
-    _on_editor_did_init,
-    _on_editor_will_load_note,
-    register_editor_hooks,
-)
+from anki_audio_quick_editor.editor_integration import register_editor_hooks
 from anki_audio_quick_editor.editor_media import audio_field_indices
+from anki_audio_quick_editor.editor_note_load_hooks import on_editor_will_load_note
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import (
     EditorSession,
@@ -37,8 +35,8 @@ def test_register_editor_hooks() -> None:
 
     hooks.editor_did_init.append.assert_called_once()
     hooks.editor_will_load_note.append.assert_called_once()
-    assert hooks.editor_did_init.append.call_args.args == (_on_editor_did_init,)
-    assert hooks.editor_will_load_note.append.call_args.args == (_on_editor_will_load_note,)
+    assert hooks.editor_did_init.append.call_args.args == (on_editor_did_init,)
+    assert hooks.editor_will_load_note.append.call_args.args == (on_editor_will_load_note,)
 
 
 def test_entrypoint_registers_editor_startup_hook() -> None:
@@ -52,12 +50,10 @@ def test_entrypoint_registers_editor_startup_hook() -> None:
 
 
 def test_editor_init_registers_all_bridge_commands(tmp_path: Path) -> None:
-    from anki_audio_quick_editor.editor_integration import _on_editor_did_init
-
     editor = SimpleNamespace(_links={}, mw=MagicMock(), web=MagicMock(), currentField=0)
     editor.mw.col.media.dir.return_value = str(tmp_path)
 
-    _on_editor_did_init(editor)
+    on_editor_did_init(editor)
 
     assert set(BRIDGE_COMMANDS) <= set(editor._links)
 

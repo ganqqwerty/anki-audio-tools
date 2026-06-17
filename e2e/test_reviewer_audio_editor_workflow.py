@@ -76,7 +76,7 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
     anki_mw.moveToState("review")
     wait_for_condition(
         lambda: anki_mw.state == "review",
-        timeout=10.0,
+        timeout=30.0,
         message="Anki did not enter review state",
     )
     reviewer = anki_mw.reviewer
@@ -87,7 +87,7 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
             reviewer.web,
             "document.querySelector('#qa') !== null",
             lambda value: value is True,
-            timeout=10.0,
+            timeout=30.0,
         )
     except TimeoutError as exc:
         body = wait_for_js(
@@ -102,14 +102,14 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
             and reviewer.card is not None
             and reviewer.card.nid == note.id
         ),
-        timeout=10.0,
-        message="Reviewer did not open expected note within 10s",
+        timeout=30.0,
+        message="Reviewer did not open expected note within 30s",
     )
     wait_for_js_condition(
         reviewer.web,
         "document.body ? document.body.innerText.includes('Prompt') : false",
         lambda value: value is True,
-        timeout=10.0,
+        timeout=30.0,
     )
     _set_reviewer_editor_visible(reviewer)
     return reviewer

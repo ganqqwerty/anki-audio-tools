@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import (
-    _reset_editor_session_for_note_load,
+from anki_audio_quick_editor.editor_note_load_hooks import (
+    reset_editor_session_for_note_load,
 )
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession
@@ -42,7 +42,7 @@ def test_note_load_reset_skips_same_note_reload(monkeypatch) -> None:
         lambda: stop_calls.append("stop"),
     )
 
-    _reset_editor_session_for_note_load(editor, 12)
+    reset_editor_session_for_note_load(editor, 12)
 
     assert stop_calls == []
     assert session.note_id == 12
