@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .audio_external import (
-    _external_command_run_kwargs,
-    _render_external_error_message,
+    external_command_run_kwargs,
+    render_external_error_message,
 )
 from .audio_formats import (
     normalize_output_format,
@@ -80,13 +80,13 @@ def probe_audio_metadata(source_path: Path, config: AudioProcessingConfig) -> Au
             check=False,
             encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
             errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            **_external_command_run_kwargs(),
+            **external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
         raise AudioProcessingError(launch_error_message("Could not start ffprobe.", exc)) from exc
     if result.returncode != 0:
         raise AudioProcessingError(
-            _render_external_error_message(result, "Could not inspect audio stream metadata.")
+            render_external_error_message(result, "Could not inspect audio stream metadata.")
         )
     try:
         streams = json.loads(result.stdout).get("streams", [])

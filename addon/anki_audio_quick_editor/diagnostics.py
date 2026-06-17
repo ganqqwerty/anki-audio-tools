@@ -79,7 +79,7 @@ def _health_from_probe_result(
 def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
     """Return DeepFilterNet executable availability and version details."""
     from .audio_processor import (
-        _external_command_run_kwargs,
+        external_command_run_kwargs,
         find_deep_filter,
         tool_source_label,
     )
@@ -100,7 +100,7 @@ def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
         deep_filter_path,
         ("--version",),
         source=source,
-        run_kwargs=_external_command_run_kwargs(),
+        run_kwargs=external_command_run_kwargs(),
         timeout_error="deep-filter --version timed out.",
     )
     if isinstance(result, dict):
@@ -116,8 +116,8 @@ def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
 def build_rnnoise_health() -> dict[str, Any]:
     """Return bundled RNNoise availability and version details."""
     from .audio_processor import (
-        _external_command_run_kwargs,
         expected_bundled_tool_path,
+        external_command_run_kwargs,
         find_rnnoise_bundle,
     )
     from .audio_tools import expected_managed_tool_path
@@ -138,7 +138,7 @@ def build_rnnoise_health() -> dict[str, Any]:
         rnnoise_path,
         ("--version",),
         source=_managed_or_bundled_source(rnnoise_path),
-        run_kwargs=_external_command_run_kwargs(),
+        run_kwargs=external_command_run_kwargs(),
         timeout_error="rnnoise-cli --version timed out.",
     )
     if isinstance(result, dict):
@@ -154,8 +154,8 @@ def build_rnnoise_health() -> dict[str, Any]:
 def build_dpdfnet_health() -> dict[str, Any]:
     """Return bundled DPDFNet availability and version details."""
     from .audio_processor import (
-        _external_command_run_kwargs,
         expected_bundled_tool_path,
+        external_command_run_kwargs,
         find_dpdfnet_bundle,
     )
     from .audio_tools import expected_managed_tool_path
@@ -176,7 +176,7 @@ def build_dpdfnet_health() -> dict[str, Any]:
         dpdfnet_path,
         ("--version",),
         source=_managed_or_bundled_source(dpdfnet_path),
-        run_kwargs=_external_command_run_kwargs(),
+        run_kwargs=external_command_run_kwargs(),
         timeout_error="dpdfnet --version timed out.",
     )
     if isinstance(result, dict):
@@ -192,8 +192,8 @@ def build_dpdfnet_health() -> dict[str, Any]:
 def build_spleeter_health() -> dict[str, Any]:
     """Return bundled Sherpa Spleeter availability and version details."""
     from .audio_processor import (
-        _external_command_run_kwargs,
         expected_bundled_tool_path,
+        external_command_run_kwargs,
         find_spleeter_bundle,
     )
     from .audio_tools import expected_managed_tool_path
@@ -208,7 +208,7 @@ def build_spleeter_health() -> dict[str, Any]:
         spleeter_path,
         ("--help",),
         source=_managed_or_bundled_source(spleeter_path),
-        run_kwargs=_external_command_run_kwargs(),
+        run_kwargs=external_command_run_kwargs(),
         timeout_error="sherpa-spleeter --help timed out.",
     )
     if isinstance(result, dict):
@@ -225,8 +225,8 @@ def build_spleeter_health() -> dict[str, Any]:
 def build_silero_vad_health() -> dict[str, Any]:
     """Return bundled Silero VAD availability and probe details."""
     from .audio_processor import (
-        _external_command_run_kwargs,
         expected_bundled_tool_path,
+        external_command_run_kwargs,
         find_silero_vad_bundle,
     )
     from .audio_tools import expected_managed_tool_path
@@ -241,7 +241,7 @@ def build_silero_vad_health() -> dict[str, Any]:
         silero_path,
         ("--help",),
         source=_managed_or_bundled_source(silero_path),
-        run_kwargs=_external_command_run_kwargs(),
+        run_kwargs=external_command_run_kwargs(),
         timeout_error="silero-vad --help timed out.",
     )
     if isinstance(result, dict):

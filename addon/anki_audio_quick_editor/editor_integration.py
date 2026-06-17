@@ -5,18 +5,12 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from . import editor_runtime
-from .editor_actions import BRIDGE_COMMANDS
 from .editor_bridge_hooks import on_editor_did_init
 from .editor_note_load_hooks import on_editor_will_load_note
 from .editor_runtime import SettingsLifecycleCallbacks
-from .editor_session import EditorSession
-from .editor_webview_injection import editor_injection_script
 
 SettingsOpener = Callable[[SettingsLifecycleCallbacks | None], None]
 __all__ = [
-    "BRIDGE_COMMANDS",
-    "EditorSession",
-    "editor_injection_script",
     "register_editor_hooks",
 ]
 

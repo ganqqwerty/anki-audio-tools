@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .editor_callbacks import _stop_session_playback
+from .editor_callbacks import stop_session_playback
 from .editor_runtime import SESSIONS
 from .editor_session import EditorSession, reset_for_note_load
 from .editor_webview_injection import editor_injection_script
@@ -25,7 +25,7 @@ def reset_editor_session_for_note_load(editor: Any, note_id: int | None = None) 
         return
     if not reset_for_note_load(session, note_id):
         return
-    _stop_session_playback(session)
+    stop_session_playback(session)
     if not hasattr(editor, "web"):
         return
     editor.web.eval(

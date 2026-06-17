@@ -39,7 +39,7 @@ def test_reviewer_bridge_dispatches_aqe_commands(monkeypatch) -> None:
     calls: list[tuple[object, str]] = []
     monkeypatch.setattr(
         reviewer_integration,
-        "_handle_bridge_command",
+        "handle_bridge_command",
         lambda editor, command: calls.append((editor, command)),
     )
 

@@ -11,7 +11,7 @@ import pytest
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_callbacks import (
     _analysis_finished,
-    _handle_bridge_command,
+    handle_bridge_command,
 )
 from anki_audio_quick_editor.editor_note_load_hooks import (
     reset_editor_session_for_note_load,
@@ -198,7 +198,7 @@ def test_field_addressed_analysis_preserves_edit_session_history(
         lambda path, config: analyzed.append((path, config)) or track,
     )
 
-    _handle_bridge_command(editor, "aqe:analyze-field")
+    handle_bridge_command(editor, "aqe:analyze-field")
 
     assert [path for path, _config in analyzed] == [field_two]
     assert [config.graph_voice_range for _path, config in analyzed] == ["bass"]
@@ -267,7 +267,7 @@ def test_manual_analysis_uses_read_only_field_path(tmp_path: Path, monkeypatch) 
         lambda path, _config: analyzed.append(path) or track,
     )
 
-    _handle_bridge_command(editor, "aqe:analyze")
+    handle_bridge_command(editor, "aqe:analyze")
 
     assert analyzed == [field_two]
     assert session.state == AudioEditState("field-one.mp3", volume_db=3.0)
@@ -328,7 +328,7 @@ def test_manual_analysis_payload_applies_graph_settings(tmp_path: Path, monkeypa
         lambda path, config: analyzed.append((path, config)) or track,
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:analyze","fieldOrd":1,'
         '"graphSettings":{"voiceRange":"child","recordingCondition":"studio",'
@@ -381,7 +381,7 @@ def test_stale_field_addressed_analysis_request_is_ignored(tmp_path: Path, monke
         lambda *_args, **_kwargs: pytest.fail("stale graph requests should not analyze audio"),
     )
 
-    _handle_bridge_command(editor, "aqe:analyze-field")
+    handle_bridge_command(editor, "aqe:analyze-field")
 
     assert session.state == AudioEditState("new.mp3")
     assert [entry.filename for entry in session.undo_history.entries] == ["new.mp3"]

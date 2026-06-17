@@ -222,6 +222,6 @@ def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[st
 
 
 def _pending_post_edit_playback(editor: Any) -> dict[str, Any] | None:
-    from .editor_callbacks import _pending_post_edit_playback_payload
+    from .editor_callbacks import pending_post_edit_playback_payload
 
-    return _pending_post_edit_playback_payload(_SESSIONS.get(editor))
+    return pending_post_edit_playback_payload(_SESSIONS.get(editor))

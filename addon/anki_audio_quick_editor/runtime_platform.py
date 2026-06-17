@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import platform
 
-_TOOL_EXECUTABLES = {
+TOOL_EXECUTABLES = {
     "ffmpeg": {
         "macos-arm64": "ffmpeg",
         "macos-x86_64": "ffmpeg",
@@ -42,7 +42,7 @@ _TOOL_EXECUTABLES = {
     },
 }
 
-__all__ = ["_TOOL_EXECUTABLES", "current_platform_key", "platform", "tool_executable_name"]
+__all__ = ["TOOL_EXECUTABLES", "current_platform_key", "platform", "tool_executable_name"]
 
 
 def current_platform_key() -> str | None:
@@ -60,4 +60,4 @@ def current_platform_key() -> str | None:
 
 def tool_executable_name(tool_name: str, platform_key: str | None) -> str | None:
     """Return the managed executable filename for a tool/platform pair."""
-    return _TOOL_EXECUTABLES.get(tool_name, {}).get(platform_key or "")
+    return TOOL_EXECUTABLES.get(tool_name, {}).get(platform_key or "")

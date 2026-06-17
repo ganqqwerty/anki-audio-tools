@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from . import audio_pause_pipeline_stage as _stage
-from .audio_artifacts import _artifact_record
+from .audio_artifacts import artifact_record
 from .audio_commands import (
     build_filter_complex_render_command,
 )
@@ -16,9 +16,9 @@ from .audio_external import (
     probe_duration_ms,
 )
 from .audio_pause_pipeline_detection import (
-    _analysis_source_for_detection,
-    _detect_silencedetect_pause_intervals,
-    _detect_silero_pause_intervals,
+    analysis_source_for_detection,
+    detect_silencedetect_pause_intervals,
+    detect_silero_pause_intervals,
 )
 from .audio_pause_settings import (
     active_pause_detection_params,
@@ -37,7 +37,7 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_types import AudioProcessingResult
 
 
-def _render_pause_removal_audio(
+def render_pause_removal_audio(
     state: AudioEditState,
     config: AudioProcessingConfig,
     ffmpeg_path: Path,
@@ -72,7 +72,7 @@ def _render_pause_removal_audio(
         "aggressiveness": config.pause_aggressiveness,
         **active_params,
     }
-    analysis_source = _analysis_source_for_detection(
+    analysis_source = analysis_source_for_detection(
         config,
         ffmpeg_path,
         working_original,
@@ -87,7 +87,7 @@ def _render_pause_removal_audio(
     )
 
     if config.pause_detection_algorithm == "silero_vad":
-        detected_intervals, detection_cmd = _detect_silero_pause_intervals(
+        detected_intervals, detection_cmd = detect_silero_pause_intervals(
             config,
             ffmpeg_path,
             run_dir,
@@ -103,7 +103,7 @@ def _render_pause_removal_audio(
             on_command,
         )
     else:
-        detected_intervals, detection_cmd = _detect_silencedetect_pause_intervals(
+        detected_intervals, detection_cmd = detect_silencedetect_pause_intervals(
             config,
             ffmpeg_path,
             analysis_source,
@@ -161,7 +161,7 @@ def _render_pause_removal_audio(
     )
     if output_path.resolve() != final_copy_path.resolve():
         shutil.copyfile(output_path, final_copy_path)
-    artifacts.append(_artifact_record("final_output", final_copy_path, output_mime_type))
+    artifacts.append(artifact_record("final_output", final_copy_path, output_mime_type))
     final_duration_ms = probe_duration_ms(output_path, config)
     manifest["final_output"] = {
         "path": str(output_path),
@@ -211,7 +211,7 @@ def _write_pause_interval_artifacts(
     manifest["detected_intervals"] = detected_json
     manifest["removed_intervals"] = removed_json
     manifest["silence_intervals"] = removed_json
-    artifacts.append(_artifact_record("removed_intervals", intervals_path, "application/json"))
+    artifacts.append(artifact_record("removed_intervals", intervals_path, "application/json"))
 
 
 def _write_pause_timeline_artifacts(
@@ -240,7 +240,7 @@ def _write_pause_timeline_artifacts(
     manifest["timeline"] = timeline_json
     artifacts.extend(
         [
-            _artifact_record("timeline", timeline_path, "application/json"),
-            _artifact_record("filter_complex_script", filter_script_path, "text/plain"),
+            artifact_record("timeline", timeline_path, "application/json"),
+            artifact_record("filter_complex_script", filter_script_path, "text/plain"),
         ]
     )

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
 from anki_audio_quick_editor.editor_special_transforms import (
@@ -78,7 +78,7 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
-    _handle_bridge_command(editor, "aqe:denoise-standard")
+    handle_bridge_command(editor, "aqe:denoise-standard")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -200,7 +200,7 @@ def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:rnnoise")
+    handle_bridge_command(editor, "aqe:rnnoise")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -274,7 +274,7 @@ def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monk
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:voice-only")
+    handle_bridge_command(editor, "aqe:voice-only")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]

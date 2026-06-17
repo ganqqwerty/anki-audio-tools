@@ -22,8 +22,8 @@ from anki_audio_quick_editor.audio_pitch_hum import (
 )
 from anki_audio_quick_editor.audio_pitch_hum_frames import sanitize_pitch_hum_frames
 from anki_audio_quick_editor.audio_pitch_hum_synthesis import (
-    _apply_nasal_onsets,
     _voiced_segments,
+    apply_nasal_onsets,
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.audio_types import AudioProcessingResult
@@ -106,7 +106,7 @@ def test_voiced_segments_merge_short_dropouts_without_merging_real_pauses() -> N
     assert segments == [(0.0, 0.3), (0.46, 0.6)]
 
 
-def test_apply_nasal_onsets_preserves_length_and_does_not_sound_short_dropouts() -> None:
+def testapply_nasal_onsets_preserves_length_and_does_not_sound_short_dropouts() -> None:
     sample_rate = 1000
     frames = [
         PitchHumFrame(time_s=0.00, pitch_hz=200.0, intensity_db=50.0),
@@ -122,7 +122,7 @@ def test_apply_nasal_onsets_preserves_length_and_does_not_sound_short_dropouts()
         pcm[index] = 0
     original = array("h", pcm)
 
-    result = _apply_nasal_onsets(pcm, frames, 0.65, sample_rate=sample_rate)
+    result = apply_nasal_onsets(pcm, frames, 0.65, sample_rate=sample_rate)
 
     assert result is pcm
     assert len(pcm) == len(original)

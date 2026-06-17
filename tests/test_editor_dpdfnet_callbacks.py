@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.errors import AudioProcessingError, MissingDpdfnetError
@@ -80,7 +80,7 @@ def test_dpdfnet_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:dpdfnet")
+    handle_bridge_command(editor, "aqe:dpdfnet")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -140,7 +140,7 @@ def test_dpdfnet_uses_field_local_aggressiveness_override(tmp_path: Path, monkey
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:dpdfnet","fieldOrd":0,'
         '"overrides":{"denoiseAlgorithm":"dpdfnet","dpdfnetAttnLimitDb":18}}',
@@ -198,7 +198,7 @@ def test_dpdfnet_cancels_graph_analysis_busy_state_before_render(tmp_path: Path,
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:dpdfnet")
+    handle_bridge_command(editor, "aqe:dpdfnet")
 
     session = SESSIONS[editor]
     assert session.analysis_busy is False
@@ -259,7 +259,7 @@ def test_dpdfnet_cancels_playback_preparation_before_render(tmp_path: Path, monk
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:dpdfnet")
+    handle_bridge_command(editor, "aqe:dpdfnet")
 
     session = SESSIONS[editor]
     assert rendered == [source]
@@ -328,7 +328,7 @@ def test_dpdfnet_failure_logs_renders_error_and_keeps_note(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
-    _handle_bridge_command(editor, "aqe:dpdfnet")
+    handle_bridge_command(editor, "aqe:dpdfnet")
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor import editor_callbacks, editor_frontend_callbacks
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.editor_split_defaults import split_default_config_updates
@@ -88,7 +88,7 @@ def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
         lambda _editor, payload: called.update(editor=_editor, payload=payload),
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:share","fieldOrd":0,"shareTarget":"catbox"}',
     )
@@ -106,7 +106,7 @@ def test_bridge_routes_learner_share_payload_to_editor_sharing(monkeypatch) -> N
         lambda _editor, payload: called.update(editor=_editor, payload=payload),
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:share-recording","fieldOrd":0,"shareTarget":"litterbox"}',
     )
@@ -124,7 +124,7 @@ def test_bridge_routes_show_learner_recording_file(monkeypatch) -> None:
         lambda _editor: called.update(editor=_editor),
     )
 
-    _handle_bridge_command(editor, "aqe:show-recording-file")
+    handle_bridge_command(editor, "aqe:show-recording-file")
 
     assert called["editor"] is editor
 
@@ -138,7 +138,7 @@ def test_bridge_passes_start_cursor_to_learner_recording(monkeypatch) -> None:
         lambda _editor, **kwargs: called.update(editor=_editor, kwargs=kwargs),
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:record-voice","fieldOrd":0,"startCursorMs":450}',
     )
@@ -158,7 +158,7 @@ def test_stop_playback_command_stops_session_without_clearing_status() -> None:
     )
     SESSIONS[editor] = session
 
-    _handle_bridge_command(editor, "aqe:stop-playback")
+    handle_bridge_command(editor, "aqe:stop-playback")
 
     assert session.playback_active is False
     assert session.playback_paused is False
@@ -175,7 +175,7 @@ def test_stop_playback_command_without_session_stops_audio(monkeypatch) -> None:
     stop_audio = MagicMock()
     monkeypatch.setattr("anki_audio_quick_editor.editor_callbacks._stop_audio_playback", stop_audio)
 
-    _handle_bridge_command(editor, "aqe:stop-playback")
+    handle_bridge_command(editor, "aqe:stop-playback")
 
     stop_audio.assert_called_once_with()
     assert not any("window.__aqeSetStatus" in call.args[0] for call in editor.web.eval.call_args_list)

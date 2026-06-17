@@ -45,7 +45,7 @@ def _advance_envelope(envelope: float, target: float, ramp_step: float) -> float
     return max(target, envelope - ramp_step)
 
 
-def _synthesize_pitch_hum_pcm(
+def synthesize_pitch_hum_pcm(
     frames: list[PitchHumFrame] | tuple[PitchHumFrame, ...],
     duration_s: float,
     *,
@@ -81,10 +81,10 @@ def _synthesize_pitch_hum_pcm(
         phase = (phase + (2 * math.pi * carrier_pitch_hz / sample_rate)) % (2 * math.pi)
         sample = sum(weight * math.sin(phase * harmonic) for harmonic, weight in _HARMONICS)
         pcm.append(round(max(-1.0, min(1.0, sample * envelope)) * 32767))
-    return _apply_nasal_onsets(pcm, sorted_frames, duration_s, sample_rate=sample_rate)
+    return apply_nasal_onsets(pcm, sorted_frames, duration_s, sample_rate=sample_rate)
 
 
-def _synthesize_pitch_tier_pcm(
+def synthesize_pitch_tier_pcm(
     pitch_tier_sound: Any,
     frames: list[PitchHumFrame] | tuple[PitchHumFrame, ...],
     duration_s: float,
@@ -113,7 +113,7 @@ def _synthesize_pitch_tier_pcm(
         envelope = _advance_envelope(envelope, target, ramp_step)
         sample = max(-1.0, min(1.0, source_sample * envelope))
         pcm.append(round(sample * 32767))
-    return _apply_nasal_onsets(pcm, sorted_frames, duration_s, sample_rate=sample_rate)
+    return apply_nasal_onsets(pcm, sorted_frames, duration_s, sample_rate=sample_rate)
 
 
 def _voiced_segments(
@@ -143,7 +143,7 @@ def _voiced_segments(
     return segments
 
 
-def _apply_nasal_onsets(
+def apply_nasal_onsets(
     pcm: array[int],
     frames: list[PitchHumFrame] | tuple[PitchHumFrame, ...],
     duration_s: float,
@@ -248,7 +248,7 @@ def _frame_amplitude(frame: PitchHumFrame, max_intensity_db: float | None) -> fl
     return HUM_BASE_AMPLITUDE * max(0.2, min(1.0, relative_gain))
 
 
-def _sound_duration_s(sound: Any, frames: list[PitchHumFrame] | tuple[PitchHumFrame, ...]) -> float:
+def sound_duration_s(sound: Any, frames: list[PitchHumFrame] | tuple[PitchHumFrame, ...]) -> float:
     get_total_duration = getattr(sound, "get_total_duration", None)
     if callable(get_total_duration):
         return max(0.0, float(get_total_duration()))
@@ -257,7 +257,7 @@ def _sound_duration_s(sound: Any, frames: list[PitchHumFrame] | tuple[PitchHumFr
     return 0.0
 
 
-def _nearest_intensity(
+def nearest_intensity(
     time_s: float,
     intensity_times: list[float],
     intensity_values: list[Any],

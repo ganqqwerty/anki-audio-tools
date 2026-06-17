@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from tests.editor_bridge_command_fixtures import attach_clip_session, make_editor
 
 
@@ -34,7 +34,7 @@ def test_bridge_defers_pending_payload_from_web_callback(tmp_path: Path, monkeyp
         lambda _editor, _session, _source_path, updated_state, _config: rendered.update(state=updated_state),
     )
 
-    _handle_bridge_command(editor, "aqe:command-payload")
+    handle_bridge_command(editor, "aqe:command-payload")
 
     assert "window.__aqePendingCommandPayload" in editor.web.callback_expression
     assert rendered["state"] == AudioEditState("clip.mp3", volume_db=6)
@@ -53,7 +53,7 @@ def test_pending_payload_missing_clears_busy_state() -> None:
 
     editor = make_editor(current_field=3, web=Web())
 
-    _handle_bridge_command(editor, "aqe:command-payload")
+    handle_bridge_command(editor, "aqe:command-payload")
 
     assert any("window.__aqeSetBusy" in call and "(3, false" in call for call in editor.web.eval_calls)
 
@@ -102,7 +102,7 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
     editor = make_editor(web=Web())
     editor.mw = MagicMock(addonManager=addon_manager)
 
-    _handle_bridge_command(editor, "aqe:save-split-defaults")
+    handle_bridge_command(editor, "aqe:save-split-defaults")
 
     assert "__aqePopPendingSplitDefaultSaveRequest" in editor.web.callback_expression
     addon_manager.writeConfig.assert_called_once()

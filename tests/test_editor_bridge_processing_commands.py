@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_session import EditorSession
 from tests.editor_bridge_command_fixtures import attach_clip_session, make_editor
 
@@ -32,7 +32,7 @@ def test_bridge_accepts_processing_json_payload(tmp_path: Path, monkeypatch) -> 
         ),
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:volume-up","fieldOrd":1,"overrides":{"volumeStepDb":6}}',
     )
@@ -72,7 +72,7 @@ def test_bridge_passes_local_pause_aggressiveness_to_renderer(
         ),
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:remove-pauses","fieldOrd":0,'
         '"overrides":{"pauseAggressiveness":"aggressive"}}',
@@ -105,7 +105,7 @@ def test_bridge_keeps_plain_processing_commands(tmp_path: Path, monkeypatch) -> 
         ),
     )
 
-    _handle_bridge_command(editor, "aqe:faster")
+    handle_bridge_command(editor, "aqe:faster")
 
     assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
 
@@ -118,7 +118,7 @@ def test_bridge_routes_processing_preset_payload(monkeypatch) -> None:
         lambda _editor, payload: routed.update(editor=_editor, payload=payload),
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:preset","fieldOrd":2,"presetId":"clean_graph"}',
     )
@@ -141,7 +141,7 @@ def test_busy_session_rejects_processing_command(tmp_path: Path, monkeypatch) ->
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_callbacks._render_and_replace_async", render)
 
-    _handle_bridge_command(editor, "aqe:faster")
+    handle_bridge_command(editor, "aqe:faster")
 
     render.assert_not_called()
     assert any("Still processing. Please wait." in call.args[0] for call in editor.web.eval.call_args_list)
@@ -170,7 +170,7 @@ def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeyp
         lambda _editor, _session, _source_path, updated_state, _config: rendered.update(state=updated_state),
     )
 
-    _handle_bridge_command(editor, "aqe:faster")
+    handle_bridge_command(editor, "aqe:faster")
 
     assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
     assert session.playback_preparing is False
@@ -204,7 +204,7 @@ def test_processing_command_cancels_graph_analysis_busy_state(
         lambda _editor, _session, _source_path, updated_state, _config: rendered.update(state=updated_state),
     )
 
-    _handle_bridge_command(editor, "aqe:faster")
+    handle_bridge_command(editor, "aqe:faster")
 
     assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
     assert session.analysis_busy is False
