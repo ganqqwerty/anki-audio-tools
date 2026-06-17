@@ -161,21 +161,21 @@ def run_batch(
             artifact_root,
         )
         last_audio = note_result.audio_filename or last_audio
-        if note_result.written and undo_entry is None:
-            undo_entry = col.add_custom_undo_entry(format_message(messages, "batch.undo_label"))
         note_result = apply_result(
             col,
             report,
             note_result,
             request.target_field or request.source_field,
         )
+        if note_result.written and undo_entry is None:
+            undo_entry = col.undo_status().last_step
         report.processed += 1
         line = format_result_line(note_result, messages)
         report.add(line)
         on_log(line)
         on_progress(report.processed, report.total, last_audio, report.failures)
 
-    if undo_entry is not None:
+    if undo_entry is not None and undo_entry > 0:
         report.changes = col.merge_undo_entries(undo_entry)
 
     report.add(report.summary)
