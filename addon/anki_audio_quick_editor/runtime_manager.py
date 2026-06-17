@@ -32,7 +32,7 @@ from .runtime_paths import (
     runtime_state_path,
     user_files_dir,
 )
-from .runtime_platform import _TOOL_EXECUTABLES, current_platform_key, platform
+from .runtime_platform import TOOL_EXECUTABLES, current_platform_key, platform
 from .runtime_state import (
     RUNTIME_PHASE_DOWNLOADING,
     RUNTIME_PHASE_ERROR,
@@ -57,7 +57,7 @@ __all__ = [
     "RUNTIME_STATE_FILENAME",
     "USER_AGENT",
     "USER_FILES_DIRNAME",
-    "_TOOL_EXECUTABLES",
+    "TOOL_EXECUTABLES",
     "current_platform_key",
     "clear_state",
     "ensure_runtime",

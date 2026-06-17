@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
@@ -90,7 +90,7 @@ def test_standard_denoise_failure_logs_renders_error_and_keeps_note(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
-    _handle_bridge_command(editor, "aqe:denoise-standard")
+    handle_bridge_command(editor, "aqe:denoise-standard")
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0
@@ -158,7 +158,7 @@ def test_rnnoise_failure_logs_renders_error_and_keeps_note(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
-    _handle_bridge_command(editor, "aqe:rnnoise")
+    handle_bridge_command(editor, "aqe:rnnoise")
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0
@@ -235,7 +235,7 @@ def test_voice_only_failure_logs_renders_error_and_keeps_note(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
-    _handle_bridge_command(editor, "aqe:voice-only")
+    handle_bridge_command(editor, "aqe:voice-only")
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0

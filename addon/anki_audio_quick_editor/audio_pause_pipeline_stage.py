@@ -7,7 +7,7 @@ import subprocess  # nosec B404
 import time
 from collections.abc import Callable
 
-from .audio_external import _render_external_error_message, _run_external_command
+from .audio_external import render_external_error_message, run_external_command
 from .errors import AudioProcessingError
 from .support import build_command_record
 
@@ -33,7 +33,7 @@ def run_pipeline_stage(
         "command": shlex.join(command),
     }
     try:
-        result = _run_external_command(
+        result = run_external_command(
             command,
             launch_error_message,
             timeout_seconds=timeout_seconds,
@@ -64,5 +64,5 @@ def run_pipeline_stage(
         )
     )
     if result.returncode != 0:
-        raise AudioProcessingError(_render_external_error_message(result, failure_message))
+        raise AudioProcessingError(render_external_error_message(result, failure_message))
     return result

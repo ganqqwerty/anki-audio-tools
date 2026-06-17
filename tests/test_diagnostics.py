@@ -164,7 +164,7 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
         ),
     )
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor._external_command_run_kwargs",
+        "anki_audio_quick_editor.audio_processor.external_command_run_kwargs",
         lambda: {"creationflags": 0x08000000},
     )
 

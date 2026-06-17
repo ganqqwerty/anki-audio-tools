@@ -18,9 +18,9 @@ from .audio_commands import (
     build_spleeter_prepare_command,
 )
 from .audio_external import (
-    _render_external_error_message,
-    _run_external_command,
     probe_duration_ms,
+    render_external_error_message,
+    run_external_command,
 )
 from .audio_noise_reduction_telemetry import (
     record_dpdfnet_failure,
@@ -329,7 +329,7 @@ def _run_recorded_external_command(
     if on_command:
         on_command(command)
     try:
-        result = _run_external_command(command, launch_error_message, timeout_seconds=timeout_seconds, env=env)
+        result = run_external_command(command, launch_error_message, timeout_seconds=timeout_seconds, env=env)
     except AudioProcessingError as exc:
         attempted_commands.append(build_command_record(command, launch_error=str(exc)))
         raise
@@ -339,4 +339,4 @@ def _run_recorded_external_command(
 
 def _ensure_stage_success(result: subprocess.CompletedProcess[str], failure_message: str) -> None:
     if result.returncode != 0:
-        raise AudioProcessingError(_render_external_error_message(result, failure_message))
+        raise AudioProcessingError(render_external_error_message(result, failure_message))

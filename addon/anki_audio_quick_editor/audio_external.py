@@ -28,7 +28,7 @@ def _is_windows() -> bool:
     return os.name == "nt"
 
 
-def _external_command_run_kwargs() -> dict[str, Any]:
+def external_command_run_kwargs() -> dict[str, Any]:
     if not _is_windows() or is_debug_enabled():
         return {}
     return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
@@ -69,7 +69,7 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
             check=False,
             encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
             errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            **_external_command_run_kwargs(),
+            **external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
         raise AudioProcessingError(launch_error_message("Could not start ffprobe.", exc)) from exc
@@ -90,7 +90,7 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
     )
     if result.returncode != 0:
         raise AudioProcessingError(
-            _render_external_error_message(result, "Could not inspect audio duration.")
+            render_external_error_message(result, "Could not inspect audio duration.")
         )
     try:
         seconds = float(json.loads(result.stdout)["format"]["duration"])
@@ -99,7 +99,7 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
     return max(0, round(seconds * 1000))
 
 
-def _run_external_command(
+def run_external_command(
     command: tuple[str, ...],
     launch_error_prefix: str,
     timeout_seconds: float | None = None,
@@ -115,7 +115,7 @@ def _run_external_command(
         context={"argv": list(command)},
     )
     try:
-        run_kwargs = _external_command_run_kwargs()
+        run_kwargs = external_command_run_kwargs()
         if timeout_seconds is not None:
             run_kwargs["timeout"] = timeout_seconds
         if env is not None:
@@ -181,7 +181,7 @@ def _run_external_command(
         raise AudioProcessingError(launch_error_message(launch_error_prefix, exc)) from exc
 
 
-def _render_external_error_message(
+def render_external_error_message(
     result: subprocess.CompletedProcess[str],
     default_message: str,
 ) -> str:

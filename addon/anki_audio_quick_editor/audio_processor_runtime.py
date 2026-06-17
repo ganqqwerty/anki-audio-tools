@@ -29,8 +29,8 @@ def sync_pause_dependencies(
     audio_pause_pipeline.probe_duration_ms = deps.probe_duration_ms
     audio_pause_pipeline.resolve_output_policy = deps.resolve_output_policy
     audio_pause_pipeline_steps.probe_duration_ms = deps.probe_duration_ms
-    audio_pause_pipeline_stage._run_external_command = deps.run_external_command
-    audio_pause_pipeline_stage._render_external_error_message = deps.render_external_error_message
+    audio_pause_pipeline_stage.run_external_command = deps.run_external_command
+    audio_pause_pipeline_stage.render_external_error_message = deps.render_external_error_message
 
 
 def sync_rendering_dependencies(audio_rendering: Any, deps: AudioModuleDeps) -> None:
@@ -41,8 +41,8 @@ def sync_rendering_dependencies(audio_rendering: Any, deps: AudioModuleDeps) -> 
     audio_rendering.build_convert_audio_command = deps.build_convert_audio_command
     audio_rendering.build_size_reduction_audio_command = deps.build_size_reduction_audio_command
     audio_rendering.resolve_output_policy = deps.resolve_output_policy
-    audio_rendering._render_pause_removal_pipeline_audio = deps.render_pause_removal_pipeline_audio
-    audio_rendering._external_command_run_kwargs = deps.external_command_run_kwargs
+    audio_rendering.render_pause_removal_pipeline_audio = deps.render_pause_removal_pipeline_audio
+    audio_rendering.external_command_run_kwargs = deps.external_command_run_kwargs
     audio_rendering.make_playback_segment_filename = deps.make_playback_segment_filename
 
 
@@ -55,8 +55,8 @@ def sync_noise_dependencies(audio_noise_reduction: Any, deps: AudioModuleDeps) -
     audio_noise_reduction.find_spleeter_bundle = deps.find_spleeter_bundle
     audio_noise_reduction.probe_audio_metadata = deps.probe_audio_metadata
     audio_noise_reduction.probe_duration_ms = deps.probe_duration_ms
-    audio_noise_reduction._run_external_command = deps.run_external_command
-    audio_noise_reduction._render_external_error_message = deps.render_external_error_message
+    audio_noise_reduction.run_external_command = deps.run_external_command
+    audio_noise_reduction.render_external_error_message = deps.render_external_error_message
     bundled = getattr(audio_noise_reduction, "_bundled", None)
     if bundled is not None:
         bundled.find_ffmpeg = deps.find_ffmpeg
@@ -66,8 +66,8 @@ def sync_noise_dependencies(audio_noise_reduction: Any, deps: AudioModuleDeps) -
         bundled.find_spleeter_bundle = deps.find_spleeter_bundle
         bundled.probe_audio_metadata = deps.probe_audio_metadata
         bundled.probe_duration_ms = deps.probe_duration_ms
-        bundled._run_external_command = deps.run_external_command
-        bundled._render_external_error_message = deps.render_external_error_message
+        bundled.run_external_command = deps.run_external_command
+        bundled.render_external_error_message = deps.render_external_error_message
 
 
 def sync_pitch_hum_dependencies(audio_pitch_hum: Any, deps: AudioModuleDeps) -> None:

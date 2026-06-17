@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 import pytest
 
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 
 
 def test_editor_frontend_log_callback_records_levels(caplog: pytest.LogCaptureFixture) -> None:
@@ -23,7 +23,7 @@ def test_editor_frontend_log_callback_records_levels(caplog: pytest.LogCaptureFi
     editor.web = Web()
     caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.editor_integration")
 
-    _handle_bridge_command(editor, "aqe:frontend-log")
+    handle_bridge_command(editor, "aqe:frontend-log")
 
     record = caplog.records[-1]
     assert record.levelno == logging.WARNING
@@ -43,7 +43,7 @@ def test_invalid_editor_frontend_log_payload_is_ignored(caplog: pytest.LogCaptur
     editor.web = Web()
     caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.editor_integration")
 
-    _handle_bridge_command(editor, "aqe:frontend-log")
+    handle_bridge_command(editor, "aqe:frontend-log")
 
     assert "editor frontend_log: invalid payload" in caplog.text
 
@@ -76,7 +76,7 @@ def test_editor_frontend_error_payload_records_stack(caplog: pytest.LogCaptureFi
     editor.web = Web()
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
-    _handle_bridge_command(editor, "aqe:frontend-log")
+    handle_bridge_command(editor, "aqe:frontend-log")
 
     assert "Error: editor exploded" in caplog.text
     incident = latest_incident()

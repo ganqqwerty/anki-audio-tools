@@ -40,7 +40,7 @@ _history_availability_expression = editor_frontend_callbacks._history_availabili
 _history_snapshot_expression = editor_frontend_callbacks._history_snapshot_expression
 _handle_post_edit_playback_ready = editor_frontend_callbacks._handle_post_edit_playback_ready
 _main = editor_frontend_callbacks._main
-_pending_post_edit_playback_payload = editor_frontend_callbacks._pending_post_edit_playback_payload
+pending_post_edit_playback_payload = editor_frontend_callbacks._pending_post_edit_playback_payload
 _playback_after_edit_expression = editor_frontend_callbacks._playback_after_edit_expression
 _request_history_availability_after_edit = editor_frontend_callbacks._request_history_availability_after_edit
 _request_history_snapshot_after_edit = editor_frontend_callbacks._request_history_snapshot_after_edit
@@ -56,12 +56,19 @@ _set_busy = editor_frontend_callbacks._set_busy
 _set_busy_for_field = editor_frontend_callbacks._set_busy_for_field
 
 
+_ALSO_EXPORT = frozenset({
+    "handle_bridge_command",
+    "stop_session_playback",
+    "pending_post_edit_playback_payload",
+})
+
+
 def _exports() -> SimpleNamespace:
     return SimpleNamespace(
         **{
-            name[1:]: value
+            name[1:] if name.startswith("_") else name: value
             for name, value in globals().items()
-            if name.startswith("_") and callable(value)
+            if (name.startswith("_") and callable(value)) or name in _ALSO_EXPORT
         }
     )
 
@@ -136,7 +143,7 @@ def _with_keyword_deps(
     return _wrapper
 
 
-_handle_bridge_command = _with_deps(editor_bridge.handle_bridge_command, _bridge_deps)
+handle_bridge_command = _with_deps(editor_bridge.handle_bridge_command, _bridge_deps)
 _handle_pending_command_payload = _with_deps(editor_bridge.handle_pending_command_payload, _bridge_deps)
 _handle_non_processing_command = _with_deps(editor_bridge.handle_non_processing_command, _bridge_deps)
 _handle_editor_frontend_log = _with_deps(editor_bridge.handle_editor_frontend_log, _bridge_deps)
@@ -211,7 +218,7 @@ _region_delete_trigger = editor_region_delete.region_delete_trigger
 _region_delete_log_context = editor_region_delete.region_delete_log_context
 
 _stop_audio_playback = editor_playback.stop_audio_playback
-_stop_session_playback = editor_runtime.stop_session_playback
+stop_session_playback = editor_runtime.stop_session_playback
 _cleanup_temp_playback = editor_playback.cleanup_temp_playback
 _play = _with_deps(editor_playback.play, _playback_deps)
 _play_ended = _with_deps(editor_playback.play_ended, _playback_deps)

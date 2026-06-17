@@ -311,7 +311,7 @@ def test_render_audio_forwards_window_visibility_kwargs(monkeypatch, tmp_path: P
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
                         lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor._external_command_run_kwargs",
+        "anki_audio_quick_editor.audio_processor.external_command_run_kwargs",
         lambda: {"creationflags": 0x08000000},
     )
 
