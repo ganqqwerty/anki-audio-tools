@@ -102,7 +102,7 @@ def test_pitch_hum_replaces_current_media_and_resets_state(tmp_path: Path, monke
     assert session.undo_history.pop().filename == "clip.mp3"
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
-    assert session.processing is False
+    assert session.processing.active is False
     assert session.pending_status == PendingEditorStatus(0, message="Rendered pitch hum with Pitch-to-hum mode.")
     editor.loadNote.assert_called_once_with(focusTo=0)
 

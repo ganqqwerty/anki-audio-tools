@@ -69,10 +69,10 @@ voice_only_async = _special_transforms.voice_only_async
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: ProcessingDeps) -> None:
     """Apply a frontend processing command and start the render worker."""
     existing = deps.sessions.get(editor)
-    if existing and existing.processing:
+    if existing and existing.processing.active:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    if existing and existing.playback_preparing:
+    if existing and existing.playback.preparing:
         deps.stop_session_playback(existing)
     session, source_path = deps.session_and_source(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
@@ -80,10 +80,10 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
     state = session.state or AudioEditState(source_file=source_path.name)
     updated_state = apply_processing_command(command, state, config)
     if updated_state is None:
-        session.next_status_summary = ""
+        session.processing.next_status_summary = ""
         deps.set_busy(editor, False)
         return
-    session.next_status_summary = command_status_summary(command, config)
+    session.processing.next_status_summary = command_status_summary(command, config)
     deps.render_and_replace_async(
         editor,
         session,
@@ -112,13 +112,12 @@ def render_and_replace_async(
         flush=True,
     )
     deps.stop_session_playback(session)
-    session.post_edit_playback_generation += 1
-    session.processing = True
+    session.processing.active = True
     field_index = session.field_index if session.field_index is not None else deps.current_field_index(editor)
     guard_filename = session.current_filename or source_path.name
     guard = begin_processing_guard(session, field_index=int(field_index), source_filename=guard_filename)
-    session.playback_active = False
-    session.playback_paused = False
+    session.playback.active = False
+    session.playback.paused = False
     deps.set_busy(editor, True, t("editor.status.processing"))
     deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
 
@@ -247,7 +246,7 @@ def replace_current_field_after_render(
         editor, field_index=field_index, saved_name=saved_name, missing_message=deps.current_field_audio_missing,
     )
     old_state = session.state if session else None
-    status_summary = session.next_status_summary if session else ""
+    status_summary = session.processing.next_status_summary if session else ""
     try:
         deps.record_standard_persistent_undo(
             editor,
@@ -318,24 +317,12 @@ def _replace_standard_render_session_state(
 ) -> bool:
     if session is None:
         return False
-    session.undo_history.push(session.state, session.current_filename, status_summary=session.status_summary)
-    session.redo_history.clear()
-    session.state = updated_state
-    session.current_filename = saved_name
     session.field_index = field_index
-    session.status_summary = session.next_status_summary or session.status_summary
-    session.next_status_summary = ""
-    session.processing = False
-    session.cursor_ms = 0
-    session.playback_active = False
-    session.playback_paused = False
-    should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
-    if should_redraw_graph:
-        session.visualized_filename = None
-        session.visualized_duration_ms = None
-        session.visualized_filenames_by_field.pop(field_index, None)
-        session.visualized_durations_by_field.pop(field_index, None)
-    return should_redraw_graph
+    return session.apply_edit_result(
+        updated_state,
+        saved_name,
+        session.processing.next_status_summary or session.status_summary,
+    )
 
 
 # noinspection PyInconsistentReturns
@@ -359,10 +346,10 @@ def render_failed(
             deps.set_busy(editor, False)
         return
     if session:
-        session.processing = False
-        session.playback_active = False
-        session.playback_paused = False
-        session.next_status_summary = ""
+        session.processing.active = False
+        session.playback.active = False
+        session.playback.paused = False
+        session.processing.next_status_summary = ""
         session.pending_status = None
     deps.set_busy(editor, False)
     code = (

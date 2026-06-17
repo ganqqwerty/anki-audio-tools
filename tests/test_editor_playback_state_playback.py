@@ -11,7 +11,11 @@ import pytest
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import _play_with_request
 from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import (
+    AnalysisState,
+    EditorSession,
+    GraphVisualizationState,
+)
 
 
 def test_html_playback_request_updates_session_without_native_segment(tmp_path: Path, monkeypatch) -> None:
@@ -32,7 +36,7 @@ def test_html_playback_request_updates_session_without_native_segment(tmp_path: 
         field_index=0,
         current_filename="clip.mp3",
         source_mtime_ns=source.stat().st_mtime_ns,
-        visualized_duration_ms=2000,
+        graph=GraphVisualizationState(visualized_duration_ms=2000),
     )
     SESSIONS[editor] = session
     stop_calls: list[str] = []
@@ -49,9 +53,9 @@ def test_html_playback_request_updates_session_without_native_segment(tmp_path: 
     _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700})
 
     assert session.cursor_ms == 700
-    assert session.playback_active is True
-    assert session.playback_paused is False
-    assert session.playback_preparing is False
+    assert session.playback.active is True
+    assert session.playback.paused is False
+    assert session.playback.preparing is False
     assert stop_calls == ["stop"]
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("Playing from 0.70s" in call for call in evals)
@@ -76,17 +80,16 @@ def test_post_edit_playback_request_does_not_replace_status_while_analysis_is_bu
         field_index=0,
         current_filename="clip.mp3",
         source_mtime_ns=source.stat().st_mtime_ns,
-        visualized_duration_ms=2000,
-        analysis_busy=True,
-        analysis_busy_fields={1},
+        graph=GraphVisualizationState(visualized_duration_ms=2000),
+        analysis=AnalysisState(busy=True, busy_fields={1}),
     )
     SESSIONS[editor] = session
 
     _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0, "source": "post_edit"})
 
     editor.web.eval.assert_not_called()
-    assert session.playback_active is False
-    assert session.playback_preparing is False
+    assert session.playback.active is False
+    assert session.playback.preparing is False
 
 
 def test_playback_request_reports_missing_referenced_media_with_media_code(tmp_path: Path) -> None:
@@ -118,8 +121,8 @@ def test_playback_request_reports_missing_referenced_media_with_media_code(tmp_p
         '"message": "The referenced audio file was not found in Anki\'s media folder."' in call
         for call in evals
     )
-    assert session.playback_active is False
-    assert session.playback_preparing is False
+    assert session.playback.active is False
+    assert session.playback.preparing is False
 
 
 def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(
@@ -156,9 +159,11 @@ def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(
         field_index=0,
         current_filename="clip.m4a",
         source_mtime_ns=source.stat().st_mtime_ns,
-        visualized_duration_ms=2000,
-        visualized_filenames_by_field={0: "clip.m4a"},
-        visualized_durations_by_field={0: 2000},
+        graph=GraphVisualizationState(
+            visualized_duration_ms=2000,
+            filenames_by_field={0: "clip.m4a"},
+            durations_by_field={0: 2000},
+        ),
     )
     SESSIONS[editor] = session
     render_calls: list[dict[str, object]] = []
@@ -196,7 +201,7 @@ def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(
     played_tag = av_player.play_tags.call_args.args[0][0]
     assert played_tag.filename == str(segment)
     assert session.cursor_ms == 0
-    assert session.playback_active is True
+    assert session.playback.active is True
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetPlaybackState && window.__aqeSetPlaybackState(0, \"playing\", 0)" in call for call in evals)
     assert any("Playing\"" in call for call in evals)

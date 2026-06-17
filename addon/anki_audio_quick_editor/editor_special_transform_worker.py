@@ -157,8 +157,8 @@ def _handle_already_compact(
         return
 
     def _finish() -> None:
-        session.processing = False
-        session.next_status_summary = ""
+        session.processing.active = False
+        session.processing.next_status_summary = ""
         deps.set_busy(editor, False)
         deps.eval_status(editor, message)
 

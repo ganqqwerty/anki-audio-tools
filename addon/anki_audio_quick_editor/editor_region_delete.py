@@ -144,16 +144,15 @@ def delete_selection_async(
     operation_id = new_operation_id("region")
     started_at = time.monotonic()
     deps.stop_session_playback(session)
-    session.post_edit_playback_generation += 1
-    session.processing = True
+    session.processing.active = True
     session.field_index = request.field_index
     guard = begin_processing_guard(
         session,
         field_index=request.field_index,
         source_filename=request.source_filename,
     )
-    session.playback_active = False
-    session.playback_paused = False
+    session.playback.active = False
+    session.playback.paused = False
     session.cursor_ms = request.cursor_ms
     deps.set_busy_for_field(editor, request.field_index, True, region_operation_busy_message(request))
     deps.eval_playback_state(editor, request.field_index, "stopped", request.cursor_ms)
@@ -296,23 +295,13 @@ def _replace_region_delete_session_state(
 ) -> bool:
     if session is None:
         return False
-    session.undo_history.push(session.state, session.current_filename, status_summary=session.status_summary)
-    session.redo_history.clear()
-    session.state = AudioEditState(source_file=saved_name)
-    session.current_filename = saved_name
     session.field_index = field_index
-    session.status_summary = region_operation_status_summary(request)
-    session.next_status_summary = ""
     saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
-    session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
-    session.processing = False
-    session.cursor_ms = 0
-    session.playback_active = False
-    session.playback_paused = False
-    should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
-    if should_redraw_graph:
-        session.visualized_filename = None
-        session.visualized_duration_ms = None
-        session.visualized_filenames_by_field.pop(field_index, None)
-        session.visualized_durations_by_field.pop(field_index, None)
-    return should_redraw_graph
+    mtime = saved_path.stat().st_mtime_ns if saved_path is not None else None
+    return session.apply_edit_result(
+        AudioEditState(source_file=saved_name),
+        saved_name,
+        region_operation_status_summary(request),
+        update_source_mtime=True,
+        new_source_mtime=mtime,
+    )

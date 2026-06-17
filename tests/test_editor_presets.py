@@ -100,7 +100,7 @@ def test_editor_preset_graph_only_runs_graph_with_preset_settings(
     )
 
     assert run_calls[0]["render_graph"] is False
-    assert session.processing is False
+    assert session.processing.active is False
     deps.analyze_current_async.assert_called_once_with(
         editor,
         graph_settings={

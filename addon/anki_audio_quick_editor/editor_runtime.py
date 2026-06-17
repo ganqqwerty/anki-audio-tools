@@ -81,18 +81,18 @@ def reset_session_for_media(
     session.current_filename = filename
     session.undo_history.clear()
     session.redo_history.clear()
-    session.processing = False
-    session.analysis_busy = False
+    session.processing.active = False
+    session.analysis.busy = False
     session.field_index = field_index
     session.source_mtime_ns = mtime
     session.cursor_ms = 0
-    session.visualized_filename = None
-    session.visualized_duration_ms = None
-    session.playback_active = False
-    session.playback_paused = False
-    session.playback_preparing = False
-    session.post_edit_playback_generation += 1
-    session.next_status_summary = ""
+    session.graph.visualized_filename = None
+    session.graph.visualized_duration_ms = None
+    session.playback.active = False
+    session.playback.paused = False
+    session.playback.preparing = False
+    session.post_edit_playback.generation += 1
+    session.processing.next_status_summary = ""
     session.status_summary = original_audio_status_summary()
     session.pending_status = None
     clear_learner_recording_state(session)
@@ -113,10 +113,10 @@ def current_media_path(editor: Any) -> tuple[EditorSession, Path]:
 def is_busy(session: EditorSession) -> bool:
     """Return whether the editor session has any active async operation."""
     return (
-        session.processing
-        or session.analysis_busy
-        or bool(session.analysis_busy_fields)
-        or session.playback_preparing
+        session.processing.active
+        or session.analysis.busy
+        or bool(session.analysis.busy_fields)
+        or session.playback.preparing
         or session.learner_recording.status in {"recording", "stopping", "analyzing"}
     )
 
@@ -135,10 +135,7 @@ def artifact_root(editor: Any) -> Path:
 
 def stop_session_playback(session: EditorSession) -> None:
     """Stop playback and clear transient playback state for an editor session."""
-    session.playback_generation += 1
-    session.playback_preparing = False
-    session.playback_active = False
-    session.playback_paused = False
+    session.playback.stop()
     reset_learner_playback_state(session)
     stop_audio_playback()
     cleanup_temp_playback(session)

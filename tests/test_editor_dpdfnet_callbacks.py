@@ -12,7 +12,11 @@ import pytest
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import (
+    AnalysisState,
+    EditorSession,
+    PlaybackState,
+)
 from anki_audio_quick_editor.errors import AudioProcessingError, MissingDpdfnetError
 from anki_audio_quick_editor.support import (
     SUPPORT_REPORT_HINT,
@@ -89,7 +93,7 @@ def test_dpdfnet_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     assert session.undo_history.pop().filename == "clip.mp3"
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
-    assert session.processing is False
+    assert session.processing.active is False
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 
@@ -185,10 +189,12 @@ def test_dpdfnet_cancels_graph_analysis_busy_state_before_render(tmp_path: Path,
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
-        analysis_busy=True,
-        analysis_busy_fields={0},
-        analysis_generation=7,
-        analysis_generations_by_field={0: 7},
+        analysis=AnalysisState(
+            busy=True,
+            busy_fields={0},
+            generation=7,
+            generations_by_field={0: 7},
+        ),
     )
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
@@ -201,10 +207,10 @@ def test_dpdfnet_cancels_graph_analysis_busy_state_before_render(tmp_path: Path,
     handle_bridge_command(editor, "aqe:dpdfnet")
 
     session = SESSIONS[editor]
-    assert session.analysis_busy is False
-    assert session.analysis_busy_fields == set()
-    assert session.analysis_generations_by_field == {}
-    assert session.analysis_generation == 8
+    assert session.analysis.busy is False
+    assert session.analysis.busy_fields == set()
+    assert session.analysis.generations_by_field == {}
+    assert session.analysis.generation == 8
     assert any("window.__aqeSetBusy" in call.args[0] and "(0, false" in call.args[0] for call in editor.web.eval.call_args_list)
     assert editor.note.fields[0] != "[sound:clip.mp3]"
 
@@ -247,9 +253,7 @@ def test_dpdfnet_cancels_playback_preparation_before_render(tmp_path: Path, monk
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
-        playback_active=True,
-        playback_preparing=True,
-        playback_generation=7,
+        playback=PlaybackState(active=True, preparing=True, generation=7),
     )
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
@@ -263,9 +267,9 @@ def test_dpdfnet_cancels_playback_preparation_before_render(tmp_path: Path, monk
 
     session = SESSIONS[editor]
     assert rendered == [source]
-    assert session.playback_preparing is False
-    assert session.playback_active is False
-    assert session.playback_generation == 9
+    assert session.playback.preparing is False
+    assert session.playback.active is False
+    assert session.playback.generation == 9
     assert editor.note.fields[0] != "[sound:clip.mp3]"
 
 
@@ -332,7 +336,7 @@ def test_dpdfnet_failure_logs_renders_error_and_keeps_note(
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0
-    assert SESSIONS[editor].processing is False
+    assert SESSIONS[editor].processing.active is False
     assert any(
         expected_message in call.args[0] and SUPPORT_REPORT_HINT in call.args[0]
         for call in editor.web.eval.call_args_list

@@ -170,7 +170,7 @@ def test_standard_render_completion_does_not_replace_after_note_change(tmp_path:
     assert not list((tmp_path / "media").glob("*__aqe_race.mp3")), sorted(
         path.name for path in (tmp_path / "media").glob("*")
     )
-    assert session.processing is False
+    assert session.processing.active is False
 
 
 def test_standard_render_failure_does_not_reset_new_note_busy_state(tmp_path: Path) -> None:
@@ -205,7 +205,7 @@ def test_standard_render_failure_does_not_reset_new_note_busy_state(tmp_path: Pa
     join_background_threads()
 
     deps.render_failed.assert_not_called()
-    assert session.processing is False
+    assert session.processing.active is False
 
 
 def test_special_transform_completion_does_not_replace_after_note_change(tmp_path: Path) -> None:
@@ -251,7 +251,7 @@ def test_special_transform_completion_does_not_replace_after_note_change(tmp_pat
     deps.replace_current_field_after_noise_removal.assert_not_called()
     assert editor.note.fields[0] == "[sound:other.mp3]", editor.note.fields
     assert not list(media_dir.glob("*__aqe_special_race.mp3")), sorted(path.name for path in media_dir.glob("*"))
-    assert session.processing is False
+    assert session.processing.active is False
 
 
 def test_region_delete_completion_does_not_replace_after_field_change(tmp_path: Path) -> None:
@@ -298,4 +298,4 @@ def test_region_delete_completion_does_not_replace_after_field_change(tmp_path: 
     deps.replace_current_field_after_region_delete.assert_not_called()
     assert editor.note.fields == ["[sound:clip.mp3]", "[sound:other.mp3]"], editor.note.fields
     assert not list(media_dir.glob("*__aqe_*.mp3")), sorted(path.name for path in media_dir.glob("*"))
-    assert session.processing is False
+    assert session.processing.active is False

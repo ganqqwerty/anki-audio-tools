@@ -13,7 +13,11 @@ from anki_audio_quick_editor.editor_note_load_hooks import (
     reset_editor_session_for_note_load,
 )
 from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import (
+    AnalysisState,
+    EditorSession,
+    PlaybackState,
+)
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
     MissingMediaError,
@@ -31,8 +35,8 @@ def test_note_load_reset_skips_same_note_reload(monkeypatch) -> None:
         state=AudioEditState("source.mp3"),
         field_index=0,
         current_filename="source.mp3",
-        analysis_generation=5,
-        playback_generation=3,
+        analysis=AnalysisState(generation=5),
+        playback=PlaybackState(generation=3),
     )
     SESSIONS[editor] = session
     stop_calls: list[str] = []
@@ -48,8 +52,8 @@ def test_note_load_reset_skips_same_note_reload(monkeypatch) -> None:
     assert session.note_id == 12
     assert session.state == AudioEditState("source.mp3")
     assert session.current_filename == "source.mp3"
-    assert session.analysis_generation == 5
-    assert session.playback_generation == 3
+    assert session.analysis.generation == 5
+    assert session.playback.generation == 3
 
 
 def test_reveal_file_selects_file_on_macos(tmp_path: Path, monkeypatch) -> None:

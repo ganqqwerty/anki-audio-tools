@@ -18,8 +18,10 @@ from anki_audio_quick_editor.editor_media import audio_field_indices
 from anki_audio_quick_editor.editor_note_load_hooks import on_editor_will_load_note
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import (
+    AnalysisState,
     EditorSession,
     PendingEditorStatus,
+    PlaybackState,
     UndoHistory,
 )
 from anki_audio_quick_editor.editor_webview_injection import (
@@ -219,9 +221,9 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": false' in call and '"canRedo": true' in call for call in evals)
     assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": true' in call and '"canRedo": false' in call for call in evals)
-    assert session.pending_post_edit_playback_field_index == 0
-    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
-    assert session.pending_post_edit_playback_source_filename == "clip__aqe_first.mp3"
+    assert session.post_edit_playback.pending_field_index == 0
+    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
+    assert session.post_edit_playback.pending_source_filename == "clip__aqe_first.mp3"
 
 
 def _history_editor(tmp_path: Path) -> tuple[object, EditorSession]:
@@ -324,10 +326,8 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
-        analysis_busy=True,
-        playback_active=True,
-        playback_paused=True,
-        playback_preparing=True,
+        analysis=AnalysisState(busy=True),
+        playback=PlaybackState(active=True, paused=True, preparing=True),
     )
     editor.loadNote = MagicMock(side_effect=lambda **_kwargs: reload_statuses.append(_initial_status_by_field(session)))
     SESSIONS[editor] = session
@@ -345,12 +345,12 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
 
     callbacks[0].on_saved()
 
-    assert session.analysis_generation == 1
-    assert session.processing is False
-    assert session.analysis_busy is False
-    assert session.playback_active is False
-    assert session.playback_paused is False
-    assert session.playback_preparing is False
+    assert session.analysis.generation == 1
+    assert session.processing.active is False
+    assert session.analysis.busy is False
+    assert session.playback.active is False
+    assert session.playback.paused is False
+    assert session.playback.preparing is False
     assert reload_statuses == [{0: {"kind": "info", "message": "Closed settings."}}]
     assert session.pending_status == PendingEditorStatus(0, message="Closed settings.")
     assert editor.loadNote.call_args.args == ()

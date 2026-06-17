@@ -10,6 +10,7 @@ from anki_audio_quick_editor.editor_region_delete_worker import run_region_delet
 from anki_audio_quick_editor.editor_session import (
     EditorProcessingGuard,
     EditorSession,
+    ProcessingState,
     RegionDeleteRequest,
 )
 from anki_audio_quick_editor.editor_special_transform_worker import (
@@ -44,7 +45,11 @@ class OutputPathDeps:
 
 
 def _current_guard() -> tuple[EditorSession, EditorProcessingGuard]:
-    session = EditorSession(current_filename="clip.mp3", field_index=0, processing_generation=1)
+    session = EditorSession(
+        current_filename="clip.mp3",
+        field_index=0,
+        processing=ProcessingState(generation=1),
+    )
     guard = EditorProcessingGuard(
         generation=1,
         note_id=None,

@@ -36,7 +36,7 @@ def convert_async(
     )
     session, current_path = deps.current_media_path(editor)
     if is_same_visible_format(current_path.name, target_format):
-        session.processing = False
+        session.processing.active = False
         deps.set_busy(editor, False)
         deps.eval_status(
             editor,
@@ -70,4 +70,4 @@ def convert_async(
 
 
 def _has_blocking_work(session: EditorSession) -> bool:
-    return session.processing
+    return session.processing.active

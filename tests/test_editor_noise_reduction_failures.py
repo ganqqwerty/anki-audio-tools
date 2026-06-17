@@ -94,7 +94,7 @@ def test_standard_denoise_failure_logs_renders_error_and_keeps_note(
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0
-    assert SESSIONS[editor].processing is False
+    assert SESSIONS[editor].processing.active is False
     assert any(expected_message in call.args[0] for call in editor.web.eval.call_args_list)
     assert "standard denoise failed" in caplog.text
     assert expected_message in caplog.text
@@ -162,7 +162,7 @@ def test_rnnoise_failure_logs_renders_error_and_keeps_note(
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0
-    assert SESSIONS[editor].processing is False
+    assert SESSIONS[editor].processing.active is False
     assert any(
         expected_message in call.args[0] and SUPPORT_REPORT_HINT in call.args[0]
         for call in editor.web.eval.call_args_list
@@ -239,7 +239,7 @@ def test_voice_only_failure_logs_renders_error_and_keeps_note(
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0
-    assert SESSIONS[editor].processing is False
+    assert SESSIONS[editor].processing.active is False
     assert any(
         expected_message in call.args[0] and SUPPORT_REPORT_HINT in call.args[0]
         for call in editor.web.eval.call_args_list
