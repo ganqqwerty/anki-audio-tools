@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import _playback_segment_ready
-from anki_audio_quick_editor.editor_integration import (
-    _reset_editor_session_for_note_load,
+from anki_audio_quick_editor.editor_note_load_hooks import (
+    reset_editor_session_for_note_load,
 )
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_runtime import is_busy as _is_busy
@@ -58,7 +58,7 @@ def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None
         lambda current: setattr(current, "temp_playback_path", None),
     )
 
-    _reset_editor_session_for_note_load(editor, 11)
+    reset_editor_session_for_note_load(editor, 11)
 
     assert session.note_id == 11
     assert session.state is None
