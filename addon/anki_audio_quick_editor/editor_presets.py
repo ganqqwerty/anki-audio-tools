@@ -46,10 +46,10 @@ def run_processing_preset_async(
 ) -> None:
     """Run one saved processing preset against the active editor field."""
     existing = deps.sessions.get(editor)
-    if existing and existing.processing:
+    if existing and existing.processing.active:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    if existing and existing.playback_preparing:
+    if existing and existing.playback.preparing:
         deps.stop_session_playback(existing)
     raw_config = deps.config(editor)
     try:
@@ -64,17 +64,17 @@ def run_processing_preset_async(
     session, current_path = deps.current_media_path(editor)
     cancel_graph_analysis_for_processing(editor, session, deps)
     deps.stop_session_playback(session)
-    session.post_edit_playback_generation += 1
-    session.next_status_summary = preset.name
-    session.processing = True
+    session.post_edit_playback.generation += 1
+    session.processing.next_status_summary = preset.name
+    session.processing.active = True
     field_index = session.field_index if session.field_index is not None else getattr(editor, "currentField", 0)
     guard = begin_processing_guard(
         session,
         field_index=int(field_index),
         source_filename=current_path.name,
     )
-    session.playback_active = False
-    session.playback_paused = False
+    session.playback.active = False
+    session.playback.paused = False
     deps.set_busy(editor, True, t("editor.status.running_preset", {"preset": preset.name}))
     deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
     operation_id = new_operation_id("preset")
@@ -156,13 +156,13 @@ def _schedule_preset_finish(
                     deps.request_graph_redraw(editor, None, _graph_settings_payload(preset))
                 return
             if preset.graph.enabled:
-                session.processing = False
-                session.next_status_summary = ""
+                session.processing.active = False
+                session.processing.next_status_summary = ""
                 deps.set_busy(editor, False)
                 deps.analyze_current_async(editor, graph_settings=_graph_settings_payload(preset))
                 return
-            session.processing = False
-            session.next_status_summary = ""
+            session.processing.active = False
+            session.processing.next_status_summary = ""
             deps.set_busy(editor, False)
             deps.eval_status(editor, t("editor.status.preset_no_changes"))
         finally:

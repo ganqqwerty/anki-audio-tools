@@ -18,7 +18,6 @@ from .editor_media_replacement import (
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing,
     request_history_availability_after_edit,
-    reset_session_visualized_graph,
     resolved_field_index,
     sync_history_availability,
 )
@@ -182,26 +181,25 @@ def run_special_audio_transform_async(
 ) -> None:
     operation_id = new_operation_id("transform")
     existing = deps.sessions.get(editor)
-    if existing and existing.processing:
+    if existing and existing.processing.active:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    if existing and existing.playback_preparing:
+    if existing and existing.playback.preparing:
         deps.stop_session_playback(existing)
     session, current_path = deps.current_media_path(editor)
     cancel_graph_analysis_for_processing(editor, session, deps)
     config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
     deps.stop_session_playback(session)
-    session.post_edit_playback_generation += 1
-    session.next_status_summary = command_status_summary(command or EditorCommandPayload(command=""), config)
-    session.processing = True
+    session.processing.next_status_summary = command_status_summary(command or EditorCommandPayload(command=""), config)
+    session.processing.active = True
     field_index = session.field_index if session.field_index is not None else getattr(editor, "currentField", 0)
     guard = begin_processing_guard(
         session,
         field_index=int(field_index),
         source_filename=current_path.name,
     )
-    session.playback_active = False
-    session.playback_paused = False
+    session.playback.active = False
+    session.playback.paused = False
     deps.set_busy(editor, True, f"{label}...")
     deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
     record_breadcrumb(
@@ -296,23 +294,17 @@ def _replace_noise_reduction_session_state(
 ) -> bool:
     if session is None:
         return False
-    session.undo_history.push(session.state, session.current_filename, status_summary=session.status_summary)
-    session.redo_history.clear()
-    session.state = AudioEditState(source_file=saved_name)
-    session.current_filename = saved_name
     session.field_index = field_index
-    session.status_summary = session.next_status_summary or session.status_summary
-    session.next_status_summary = ""
     saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
-    session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
-    session.processing = False
-    session.cursor_ms = 0
-    session.playback_active = False
-    session.playback_paused = False
-    should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
-    if should_redraw_graph:
-        reset_session_visualized_graph(session, field_index)
-    return should_redraw_graph
+    mtime = saved_path.stat().st_mtime_ns if saved_path is not None else None
+    return session.apply_edit_result(
+        AudioEditState(source_file=saved_name),
+        saved_name,
+        session.processing.next_status_summary or session.status_summary,
+        update_source_mtime=True,
+        new_source_mtime=mtime,
+        clear_visualization=True,
+    )
 
 
 def record_rnnoise_failure_context(source_path: Path, config: AudioProcessingConfig, exc: Exception) -> None:

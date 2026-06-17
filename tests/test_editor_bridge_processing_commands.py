@@ -7,7 +7,12 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import (
+    AnalysisState,
+    EditorSession,
+    PlaybackState,
+    ProcessingState,
+)
 from tests.editor_bridge_command_fixtures import attach_clip_session, make_editor
 
 
@@ -132,7 +137,7 @@ def test_bridge_routes_processing_preset_payload(monkeypatch) -> None:
 
 def test_busy_session_rejects_processing_command(tmp_path: Path, monkeypatch) -> None:
     editor = make_editor()
-    session = EditorSession(state=AudioEditState("clip.mp3"), field_index=0, processing=True)
+    session = EditorSession(state=AudioEditState("clip.mp3"), field_index=0, processing=ProcessingState(active=True))
     attach_clip_session(editor, tmp_path, session=session)
     render = MagicMock()
     monkeypatch.setattr(
@@ -152,9 +157,7 @@ def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeyp
     session = EditorSession(
         state=AudioEditState("clip.mp3"),
         field_index=0,
-        playback_active=True,
-        playback_preparing=True,
-        playback_generation=7,
+        playback=PlaybackState(active=True, preparing=True, generation=7),
     )
     session, source = attach_clip_session(editor, tmp_path, session=session)
     rendered: dict[str, AudioEditState] = {}
@@ -173,9 +176,9 @@ def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeyp
     handle_bridge_command(editor, "aqe:faster")
 
     assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
-    assert session.playback_preparing is False
-    assert session.playback_active is False
-    assert session.playback_generation == 8
+    assert session.playback.preparing is False
+    assert session.playback.active is False
+    assert session.playback.generation == 8
 
 
 def test_processing_command_cancels_graph_analysis_busy_state(
@@ -186,10 +189,12 @@ def test_processing_command_cancels_graph_analysis_busy_state(
     session = EditorSession(
         state=AudioEditState("clip.mp3"),
         field_index=0,
-        analysis_busy=True,
-        analysis_busy_fields={0},
-        analysis_generation=4,
-        analysis_generations_by_field={0: 4},
+        analysis=AnalysisState(
+            busy=True,
+            busy_fields={0},
+            generation=4,
+            generations_by_field={0: 4},
+        ),
     )
     session, source = attach_clip_session(editor, tmp_path, session=session)
     rendered: dict[str, AudioEditState] = {}
@@ -207,10 +212,10 @@ def test_processing_command_cancels_graph_analysis_busy_state(
     handle_bridge_command(editor, "aqe:faster")
 
     assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
-    assert session.analysis_busy is False
-    assert session.analysis_busy_fields == set()
-    assert session.analysis_generations_by_field == {}
-    assert session.analysis_generation == 5
+    assert session.analysis.busy is False
+    assert session.analysis.busy_fields == set()
+    assert session.analysis.generations_by_field == {}
+    assert session.analysis.generation == 5
     assert any(
         "window.__aqeSetBusy" in call.args[0] and "(0, false" in call.args[0]
         for call in editor.web.eval.call_args_list

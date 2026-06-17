@@ -45,7 +45,7 @@ def toggle_native_pause_resume(
     deps: PlaybackDeps,
 ) -> bool:
     """Toggle native playback pause/resume when possible."""
-    if action not in {"pause", "resume"} or not session.playback_active:
+    if action not in {"pause", "resume"} or not session.playback.active:
         return False
     from aqt.sound import av_player
 
@@ -55,10 +55,10 @@ def toggle_native_pause_resume(
         logger.info("audio pause/resume failed: %s", exc)
         deps.eval_status(editor, t("editor.playback.pause_unavailable"), kind="warning")
         return True
-    session.playback_paused = action == "pause"
-    state = "paused" if session.playback_paused else "playing"
+    session.playback.paused = action == "pause"
+    state = "paused" if session.playback.paused else "playing"
     deps.eval_playback_state(editor, field_index, state, cursor_ms)
-    deps.eval_status(editor, t("editor.playback.paused") if session.playback_paused else t("editor.playback.playing"))
+    deps.eval_status(editor, t("editor.playback.paused") if session.playback.paused else t("editor.playback.playing"))
     return True
 
 
@@ -74,10 +74,10 @@ def apply_html_playback_request(
     """Update backend state for frontend-owned HTML audio playback."""
     if action == "pause":
         session.cursor_ms = cursor_ms
-        session.playback_preparing = False
-        session.playback_active = True
-        session.playback_paused = True
-        session.preserve_status_during_playback = False
+        session.playback.preparing = False
+        session.playback.active = True
+        session.playback.paused = True
+        session.playback.preserve_status = False
         deps.set_busy(editor, False)
         deps.eval_status(editor, t("editor.playback.paused"))
         return
@@ -85,12 +85,12 @@ def apply_html_playback_request(
         deps.stop_session_playback(session)
     session.cursor_ms = cursor_ms
     session.field_index = field_index
-    session.playback_preparing = False
-    session.playback_active = True
-    session.playback_paused = False
-    session.preserve_status_during_playback = source == "post_edit"
+    session.playback.preparing = False
+    session.playback.active = True
+    session.playback.paused = False
+    session.playback.preserve_status = source == "post_edit"
     deps.set_busy(editor, False)
-    if session.preserve_status_during_playback:
+    if session.playback.preserve_status:
         return
     if cursor_ms > 0 and action == "start":
         deps.eval_status(editor, playback_started_from_message(cursor_ms, source))

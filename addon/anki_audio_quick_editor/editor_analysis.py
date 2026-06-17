@@ -181,14 +181,9 @@ def start_field_analysis_async(
 
 def begin_field_analysis(session: EditorSession, field_index: int, filename: str) -> int:
     """Mark a field analysis as in progress and return its generation id."""
-    session.analysis_generation += 1
-    generation = session.analysis_generation
-    session.analysis_generations_by_field[field_index] = generation
-    session.analysis_busy_fields.add(field_index)
-    session.analysis_busy = True
-    session.graph_active_fields.add(field_index)
-    session.visualized_filenames_by_field[field_index] = filename
-    session.visualized_durations_by_field.pop(field_index, None)
+    generation = session.analysis.begin_field(field_index)
+    session.graph.filenames_by_field[field_index] = filename
+    session.graph.durations_by_field.pop(field_index, None)
     return generation
 
 
@@ -222,12 +217,12 @@ def analysis_finished(
     if session is None or not is_current_field_analysis(session, field_index, generation):
         return
     end_field_analysis(session, field_index)
-    session.visualized_filenames_by_field[field_index] = track.source_filename
-    session.visualized_durations_by_field[field_index] = track.duration_ms
+    session.graph.filenames_by_field[field_index] = track.source_filename
+    session.graph.durations_by_field[field_index] = track.duration_ms
     cursor_ms = 0
     if session.field_index == field_index:
-        session.visualized_filename = track.source_filename
-        session.visualized_duration_ms = track.duration_ms
+        session.graph.visualized_filename = track.source_filename
+        session.graph.visualized_duration_ms = track.duration_ms
         session.cursor_ms = clamp_cursor_ms(session.cursor_ms, track.duration_ms)
         cursor_ms = session.cursor_ms
     payload = json.dumps(ProsodyPayload.from_dict(track.to_payload()).to_dict())
@@ -269,11 +264,9 @@ def is_current_field_analysis(
     generation: int,
 ) -> bool:
     """Return whether the result belongs to the active field analysis generation."""
-    return session.analysis_generations_by_field.get(field_index) == generation
+    return session.analysis.generations_by_field.get(field_index) == generation
 
 
 def end_field_analysis(session: EditorSession, field_index: int) -> None:
     """Clear analysis-busy state for a field."""
-    session.analysis_busy_fields.discard(field_index)
-    session.analysis_generations_by_field.pop(field_index, None)
-    session.analysis_busy = bool(session.analysis_busy_fields)
+    session.analysis.end_field(field_index)

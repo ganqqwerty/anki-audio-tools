@@ -42,8 +42,8 @@ def learner_recording_request(
 ) -> LearnerRecordingRequest:
     """Validate that the current field still matches a target graph."""
     field_index = deps.current_field_index(editor)
-    source_filename = session.visualized_filenames_by_field.get(field_index)
-    target_duration_ms = session.visualized_durations_by_field.get(field_index)
+    source_filename = session.graph.filenames_by_field.get(field_index)
+    target_duration_ms = session.graph.durations_by_field.get(field_index)
     if not source_filename or target_duration_ms is None or target_duration_ms <= 0:
         raise AudioProcessingError(t("editor.status.graph_inactive"))
     resolved = deps.resolve_requested_field_media(editor, field_index, source_filename)

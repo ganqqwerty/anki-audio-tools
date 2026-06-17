@@ -138,6 +138,121 @@ class RegionDeleteRequest:
 
 
 @dataclass
+class ProcessingState:
+    active: bool = False
+    generation: int = 0
+    next_status_summary: str = ""
+
+    def begin_guard(self) -> int:
+        self.generation += 1
+        return self.generation
+
+    def invalidate(self) -> None:
+        self.generation += 1
+
+    def reset_generation(self) -> None:
+        self.generation += 1
+
+
+@dataclass
+class PlaybackState:
+    active: bool = False
+    paused: bool = False
+    preparing: bool = False
+    generation: int = 0
+    temp_path: Path | None = None
+    preserve_status: bool = False
+
+    def stop(self) -> None:
+        """Stop playback and bump generation."""
+        self.generation += 1
+        self.preparing = False
+        self.active = False
+        self.paused = False
+        self.preserve_status = False
+
+
+@dataclass
+class AnalysisState:
+    busy: bool = False
+    busy_fields: set[int] = field(default_factory=set)
+    generation: int = 0
+    generations_by_field: dict[int, int] = field(default_factory=dict)
+    graph_active_fields: set[int] = field(default_factory=set)
+
+    def begin_field(self, field_index: int) -> int:
+        self.generation += 1
+        self.generations_by_field[field_index] = self.generation
+        self.busy_fields.add(field_index)
+        self.busy = True
+        self.graph_active_fields.add(field_index)
+        return self.generation
+
+    def end_field(self, field_index: int) -> None:
+        self.busy_fields.discard(field_index)
+        self.generations_by_field.pop(field_index, None)
+        self.busy = bool(self.busy_fields)
+
+    def cancel_all(self) -> None:
+        self.generation += 1
+        self.generations_by_field.clear()
+        self.busy_fields.clear()
+        self.busy = False
+
+    def reset(self) -> None:
+        self.generation += 1
+        self.busy = False
+        self.busy_fields.clear()
+        self.generations_by_field.clear()
+        self.graph_active_fields.clear()
+
+
+@dataclass
+class GraphVisualizationState:
+    visualized_filename: str | None = None
+    visualized_duration_ms: int | None = None
+    filenames_by_field: dict[int, str] = field(default_factory=dict)
+    durations_by_field: dict[int, int] = field(default_factory=dict)
+
+    def clear_field(self, field_index: int | None) -> bool:
+        needs_redraw = (
+            field_index is not None
+            and (field_index in self.filenames_by_field or self.visualized_filename is not None)
+        )
+        if needs_redraw and field_index is not None:
+            self.visualized_filename = None
+            self.visualized_duration_ms = None
+            self.filenames_by_field.pop(field_index, None)
+            self.durations_by_field.pop(field_index, None)
+        return needs_redraw
+
+    def reset(self) -> None:
+        self.visualized_filename = None
+        self.visualized_duration_ms = None
+        self.filenames_by_field.clear()
+        self.durations_by_field.clear()
+
+
+@dataclass
+class PostEditPlaybackState:
+    generation: int = 0
+    pending_field_index: int | None = None
+    pending_generation: int | None = None
+    pending_requires_graph_redraw: bool = False
+    pending_source_filename: str | None = None
+
+    def bump(self) -> None:
+        self.generation += 1
+
+    def reset(self) -> None:
+        self.generation += 1
+        self.pending_field_index = None
+        self.pending_generation = None
+        self.pending_requires_graph_redraw = False
+        self.pending_source_filename = None
+
+
+@dataclass
 class EditorSession:
     """Mutable edit session for a single editor instance."""
 
@@ -145,75 +260,94 @@ class EditorSession:
     state: AudioEditState | None = None
     field_index: int | None = None
     current_filename: str | None = None
-    undo_history: UndoHistory = field(default_factory=UndoHistory)
-    redo_history: UndoHistory = field(default_factory=UndoHistory)
-    processing: bool = False
-    analysis_busy: bool = False
-    analysis_busy_fields: set[int] = field(default_factory=set)
     source_mtime_ns: int | None = None
     cursor_ms: int = 0
-    processing_generation: int = 0
-    analysis_generation: int = 0
-    analysis_generations_by_field: dict[int, int] = field(default_factory=dict)
-    graph_active_fields: set[int] = field(default_factory=set)
-    visualized_filename: str | None = None
-    visualized_duration_ms: int | None = None
-    visualized_filenames_by_field: dict[int, str] = field(default_factory=dict)
-    visualized_durations_by_field: dict[int, int] = field(default_factory=dict)
-    playback_active: bool = False
-    playback_paused: bool = False
-    playback_preparing: bool = False
-    preserve_status_during_playback: bool = False
-    playback_generation: int = 0
-    post_edit_playback_generation: int = 0
-    pending_post_edit_playback_field_index: int | None = None
-    pending_post_edit_playback_generation: int | None = None
-    pending_post_edit_playback_requires_graph_redraw: bool = False
-    pending_post_edit_playback_source_filename: str | None = None
-    temp_playback_path: Path | None = None
-    next_status_summary: str = ""
+    undo_history: UndoHistory = field(default_factory=UndoHistory)
+    redo_history: UndoHistory = field(default_factory=UndoHistory)
+    processing: ProcessingState = field(default_factory=ProcessingState)
+    analysis: AnalysisState = field(default_factory=AnalysisState)
+    graph: GraphVisualizationState = field(default_factory=GraphVisualizationState)
+    playback: PlaybackState = field(default_factory=PlaybackState)
+    post_edit_playback: PostEditPlaybackState = field(default_factory=PostEditPlaybackState)
     status_summary: str = ""
     pending_status: PendingEditorStatus | None = None
     learner_recording: LearnerRecordingState = field(default_factory=LearnerRecordingState)
     learner_recording_controller: Any | None = None
 
+    def _assert_invariants(self) -> None:
+        """Debug-only cross-domain invariant checks. No-op with python -O."""
+        if not __debug__:
+            return
+        assert not (self.processing.active and self.playback.active), \
+            "X1 violated: processing and playback cannot both be active"
+        assert not (self.processing.active and self.playback.paused), \
+            "X1 violated: processing and playback-paused cannot both be active"
+        assert self.analysis.busy == bool(self.analysis.busy_fields), \
+            "D1 violated: analysis_busy must match busy_fields membership"
+
+    def apply_edit_result(
+        self,
+        new_state: AudioEditState,
+        new_filename: str,
+        new_status_summary: str,
+        *,
+        update_source_mtime: bool = False,
+        new_source_mtime: int | None = None,
+        clear_visualization: bool = False,
+    ) -> bool:
+        """Apply a completed edit result. Enforces push-before-overwrite (X4),
+        redo-clear-on-new-edit (X5), playback-clear-on-processing (X1),
+        and post-edit generation bump (X6). Returns whether graph needs redraw."""
+        self.undo_history.push(self.state, self.current_filename, self.status_summary)
+        self.redo_history.clear()
+        self.state = new_state
+        self.current_filename = new_filename
+        self.status_summary = new_status_summary
+        self.processing.next_status_summary = ""
+        self.processing.active = False
+        self.cursor_ms = 0
+        self.playback.active = False
+        self.playback.paused = False
+        self.post_edit_playback.bump()
+        if update_source_mtime:
+            self.source_mtime_ns = new_source_mtime
+        needs_redraw = (
+            self.field_index in self.analysis.graph_active_fields
+            or self.graph.visualized_filename is not None
+        )
+        if clear_visualization:
+            self.graph.clear_field(self.field_index)
+        self._assert_invariants()
+        return needs_redraw
+
 
 def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     """Reset note-specific session state when the editor changes notes."""
     if session.note_id == note_id:
+        session._assert_invariants()
         return False
-    session.analysis_generation += 1
-    session.processing_generation += 1
+    session.analysis.reset()
+    session.processing.reset_generation()
+    session.processing.next_status_summary = ""
     session.note_id = note_id
     session.state = None
     session.field_index = None
     session.current_filename = None
     session.undo_history.clear()
     session.redo_history.clear()
-    session.processing = False
-    session.analysis_busy = False
-    session.analysis_busy_fields.clear()
+    session.processing.active = False
     session.source_mtime_ns = None
     session.cursor_ms = 0
-    session.analysis_generations_by_field.clear()
-    session.graph_active_fields.clear()
-    session.visualized_filename = None
-    session.visualized_duration_ms = None
-    session.visualized_filenames_by_field.clear()
-    session.visualized_durations_by_field.clear()
-    session.playback_active = False
-    session.playback_paused = False
-    session.playback_preparing = False
-    session.preserve_status_during_playback = False
-    session.post_edit_playback_generation += 1
-    session.pending_post_edit_playback_field_index = None
-    session.pending_post_edit_playback_generation = None
-    session.pending_post_edit_playback_requires_graph_redraw = False
-    session.pending_post_edit_playback_source_filename = None
-    session.next_status_summary = ""
+    session.graph.reset()
+    session.playback.active = False
+    session.playback.paused = False
+    session.playback.preparing = False
+    session.playback.preserve_status = False
+    session.post_edit_playback.reset()
     session.status_summary = ""
     session.pending_status = None
     clear_learner_recording_state(session)
+    session._assert_invariants()
     return True
 
 
@@ -224,10 +358,11 @@ def begin_processing_guard(
     source_filename: str,
 ) -> EditorProcessingGuard:
     """Start a guarded editor mutation generation."""
-    session.processing_generation += 1
+    generation = session.processing.begin_guard()
     session.field_index = int(field_index)
+    session._assert_invariants()
     return EditorProcessingGuard(
-        generation=session.processing_generation,
+        generation=generation,
         note_id=session.note_id,
         field_index=int(field_index),
         source_filename=source_filename,
@@ -236,13 +371,13 @@ def begin_processing_guard(
 
 def invalidate_processing_guard(session: EditorSession) -> None:
     """Invalidate pending editor processing completions."""
-    session.processing_generation += 1
+    session.processing.invalidate()
 
 
 def is_current_processing_guard(session: EditorSession, guard: EditorProcessingGuard) -> bool:
     """Return whether an async processing completion still targets the same editor state."""
     return (
-        session.processing_generation == guard.generation
+        session.processing.generation == guard.generation
         and session.note_id == guard.note_id
         and session.field_index == guard.field_index
         and session.current_filename == guard.source_filename
@@ -266,13 +401,14 @@ def processing_guard_matches_editor(
 
 def clear_processing_for_stale_guard(session: EditorSession | None, guard: EditorProcessingGuard) -> bool:
     """Clear stale processing state only when no newer processing generation exists."""
-    if session is None or session.processing_generation != guard.generation:
+    if session is None or session.processing.generation != guard.generation:
         return False
-    session.processing = False
-    session.playback_active = False
-    session.playback_paused = False
-    session.next_status_summary = ""
+    session.processing.active = False
+    session.playback.active = False
+    session.playback.paused = False
+    session.processing.next_status_summary = ""
     session.pending_status = None
+    session._assert_invariants()
     return True
 
 
