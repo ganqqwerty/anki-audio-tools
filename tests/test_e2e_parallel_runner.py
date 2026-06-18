@@ -16,6 +16,14 @@ from scripts.dev_tasks.e2e_parallel import (
 from scripts.dev_tasks.process import set_verbose
 from scripts.dev_tasks.pytest_runner import _pytest_args
 
+SHARED_DESKTOP_TEST_FILES = {
+    "e2e/test_editor_share_workflow.py",
+    "e2e/test_settings_dialog_diagnostics.py",
+    "e2e/test_settings_dialog_shell.py",
+    "e2e/test_settings_hidden_warning.py",
+    "e2e/test_settings_save_flows.py",
+}
+
 
 def _group(path: str, count: int) -> E2EFileGroup:
     return E2EFileGroup(path, tuple(f"{path}::test_{index}" for index in range(count)))
@@ -44,8 +52,7 @@ def test_plan_shards_balances_files_by_collected_item_count() -> None:
 def test_plan_shards_keeps_clipboard_files_in_shared_desktop_shard() -> None:
     shards = plan_shards(
         (
-            _group("e2e/test_settings_dialog.py", 11),
-            _group("e2e/test_editor_share_workflow.py", 3),
+            *(_group(path, 2) for path in sorted(SHARED_DESKTOP_TEST_FILES)),
             _group("e2e/test_audio_processing_ffmpeg.py", 16),
             _group("e2e/test_editor_playback_workflow.py", 6),
         ),
@@ -53,16 +60,21 @@ def test_plan_shards_keeps_clipboard_files_in_shared_desktop_shard() -> None:
     )
 
     shared = next(shard for shard in shards if shard.name == "shared-desktop")
-    assert set(shared.files) == {
-        "e2e/test_settings_dialog.py",
-        "e2e/test_editor_share_workflow.py",
-    }
+    assert set(shared.files) == SHARED_DESKTOP_TEST_FILES
     assert all(
-        "e2e/test_settings_dialog.py" not in shard.files
-        and "e2e/test_editor_share_workflow.py" not in shard.files
+        all(path not in shard.files for path in SHARED_DESKTOP_TEST_FILES)
         for shard in shards
         if shard.name != "shared-desktop"
     )
+
+
+def test_shared_desktop_files_exist() -> None:
+    assert set(e2e_parallel.SHARED_DESKTOP_FILES) == SHARED_DESKTOP_TEST_FILES
+    assert [
+        path
+        for path in sorted(e2e_parallel.SHARED_DESKTOP_FILES)
+        if not (e2e_parallel.ROOT / path).is_file()
+    ] == []
 
 
 def test_requested_worker_count_defaults_clamps_and_handles_invalid_env() -> None:

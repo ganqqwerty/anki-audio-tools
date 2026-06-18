@@ -7,6 +7,7 @@ from e2e.browser_workflow_helpers import (
     select_batch_operation,
     trigger_cards_menu_action,
     wait_for_batch_dialog_ready,
+    wait_for_opened_dialog,
 )
 from e2e.conftest import import_runtime_addon_module
 from e2e.helpers import wait_for_js_condition
@@ -32,7 +33,7 @@ def test_batch_dialog_running_controls_explain_disabled_tooltip(anki_mw, monkeyp
 
     with opened_context as opened:
         trigger_cards_menu_action(browser, action_label)
-        assert len(opened) == 1
+        wait_for_opened_dialog(opened)
         dialog = opened[0]
         dialog._run_batch_in_background = fake_run_batch
         wait_for_batch_dialog_ready(dialog)

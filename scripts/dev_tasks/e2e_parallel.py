@@ -26,8 +26,11 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_E2E_JOBS = 3
 SHARED_DESKTOP_FILES = frozenset(
     {
-        "e2e/test_settings_dialog.py",
         "e2e/test_editor_share_workflow.py",
+        "e2e/test_settings_dialog_diagnostics.py",
+        "e2e/test_settings_dialog_shell.py",
+        "e2e/test_settings_hidden_warning.py",
+        "e2e/test_settings_save_flows.py",
     }
 )
 

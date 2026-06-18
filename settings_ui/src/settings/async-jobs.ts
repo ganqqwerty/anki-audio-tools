@@ -170,7 +170,7 @@ function _isHealthReport(value: unknown): value is HealthReport {
 }
 
 function _isSupportReportResult(value: unknown): value is SupportReportResult {
-  return _isRecord(value) && typeof value.reportText === "string";
+  return _isRecord(value) && typeof value.reportFilePath === "string";
 }
 
 function _isShowLogFileResult(value: unknown): value is ShowLogFileResult {

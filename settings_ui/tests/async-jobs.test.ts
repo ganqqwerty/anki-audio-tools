@@ -203,7 +203,7 @@ describe("startAsyncOp", () => {
     const promise = startAsyncOp("support_report", { config });
     const id = asyncCommandAt(0).id;
 
-    handleAsyncDone({ id, ok: true, result: { reportText: "support" } });
+    handleAsyncDone({ id, ok: true, result: { reportFilePath: "/tmp/support-report.txt" } });
     await promise;
 
     // A second done with the same ID should be silently ignored
@@ -216,7 +216,7 @@ describe("startAsyncOp", () => {
     const promise = startAsyncOp("show_log_file", {});
     const id = asyncCommandAt(0).id;
 
-    handleAsyncDone({ id, ok: true, result: { reportText: "wrong shape" } });
+    handleAsyncDone({ id, ok: true, result: { reportFilePath: "/tmp/support-report.txt" } });
 
     await expect(promise).rejects.toMatchObject({
       code: "AQE-FRONTEND-001",

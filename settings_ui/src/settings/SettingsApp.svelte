@@ -6,7 +6,6 @@
   import ErrorMessage from "$lib/ErrorMessage.svelte";
   import { handleAsyncDone, handleAsyncProgress, startAsyncOp } from "./async-jobs.js";
   import {
-    copySupportReport,
     registerCallbacks,
     settingsCancel,
     settingsCheckMedia,
@@ -107,13 +106,12 @@
     }
   }
 
-  async function copyLatestSupportReport(): Promise<void> {
+  async function revealLatestSupportReport(): Promise<void> {
     diagnosticsMessage = t("settings.support.preparing");
     healthProgress = null;
     try {
       const result = await startAsyncOp("support_report", { config });
-      copySupportReport(result.reportText);
-      diagnosticsMessage = t("settings.support.copied");
+      diagnosticsMessage = t("settings.support.revealed", { path: result.reportFilePath });
     } catch (error) {
       const message = messageFromUnknownError(error);
       diagnosticsMessage = frontendUnknownError(error);
@@ -251,7 +249,7 @@
           onRunHealthCheck={runHealthCheck}
           onInstallRuntime={installRuntime}
           onCheckMedia={settingsCheckMedia}
-          onCopySupportReport={copyLatestSupportReport}
+          onRevealSupportReport={revealLatestSupportReport}
           onShowLogFile={showLogFile}
         />
       {/if}

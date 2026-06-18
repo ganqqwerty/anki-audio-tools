@@ -9,7 +9,6 @@
     "asyncProgressPayload": { "$ref": "#/definitions/AsyncProgressPayload" },
     "asyncDonePayload": { "$ref": "#/definitions/AsyncDonePayload" },
     "frontendLogPayload": { "$ref": "#/definitions/FrontendLogPayload" },
-    "copySupportReportPayload": { "$ref": "#/definitions/CopySupportReportPayload" },
     "saveErrorPayload": { "$ref": "#/definitions/SaveErrorPayload" },
     "healthReport": { "$ref": "#/definitions/HealthReport" },
     "runtimeStatus": { "$ref": "#/definitions/RuntimeStatus" },
@@ -274,9 +273,9 @@
     "SupportReportResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reportText"],
+      "required": ["reportFilePath"],
       "properties": {
-        "reportText": { "type": "string" }
+        "reportFilePath": { "type": "string" }
       }
     },
     "ShowLogFileResult": {
@@ -675,14 +674,6 @@
         "lineno": { "type": "integer" },
         "colno": { "type": "integer" },
         "operation_id": { "type": "string" }
-      }
-    },
-    "CopySupportReportPayload": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["text"],
-      "properties": {
-        "text": { "type": "string" }
       }
     },
     "SaveErrorPayload": {

@@ -10,6 +10,7 @@ from e2e.browser_workflow_helpers import (
     open_audio_export_dialog,
     trigger_cards_menu_action,
     wait_for_dialog_finished,
+    wait_for_opened_dialog,
 )
 from e2e.conftest import import_runtime_addon_module
 from e2e.helpers import (
@@ -114,7 +115,7 @@ def _run_export_dialog_from_browser(
     try:
         with opened_context as opened:
             trigger_cards_menu_action(browser, action_label)
-            assert len(opened) == 1
+            wait_for_opened_dialog(opened)
             dialog = opened[0]
             wait_for_js_condition(
                 dialog._webview,

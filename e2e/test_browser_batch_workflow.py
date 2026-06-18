@@ -11,6 +11,7 @@ from e2e.browser_workflow_helpers import (
     trigger_cards_menu_action,
     wait_for_batch_dialog_ready,
     wait_for_dialog_finished,
+    wait_for_opened_dialog,
 )
 from e2e.conftest import import_runtime_addon_module
 from e2e.editor_audio_generation_helpers import _generate_high_bitrate_mp3
@@ -42,7 +43,7 @@ def test_browser_batch_reduce_size_renders_smaller_mp3_from_selected_row(
 
     with opened_context as opened:
         trigger_cards_menu_action(browser, action_label)
-        assert len(opened) == 1
+        wait_for_opened_dialog(opened)
         dialog = opened[0]
         wait_for_batch_dialog_ready(dialog)
         select_batch_operation(dialog, "reduce_size")

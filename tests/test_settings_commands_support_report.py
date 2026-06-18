@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from anki_audio_quick_editor.settings.commands import (
     handle_settings_command,
@@ -107,12 +104,20 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
         patch("anki_audio_quick_editor.diagnostics.build_dpdfnet_health", return_value={"available": True, "path": "/bin/dpdfnet", "version": "0.1.0", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_spleeter_health", return_value={"available": True, "path": "/bin/sherpa-spleeter", "version": "1.13.2", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_silero_vad_health", return_value={"available": True, "path": "/bin/silero-vad", "version": "VAD in sherpa-onnx.", "error": ""}),
+        patch("anki_audio_quick_editor.file_reveal.reveal_file") as reveal_file,
     ):
         handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
-    report_text = result["result"]["reportText"]
+    report_path = Path(result["result"]["reportFilePath"])
+    reveal_file.assert_called_once_with(
+        report_path,
+        missing_message="The support report file was not found.",
+    )
+    assert report_path.parent == addon_dir / "user_files" / "support_reports"
+    assert report_path.name.startswith("support-report-")
+    report_text = report_path.read_text(encoding="utf-8")
     assert "Anki Audio Quick Editor Support Report" in report_text
     assert "Pause removal analysis failed." in report_text
     assert "RNNoise denoise failed." in report_text
@@ -127,50 +132,3 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     assert "/addon/aqe_artifacts/clip__run/manifest.json" in report_text
     assert "line-1" in report_text
     assert str(log_path) in report_text
-
-
-
-def test_copy_support_report_updates_clipboard() -> None:
-    clipboard = MagicMock()
-    dialog = _make_dialog()
-    _, eval_fn = _capture_eval()
-    payload = {"text": "support text"}
-
-    with patch("aqt.qt.QApplication.clipboard", return_value=clipboard):
-        assert handle_settings_command(_bridge_command("support.copy_report", payload), eval_fn, dialog) is True
-
-    clipboard.setText.assert_called_once_with("support text")
-
-
-def test_copy_support_report_logs_invalid_payload_without_clipboard(caplog: pytest.LogCaptureFixture) -> None:
-    dialog = _make_dialog()
-    _, eval_fn = _capture_eval()
-    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
-
-    with patch("aqt.qt.QApplication.clipboard") as clipboard:
-        assert handle_settings_command(_bridge_command("support.copy_report", "not-a-report"), eval_fn, dialog) is True
-
-    clipboard.assert_not_called()
-    assert "support.copy_report: invalid payload" in caplog.text
-
-
-def test_copy_support_report_logs_missing_text_without_clipboard(caplog: pytest.LogCaptureFixture) -> None:
-    dialog = _make_dialog()
-    _, eval_fn = _capture_eval()
-    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
-
-    with patch("aqt.qt.QApplication.clipboard") as clipboard:
-        assert handle_settings_command(_bridge_command("support.copy_report", {}), eval_fn, dialog) is True
-
-    clipboard.assert_not_called()
-    assert "support.copy_report: missing text payload" in caplog.text
-
-
-def test_copy_support_report_logs_unavailable_clipboard(caplog: pytest.LogCaptureFixture) -> None:
-    dialog = _make_dialog()
-    _, eval_fn = _capture_eval()
-    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
-    payload = {"text": "support text"}
-
-    with patch("aqt.qt.QApplication.clipboard", return_value=None):
-        assert handle_settings_command(_bridge_command("support.copy_report", payload), eval_fn, dialog) is True

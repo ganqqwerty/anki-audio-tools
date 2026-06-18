@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from ..contracts_generated import (
     Config,
@@ -17,6 +19,8 @@ from ..diagnostics_runtime import record_breadcrumb, support_report_context
 from ..errors import SettingsCommandError
 
 CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
+USER_FILES_DIRNAME = "user_files"
+SUPPORT_REPORTS_DIRNAME = "support_reports"
 
 
 def dispatch_settings_async_op(
@@ -82,6 +86,7 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
         build_silero_vad_health,
         build_spleeter_health,
     )
+    from ..file_reveal import reveal_file
     from ..i18n import t
     from ..release_info import read_release_info
     from ..support import (
@@ -124,8 +129,12 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
         diagnostics_context=diagnostics_context,
         release_info=read_release_info(addon_dir),
     )
+    progress_fn(90, t("settings.support.writing_report"))
+    report_path = _write_support_report_file(addon_dir, report_text)
+    progress_fn(95, t("settings.support.revealing_report"))
+    reveal_file(report_path, missing_message=t("settings.support.report_missing"))
     progress_fn(100, t("settings.async.done"))
-    return SupportReportResult(report_text).to_dict()
+    return SupportReportResult(str(report_path)).to_dict()
 
 
 def _op_show_log_file(
@@ -185,3 +194,12 @@ def _addon_dir_for_settings() -> Path:
 
     addon_id = mw.addonManager.addonFromModule(__name__)
     return Path(mw.addonManager.addonsFolder(addon_id))
+
+
+def _write_support_report_file(addon_dir: str | Path, report_text: str) -> Path:
+    report_dir = Path(addon_dir) / USER_FILES_DIRNAME / SUPPORT_REPORTS_DIRNAME
+    report_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    report_path = report_dir / f"support-report-{timestamp}-{uuid4().hex[:8]}.txt"
+    report_path.write_text(report_text, encoding="utf-8")
+    return report_path
