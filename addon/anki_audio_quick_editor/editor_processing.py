@@ -20,7 +20,6 @@ from .editor_media_replacement import (
 )
 from .editor_processing_guard import (
     EditorProcessingGuard,
-    begin_processing_guard,
     clear_processing_for_stale_guard,
     is_current_processing_guard,
     processing_guard_matches_editor,
@@ -97,12 +96,9 @@ def render_and_replace_async(
         flush=True,
     )
     deps.stop_session_playback(session)
-    session.processing.active = True
     field_index = session.field_index if session.field_index is not None else deps.current_field_index(editor)
     guard_filename = session.current_filename or source_path.name
-    guard = begin_processing_guard(session, field_index=int(field_index), source_filename=guard_filename)
-    session.playback.active = False
-    session.playback.paused = False
+    guard = session.begin_processing(field_index=int(field_index), source_filename=guard_filename)
     deps.set_busy(editor, True, t("editor.status.processing"))
     deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
 
@@ -331,11 +327,7 @@ def render_failed(
             deps.set_busy(editor, False)
         return
     if session:
-        session.processing.active = False
-        session.playback.active = False
-        session.playback.paused = False
-        session.processing.next_status_summary = ""
-        session.pending_status = None
+        session.finish_processing_without_edit(clear_pending_status=True)
     deps.set_busy(editor, False)
     code = (
         AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING

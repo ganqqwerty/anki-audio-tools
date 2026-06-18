@@ -96,9 +96,24 @@ class PostEditPlaybackState:
     def bump(self) -> None:
         self.generation += 1
 
-    def reset(self) -> None:
-        self.generation += 1
+    def request(
+        self,
+        field_index: int,
+        source_filename: str | None,
+        *,
+        require_graph_redraw: bool = False,
+    ) -> None:
+        self.pending_field_index = int(field_index)
+        self.pending_generation = self.generation
+        self.pending_requires_graph_redraw = bool(require_graph_redraw)
+        self.pending_source_filename = source_filename
+
+    def clear_pending(self) -> None:
         self.pending_field_index = None
         self.pending_generation = None
         self.pending_requires_graph_redraw = False
         self.pending_source_filename = None
+
+    def reset(self) -> None:
+        self.generation += 1
+        self.clear_pending()

@@ -66,12 +66,9 @@ def refresh_editor_after_settings_save(
     field_index = deps.current_field_index(editor)
     session = deps.sessions.get(editor)
     if session is not None:
-        session.analysis.generation += 1
+        session.analysis.cancel_all()
         deps.stop_session_playback(session)
-        session.processing.active = False
-        session.analysis.busy = False
-        session.playback.active = False
-        session.playback.paused = False
+        session.finish_processing_without_edit()
         session.playback.preparing = False
     reload_editor_with_pending_status(
         editor,

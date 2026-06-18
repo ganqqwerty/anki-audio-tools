@@ -16,7 +16,6 @@ from .editor_media_replacement import (
 )
 from .editor_processing_guard import (
     EditorProcessingGuard,
-    begin_processing_guard,
     clear_processing_for_stale_guard,
     processing_guard_matches_editor,
 )
@@ -146,15 +145,10 @@ def delete_selection_async(
     operation_id = new_operation_id("region")
     started_at = time.monotonic()
     deps.stop_session_playback(session)
-    session.processing.active = True
-    session.field_index = request.field_index
-    guard = begin_processing_guard(
-        session,
+    guard = session.begin_processing(
         field_index=request.field_index,
         source_filename=request.source_filename,
     )
-    session.playback.active = False
-    session.playback.paused = False
     session.cursor_ms = request.cursor_ms
     deps.set_busy_for_field(editor, request.field_index, True, region_operation_busy_message(request))
     deps.eval_playback_state(editor, request.field_index, "stopped", request.cursor_ms)

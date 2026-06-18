@@ -23,7 +23,6 @@ from .diagnostics_runtime import capture_exception, new_operation_id, record_bre
 from .editor_actions import EditorCommandPayload
 from .editor_processing_guard import (
     EditorProcessingGuard,
-    begin_processing_guard,
     clear_processing_for_stale_guard,
     is_current_processing_guard,
 )
@@ -64,17 +63,13 @@ def run_processing_preset_async(
     session, current_path = deps.current_media_path(editor)
     cancel_graph_analysis_for_processing(editor, session, deps)
     deps.stop_session_playback(session)
-    session.post_edit_playback.generation += 1
-    session.processing.next_status_summary = preset.name
-    session.processing.active = True
     field_index = session.field_index if session.field_index is not None else getattr(editor, "currentField", 0)
-    guard = begin_processing_guard(
-        session,
+    guard = session.begin_processing(
         field_index=int(field_index),
         source_filename=current_path.name,
+        next_status_summary=preset.name,
+        bump_post_edit_generation=True,
     )
-    session.playback.active = False
-    session.playback.paused = False
     deps.set_busy(editor, True, t("editor.status.running_preset", {"preset": preset.name}))
     deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
     operation_id = new_operation_id("preset")
@@ -146,7 +141,7 @@ def _schedule_preset_finish(
     def _finish() -> None:
         try:
             if result.final_audio_path is not None and result.final_audio_name is not None:
-                deps.replace_current_field_after_noise_removal(
+                deps.replace_current_field_after_special_transform(
                     editor,
                     result.final_audio_name,
                     guard=guard,
@@ -156,13 +151,11 @@ def _schedule_preset_finish(
                     deps.request_graph_redraw(editor, None, _graph_settings_payload(preset))
                 return
             if preset.graph.enabled:
-                session.processing.active = False
-                session.processing.next_status_summary = ""
+                session.finish_processing_without_edit()
                 deps.set_busy(editor, False)
                 deps.analyze_current_async(editor, graph_settings=_graph_settings_payload(preset))
                 return
-            session.processing.active = False
-            session.processing.next_status_summary = ""
+            session.finish_processing_without_edit()
             deps.set_busy(editor, False)
             deps.eval_status(editor, t("editor.status.preset_no_changes"))
         finally:

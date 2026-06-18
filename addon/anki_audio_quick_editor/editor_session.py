@@ -73,6 +73,46 @@ class EditorSession:
         """Compatibility wrapper for existing characterization tests."""
         self.assert_invariants()
 
+    def begin_processing(
+        self,
+        *,
+        field_index: int,
+        source_filename: str,
+        next_status_summary: str | None = None,
+        bump_post_edit_generation: bool = False,
+    ) -> EditorProcessingGuard:
+        """Start a guarded processing operation and clear incompatible playback state."""
+        if bump_post_edit_generation:
+            self.post_edit_playback.bump()
+        if next_status_summary is not None:
+            self.processing.next_status_summary = next_status_summary
+        self.processing.active = True
+        self.playback.active = False
+        self.playback.paused = False
+        guard = begin_processing_guard(
+            self,
+            field_index=int(field_index),
+            source_filename=source_filename,
+        )
+        self.assert_invariants()
+        return guard
+
+    def finish_processing_without_edit(
+        self,
+        *,
+        clear_pending_status: bool = False,
+        stop_playback: bool = True,
+    ) -> None:
+        """Clear processing state for failure, no-op, stale, or reset paths."""
+        self.processing.active = False
+        self.processing.next_status_summary = ""
+        if stop_playback:
+            self.playback.active = False
+            self.playback.paused = False
+        if clear_pending_status:
+            self.pending_status = None
+        self.assert_invariants()
+
     def apply_edit_result(
         self,
         new_state: AudioEditState,
@@ -94,11 +134,8 @@ class EditorSession:
         self.state = new_state
         self.current_filename = new_filename
         self.status_summary = new_status_summary
-        self.processing.next_status_summary = ""
-        self.processing.active = False
+        self.finish_processing_without_edit()
         self.cursor_ms = 0
-        self.playback.active = False
-        self.playback.paused = False
         self.post_edit_playback.bump()
         if update_source_mtime:
             self.source_mtime_ns = new_source_mtime
@@ -126,17 +163,14 @@ def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     session.current_filename = None
     session.undo_history.clear()
     session.redo_history.clear()
-    session.processing.active = False
+    session.finish_processing_without_edit(clear_pending_status=True)
     session.source_mtime_ns = None
     session.cursor_ms = 0
     session.graph.reset()
-    session.playback.active = False
-    session.playback.paused = False
     session.playback.preparing = False
     session.playback.preserve_status = False
     session.post_edit_playback.reset()
     session.status_summary = ""
-    session.pending_status = None
     clear_learner_recording_state(session)
     session.assert_invariants()
     return True

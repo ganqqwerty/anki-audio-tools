@@ -93,7 +93,7 @@ def _schedule_special_transform_finish(
 
     def _finish() -> None:
         try:
-            deps.replace_current_field_after_noise_removal(
+            deps.replace_current_field_after_special_transform(
                 editor,
                 desired_name,
                 guard=guard,
@@ -157,8 +157,7 @@ def _handle_already_compact(
         return
 
     def _finish() -> None:
-        session.processing.active = False
-        session.processing.next_status_summary = ""
+        session.finish_processing_without_edit()
         deps.set_busy(editor, False)
         deps.eval_status(editor, message)
 

@@ -1,10 +1,23 @@
 # P7: Refactor `editor_special_transforms.py` — Single Responsibility
 
-**Status**: Planned
+**Status**: Implemented core SRP split; deeper per-transform-family split superseded
 **Date**: 2026-06-17
+**Implemented**: 2026-06-18
 **Problem source**: `docs/reviews/2026-06-09-architecture-problems.md` P7
 
 ---
+
+## Implementation Note
+
+The core split is implemented in the runtime package:
+
+- `editor_special_transforms.py` now owns transform entry-point dispatch only.
+- `editor_transform_orchestration.py` owns shared async transform orchestration.
+- `editor_transform_post_processing.py` owns post-edit media replacement.
+- `editor_transform_failure_support.py` owns transform diagnostics.
+- `editor_special_transform_worker.py` remains the worker boundary.
+
+`replace_current_field_after_special_transform` is the production callback name. `replace_current_field_after_noise_removal` remains as a compatibility alias for existing imports and dependency consumers.
 
 ## 1. Problem Analysis
 
@@ -306,9 +319,9 @@ editor_callbacks.py
 
 ## 7. Success Criteria
 
-- [ ] `editor_special_transforms.py` contains only entry-point dispatch functions (~120 lines)
-- [ ] Each new module has a single responsibility and ≤80 lines
-- [ ] All existing tests pass without modification (re-exports preserve API)
-- [ ] `python3 scripts/dev.py check` passes after each phase
-- [ ] Adding a new special transform requires touching only `editor_special_transforms.py` (entry point) + the new module for failure diagnostics if needed
-- [ ] `replace_current_field_after_noise_removal` is renamed to `replace_current_field_after_special_transform` with backward-compatible alias
+- [x] `editor_special_transforms.py` contains only entry-point dispatch functions.
+- [x] Shared orchestration, post-processing, and diagnostics each live in focused modules.
+- [x] Existing import compatibility is preserved for the old post-processing name.
+- [x] `replace_current_field_after_noise_removal` is renamed to `replace_current_field_after_special_transform` with a backward-compatible alias.
+- [ ] Full verification remains tied to the branch-level QC gate recorded with the implementing commit.
+- [ ] A deeper transform-family split, if still desired, should be planned as separate follow-up work.

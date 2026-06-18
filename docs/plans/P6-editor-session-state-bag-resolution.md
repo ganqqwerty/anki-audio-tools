@@ -4,6 +4,8 @@
 
 **Goal:** Reduce blast radius of mutations, enforce domain invariants at runtime, and eliminate the copy-pasted "post-render replacement" pattern.
 
+**Status:** Partially implemented as of 2026-06-18. Domain sub-state classes, common edit-result application, debug invariant assertions, processing start/finish helpers, and post-edit playback pending helpers now exist. Remaining playback-only direct state writes should be handled as a focused playback state-machine follow-up rather than mixed into this session cleanup.
+
 ---
 
 ## Current State
