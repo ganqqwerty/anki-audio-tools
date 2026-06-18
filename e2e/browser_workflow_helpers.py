@@ -42,11 +42,15 @@ def open_browser_for_note(anki_mw, note: Any) -> Any:
 def select_browser_note_row(browser: Any, note_id: int) -> None:
     card_ids = browser.col.get_note(note_id).card_ids()
     assert card_ids, "Browser workflow fixture note must have at least one card"
-    browser.table.select_single_card(card_ids[0])
-    QApplication.processEvents()
+
+    def target_note_selected() -> bool:
+        browser.table.select_single_card(card_ids[0])
+        QApplication.processEvents()
+        return int(note_id) in [int(value) for value in browser.selected_notes()]
+
     wait_for_condition(
-        lambda: int(note_id) in [int(value) for value in browser.selected_notes()],
-        timeout=5.0,
+        target_note_selected,
+        timeout=10.0,
         message="Browser row selection did not select the expected note",
     )
 
@@ -60,6 +64,14 @@ def trigger_cards_menu_action(browser: Any, label: str) -> None:
     assert action is not None, f"Cards menu action {label!r} not found; saw {labels!r}"
     action.trigger()
     QApplication.processEvents()
+
+
+def wait_for_opened_dialog(opened: list[Any]) -> None:
+    wait_for_condition(
+        lambda: len(opened) == 1,
+        timeout=10.0,
+        message=f"Browser menu action did not open exactly one dialog; saw {len(opened)}",
+    )
 
 
 @contextmanager

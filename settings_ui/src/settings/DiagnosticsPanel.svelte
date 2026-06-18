@@ -17,7 +17,7 @@
     onRunHealthCheck,
     onInstallRuntime,
     onCheckMedia,
-    onCopySupportReport,
+    onRevealSupportReport,
     onShowLogFile,
   }: {
     diagnosticsMessage: ErrorDisplayValue;
@@ -28,7 +28,7 @@
     initialState: InitialState;
     runtimeStatus: RuntimeStatus;
     onCheckMedia: DiagnosticsAction;
-    onCopySupportReport: DiagnosticsAction;
+    onRevealSupportReport: DiagnosticsAction;
     onInstallRuntime: DiagnosticsAction;
     onRunHealthCheck: DiagnosticsAction;
     onShowLogFile: DiagnosticsAction;
@@ -138,10 +138,10 @@
       <button
         type="button"
         class="settings-button"
-        data-testid="copy-support-report"
-        onclick={onCopySupportReport}
+        data-testid="reveal-support-report"
+        onclick={onRevealSupportReport}
       >
-        {t("diagnostics.copy_support_report")}
+        {t("diagnostics.reveal_support_report")}
       </button>
     </div>
 

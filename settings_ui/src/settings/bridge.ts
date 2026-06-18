@@ -37,10 +37,6 @@ export function sendAsyncCmd<TOp extends AsyncOperationName>(
   sendBridgeEnvelope("settings.async", { id, op, payload });
 }
 
-export function copySupportReport(text: string): void {
-  sendBridgeEnvelope("support.copy_report", { text });
-}
-
 export interface BridgeCallbacks {
   onAsyncProgress?: (payload: AsyncProgressPayload) => void;
   onAsyncDone?: (payload: AsyncDonePayload) => void;

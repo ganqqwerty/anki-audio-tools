@@ -35,19 +35,32 @@ class _ImmediateThread:
         return False
 
 
-def test_async_support_report_handles_missing_log_file() -> None:
+def test_async_support_report_handles_missing_log_file(tmp_path: Path) -> None:
+    from aqt import mw
+
     clear_latest_pause_pipeline_support_incident()
     clear_latest_denoise_support_incident()
+    addon_dir = tmp_path / "addon"
+    addon_dir.mkdir()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
     payload = {"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}}
 
-    with patch("threading.Thread", _ImmediateThread):
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch.object(mw.addonManager, "addonsFolder", return_value=str(addon_dir)),
+        patch("anki_audio_quick_editor.file_reveal.reveal_file") as reveal_file,
+    ):
         handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
-    report_text = result["result"]["reportText"]
+    report_path = Path(result["result"]["reportFilePath"])
+    reveal_file.assert_called_once_with(
+        report_path,
+        missing_message="The support report file was not found.",
+    )
+    report_text = report_path.read_text(encoding="utf-8")
     assert "No external denoise failure has been captured in this session." in report_text
     assert "No pause-shortening failure has been captured in this session." in report_text
     assert "Log file not found:" in report_text or "(log file is empty)" in report_text

@@ -16,7 +16,11 @@ from e2e.helpers import (
     wait_for_js,
     wait_for_js_condition,
 )
-from e2e.test_reviewer_audio_editor_workflow import _reviewer_note, _show_answer
+from e2e.test_reviewer_audio_editor_workflow import (
+    _reviewer_note,
+    _show_answer,
+    _wait_for_reviewer_question_dom,
+)
 
 
 def _unique_name(prefix: str) -> str:
@@ -50,15 +54,10 @@ def _open_filtered_reviewer_for_note(anki_mw, note, deck_id: int):
             and reviewer.card.nid == note.id
             and int(reviewer.card.did) == deck_id
         ),
-        timeout=10.0,
+        timeout=15.0,
         message="Reviewer did not load the expected filtered-deck card",
     )
-    wait_for_js_condition(
-        reviewer.web,
-        "document.querySelector('#qa') !== null",
-        lambda value: value is True,
-        timeout=10.0,
-    )
+    _wait_for_reviewer_question_dom(reviewer)
     wait_for_js_condition(
         reviewer.web,
         "document.body ? document.body.innerText.includes('Prompt') : false",

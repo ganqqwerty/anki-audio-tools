@@ -14,6 +14,7 @@ from anki_audio_quick_editor.browser_integration import (
     ACTION_LABEL,
     EXPORT_ACTION_LABEL,
     _on_browser_menus_did_init,
+    _open_after_current_editor_saved,
     _open_audio_export_dialog,
     _open_batch_dialog,
     _tr,
@@ -47,6 +48,47 @@ def test_browser_menu_action_is_added() -> None:
     browser.form.menu_Cards.addAction.assert_any_call(ACTION_LABEL)
     browser.form.menu_Cards.addAction.assert_any_call(EXPORT_ACTION_LABEL)
     assert aqt.qt.qconnect.call_count == 2
+
+
+def test_open_after_current_editor_saved_waits_for_browser_editor() -> None:
+    calls: list[object] = []
+    browser = SimpleNamespace()
+
+    def save(callback) -> None:
+        calls.append("save")
+        callback()
+
+    browser.editor = SimpleNamespace(call_after_note_saved=save)
+
+    _open_after_current_editor_saved(browser, lambda value: calls.append(("open", value)))
+
+    assert calls == ["save", ("open", browser)]
+
+
+def test_open_after_current_editor_saved_checks_editor_web_readiness() -> None:
+    calls: list[object] = []
+    browser = SimpleNamespace()
+
+    def save(callback) -> None:
+        calls.append("save")
+        callback()
+
+    def eval_with_callback(script: str, callback) -> None:
+        calls.append(("ready_check", script))
+        callback(True)
+
+    browser.editor = SimpleNamespace(
+        call_after_note_saved=save,
+        web=SimpleNamespace(evalWithCallback=eval_with_callback),
+    )
+
+    _open_after_current_editor_saved(browser, lambda value: calls.append(("open", value)))
+
+    assert calls == [
+        ("ready_check", "typeof saveNow === 'function'"),
+        "save",
+        ("open", browser),
+    ]
 
 
 def test_empty_selection_shows_warning() -> None:

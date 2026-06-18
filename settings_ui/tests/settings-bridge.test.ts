@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { cwd } from "node:process";
 
 import {
-  copySupportReport,
   registerCallbacks,
   sendAsyncCmd,
   settingsCancel,
@@ -146,19 +145,6 @@ describe("sendAsyncCmd", () => {
         payload: {
           config,
         },
-      },
-    });
-  });
-});
-
-describe("copySupportReport", () => {
-  it("sends a support.copy_report payload", () => {
-    copySupportReport("support text");
-    const call = pycmd.mock.calls[0]?.[0] ?? "";
-    expect(JSON.parse(call.slice("bridge:".length))).toEqual({
-      command: "support.copy_report",
-      payload: {
-        text: "support text",
       },
     });
   });

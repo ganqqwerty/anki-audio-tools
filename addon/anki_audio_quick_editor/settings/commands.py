@@ -10,7 +10,6 @@ from typing import Any
 from ..audio_processing_presets import presets_from_raw
 from ..contracts_generated import (
     Config,
-    CopySupportReportPayload,
     RuntimeStatus,
     VisibleEditorButton,
 )
@@ -81,7 +80,6 @@ def handle_settings_command(
             command.payload,
             logger=logger,
         ),
-        "support.copy_report": lambda: _handle_copy_support_report(command),
     }.get(command_name)
     if simple_handler is not None:
         simple_handler()
@@ -215,23 +213,3 @@ def _handle_frontend_log(raw_payload: Any) -> None:
         log_prefix="frontend",
         invalid_label="frontend_log",
     )
-
-
-def _handle_copy_support_report(command: WebviewBridgeCommand) -> None:
-    from aqt.qt import QApplication
-
-    raw_payload = command.payload
-    try:
-        payload = CopySupportReportPayload.from_dict(raw_payload)
-    except CONTRACT_DECODE_ERRORS:
-        if isinstance(raw_payload, dict) and not isinstance(raw_payload.get("text"), str):
-            logger.warning("support.copy_report: missing text payload")
-        else:
-            logger.warning("support.copy_report: invalid payload")
-        return
-
-    clipboard = QApplication.clipboard()
-    if clipboard is None:
-        logger.warning("support.copy_report: clipboard unavailable")
-        return
-    clipboard.setText(payload.text)

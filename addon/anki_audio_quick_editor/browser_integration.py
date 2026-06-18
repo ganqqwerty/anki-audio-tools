@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from .audio_processing_presets import presets_from_raw
@@ -48,10 +49,69 @@ def _on_browser_menus_did_init(browser: Any) -> None:
 
     action = browser.form.menu_Cards.addAction(_tr("batch.action"))
     assert action is not None
-    qconnect(action.triggered, lambda _checked=False, b=browser: _open_batch_dialog(b))
+    qconnect(
+        action.triggered,
+        lambda _checked=False, b=browser: _open_after_current_editor_saved(b, _open_batch_dialog),
+    )
     export_action = browser.form.menu_Cards.addAction(_tr("audio_export.action"))
     assert export_action is not None
-    qconnect(export_action.triggered, lambda _checked=False, b=browser: _open_audio_export_dialog(b))
+    qconnect(
+        export_action.triggered,
+        lambda _checked=False, b=browser: _open_after_current_editor_saved(b, _open_audio_export_dialog),
+    )
+
+
+def _open_after_current_editor_saved(
+    browser: Any,
+    opener: Callable[[Any], None],
+    *,
+    remaining_readiness_checks: int = 100,
+) -> None:
+    editor = getattr(browser, "editor", None)
+    save_current_note = getattr(editor, "call_after_note_saved", None)
+    if not callable(save_current_note):
+        opener(browser)
+        return
+
+    web = getattr(editor, "web", None)
+    eval_with_callback = getattr(web, "evalWithCallback", None)
+    if callable(eval_with_callback):
+
+        def _save_when_ready(save_now_available: bool) -> None:
+            if save_now_available:
+                save_current_note(lambda: opener(browser))
+                return
+            if remaining_readiness_checks <= 0:
+                opener(browser)
+                return
+            _retry_after_editor_readiness_delay(
+                browser,
+                opener,
+                remaining_readiness_checks=remaining_readiness_checks - 1,
+            )
+
+        eval_with_callback("typeof saveNow === 'function'", _save_when_ready)
+        return
+
+    save_current_note(lambda: opener(browser))
+
+
+def _retry_after_editor_readiness_delay(
+    browser: Any,
+    opener: Callable[[Any], None],
+    *,
+    remaining_readiness_checks: int,
+) -> None:
+    from aqt.qt import QTimer
+
+    QTimer.singleShot(
+        50,
+        lambda: _open_after_current_editor_saved(
+            browser,
+            opener,
+            remaining_readiness_checks=remaining_readiness_checks,
+        ),
+    )
 
 
 def _open_batch_dialog(browser: Any) -> None:

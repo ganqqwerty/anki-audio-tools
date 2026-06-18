@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import App from "../src/App.svelte";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { Phase } from "../src/lib/types.js";
-import { asyncPayload, bridgeEnvelopes, defaultConfig, pycmdMock, setInitialState } from "./settings-app-helpers";
+import { asyncPayload, bridgeEnvelopes, defaultConfig, setInitialState } from "./settings-app-helpers";
 
 describe("App diagnostics behavior", () => {
   it("shows diagnostics data and runs a health check", async () => {
@@ -42,12 +42,12 @@ describe("App diagnostics behavior", () => {
     expect(container).toHaveTextContent("Health check completed");
   });
 
-  it("copies a support report from diagnostics", async () => {
+  it("reveals a support report from diagnostics", async () => {
     setInitialState();
 
     render(App);
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
-    await fireEvent.click(screen.getByRole("button", { name: "Copy Support Report" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Reveal Support Report" }));
 
     const { id } = asyncPayload<{ id: string }>("support_report");
 
@@ -55,24 +55,16 @@ describe("App diagnostics behavior", () => {
       id,
       ok: true,
       result: {
-        reportText: "support body",
+        reportFilePath: "/tmp/addon/user_files/support_reports/support-report.txt",
       },
     });
 
     await waitFor(() =>
-      expect(
-        vi
-          .mocked(pycmdMock())
-          .mock.calls.some(
-            ([command]) =>
-              typeof command === "string" &&
-              command.startsWith("bridge:") &&
-              JSON.parse(command.slice("bridge:".length)).command === "support.copy_report" &&
-              command.includes("support body"),
-          ),
-      ).toBe(true)
+      expect(screen.getByTestId("diagnostics-message")).toHaveTextContent(
+        "Support report revealed: /tmp/addon/user_files/support_reports/support-report.txt",
+      )
     );
-    expect(screen.getByTestId("diagnostics-message")).toHaveTextContent("Support report copied");
+    expect(bridgeEnvelopes().some((item) => item.command === "support.copy_report")).toBe(false);
   });
 
   it("opens the log file from diagnostics", async () => {

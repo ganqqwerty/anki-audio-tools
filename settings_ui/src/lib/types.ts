@@ -28,7 +28,6 @@ export type {
   BatchProgressPayload,
   BatchStartRequest,
   Config,
-  CopySupportReportPayload,
   DiagnosticsState,
   ExternalToolHealth,
   FrontendLogPayload,
