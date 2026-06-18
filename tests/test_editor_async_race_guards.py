@@ -126,7 +126,7 @@ def _special_deps(tmp_path: Path, session: EditorSession, source: Path) -> Simpl
         desired_name,
         output_path.read_bytes(),
     )
-    deps.replace_current_field_after_noise_removal = MagicMock()
+    deps.replace_current_field_after_special_transform = MagicMock()
     deps.render_failed = MagicMock()
     deps.log_special_transform_failure = MagicMock()
     deps.stop_session_playback = MagicMock()
@@ -248,7 +248,7 @@ def test_special_transform_completion_does_not_replace_after_note_change(tmp_pat
     barrier.allow_completion()
     join_background_threads()
 
-    deps.replace_current_field_after_noise_removal.assert_not_called()
+    deps.replace_current_field_after_special_transform.assert_not_called()
     assert editor.note.fields[0] == "[sound:other.mp3]", editor.note.fields
     assert not list(media_dir.glob("*__aqe_special_race.mp3")), sorted(path.name for path in media_dir.glob("*"))
     assert session.processing.active is False

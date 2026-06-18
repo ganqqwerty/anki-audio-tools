@@ -83,20 +83,16 @@ def reset_session_for_media(
     session.current_filename = filename
     session.undo_history.clear()
     session.redo_history.clear()
-    session.processing.active = False
+    session.finish_processing_without_edit(clear_pending_status=True)
     session.analysis.busy = False
     session.field_index = field_index
     session.source_mtime_ns = mtime
     session.cursor_ms = 0
     session.graph.visualized_filename = None
     session.graph.visualized_duration_ms = None
-    session.playback.active = False
-    session.playback.paused = False
     session.playback.preparing = False
-    session.post_edit_playback.generation += 1
-    session.processing.next_status_summary = ""
+    session.post_edit_playback.bump()
     session.status_summary = original_audio_status_summary()
-    session.pending_status = None
     clear_learner_recording_state(session)
 
 

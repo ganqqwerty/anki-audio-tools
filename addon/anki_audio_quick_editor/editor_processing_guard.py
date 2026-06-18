@@ -88,10 +88,5 @@ def clear_processing_for_stale_guard(session: Any | None, guard: EditorProcessin
     """Clear stale processing state only when no newer processing generation exists."""
     if session is None or session.processing.generation != guard.generation:
         return False
-    session.processing.active = False
-    session.playback.active = False
-    session.playback.paused = False
-    session.processing.next_status_summary = ""
-    session.pending_status = None
-    session.assert_invariants()
+    session.finish_processing_without_edit(clear_pending_status=True)
     return True

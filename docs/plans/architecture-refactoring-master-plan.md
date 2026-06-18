@@ -11,7 +11,8 @@ This plan addresses all 22 architecture problems from the 2026-06-09 audit. Prob
 - Test-first: write characterization tests before changing behavior
 - Phase independence: each phase produces a shippable, test-passing state
 - No flag days: every change is incremental and reversible
-- P6 is pre-planned (`docs/plans/P6-editor-session-state-bag-resolution.md`) — this plan defers to it
+- P6 is partially implemented (`docs/plans/P6-editor-session-state-bag-resolution.md`) — remaining work is narrower state-transition hardening
+- P7 core SRP split is implemented (`docs/plans/P7-editor-special-transforms-srp.md`) — deeper transform-family splits are optional follow-up work
 
 ## Phase Dependency Graph
 
@@ -23,11 +24,11 @@ Phase 0 (Foundation)
       │
 Phase 1 (Module Splits)
   ├── P5 diagnostics_runtime.py split
-  ├── P7 editor_special_transforms.py split
+  ├── P7 editor_special_transforms.py split (core split implemented)
   └── M4 Error system unification
       │
 Phase 2 (State Management)          ← highest risk, highest value
-  ├── P6 EditorSession decomposition (pre-planned)
+  ├── P6 EditorSession decomposition (partially implemented)
   └── P1 Frontend DOM-as-state → typed state
       │
 Phase 3 (Architecture Simplification)
@@ -163,6 +164,8 @@ Phase 5 (Documentation & Process)
 
 ### 1.2 Split `editor_special_transforms.py` (P7)
 
+**Status:** Core SRP split implemented 2026-06-18. See `docs/plans/P7-editor-special-transforms-srp.md`.
+
 **Why:** 8 unrelated operations in one file. Each has different preconditions, tools, and error modes.
 
 **Current operations:**
@@ -175,24 +178,18 @@ Phase 5 (Documentation & Process)
 7. Pause removal
 8. Size reduction
 
-**Proposed split:**
-| New module | Operations |
+**Implemented split:**
+| Module | Responsibility |
 |------------|-----------|
-| `editor_transforms_denoise.py` | Standard, RNNoise, DPDFNet denoise |
-| `editor_transforms_extraction.py` | Voice-only extraction |
-| `editor_transforms_pitch.py` | Pitch/hum synthesis |
-| `editor_transforms_format.py` | Format conversion, size reduction |
-| `editor_transforms_pause.py` | Pause removal |
-| `editor_special_transforms.py` | Re-export facade + shared render/cleanup |
+| `editor_special_transforms.py` | Transform entry-point dispatch |
+| `editor_transform_orchestration.py` | Shared async transform orchestration |
+| `editor_transform_post_processing.py` | Post-edit media replacement |
+| `editor_transform_failure_support.py` | Transform diagnostics |
+| `editor_special_transform_worker.py` | Worker execution boundary |
 
-**Tests to write:**
-- Unit tests for each transform module
-- Integration tests for the facade
-- Architecture contract for each new module
+**Remaining optional work:** If the entry-point module grows again, split transform families into denoise, extraction, pitch, format, and pause modules as a separate scoped refactor.
 
-**Verification:** `python3 scripts/dev.py check` passes. All editor operations work.
-
-**Estimated effort:** 2 days
+**Verification:** Branch-level QC for the implementing commit.
 
 ### 1.3 Unify error systems (M4)
 
@@ -223,19 +220,17 @@ Phase 5 (Documentation & Process)
 
 ### 2.1 EditorSession decomposition (P6)
 
-**Status:** Pre-planned. See `docs/plans/P6-editor-session-state-bag-resolution.md`.
+**Status:** Partially implemented. See `docs/plans/P6-editor-session-state-bag-resolution.md`.
 
 **Summary of the 6-phase plan:**
 0. Characterization tests ✅ (completed 2026-06-17)
-1. Extract 5 domain sub-state dataclasses
-2. Consolidate 4 `_replace_*_session_state` functions
-3. Consolidate 2 `stop_session_playback` functions
-4. Debug-only `_assert_invariants()`
-5. Update architecture contracts
+1. Extract domain sub-state dataclasses ✅
+2. Consolidate common edit-completion helpers ✅
+3. Add debug-only invariant assertions ✅
+4. Centralize processing and post-edit playback transitions ✅
+5. Further playback-state-machine consolidation remains optional follow-up
 
-**This plan defers entirely to the P6 plan.** No additional work needed here except ensuring Phase 0 and Phase 1 are complete first (diagnostics split reduces coupling to EditorSession).
-
-**Estimated effort:** Per P6 plan
+**Remaining work:** Treat additional direct playback-state writes as a separate playback state-machine cleanup, not part of the current P6 follow-up.
 
 ### 2.2 Frontend DOM-as-state → typed state (P1)
 

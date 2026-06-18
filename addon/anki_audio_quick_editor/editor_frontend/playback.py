@@ -43,10 +43,11 @@ def request_playback_after_edit(
             require_graph_redraw,
         )
         return
-    session.post_edit_playback.pending_field_index = int(field_index)
-    session.post_edit_playback.pending_generation = session.post_edit_playback.generation
-    session.post_edit_playback.pending_requires_graph_redraw = bool(require_graph_redraw)
-    session.post_edit_playback.pending_source_filename = session.current_filename
+    session.post_edit_playback.request(
+        field_index,
+        session.current_filename,
+        require_graph_redraw=require_graph_redraw,
+    )
     logger.info(
         "post-edit playback request recorded | %s",
         _post_edit_playback_session_context(session),
@@ -104,10 +105,7 @@ def handle_post_edit_playback_ready(editor: Any, payload: Any, deps: FrontendDep
                 _post_edit_playback_session_context(current),
             )
             return
-        current.post_edit_playback.pending_field_index = None
-        current.post_edit_playback.pending_generation = None
-        current.post_edit_playback.pending_requires_graph_redraw = False
-        current.post_edit_playback.pending_source_filename = None
+        current.post_edit_playback.clear_pending()
         logger.info(
             "post-edit playback started; pending request cleared | payload=%s",
             _post_edit_playback_payload_context(payload),

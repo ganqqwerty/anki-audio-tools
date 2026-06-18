@@ -10,7 +10,6 @@ from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
 from .editor_actions import EditorCommandPayload, processing_config_for_command
-from .editor_processing_guard import begin_processing_guard
 from .editor_processing_shared import cancel_graph_analysis_for_processing
 from .editor_special_transform_worker import run_special_transform_worker
 from .editor_status import command_status_summary
@@ -43,16 +42,12 @@ def run_special_audio_transform_async(
     cancel_graph_analysis_for_processing(editor, session, deps)
     config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
     deps.stop_session_playback(session)
-    session.processing.next_status_summary = command_status_summary(command or EditorCommandPayload(command=""), config)
-    session.processing.active = True
     field_index = session.field_index if session.field_index is not None else getattr(editor, "currentField", 0)
-    guard = begin_processing_guard(
-        session,
+    guard = session.begin_processing(
         field_index=int(field_index),
         source_filename=current_path.name,
+        next_status_summary=command_status_summary(command or EditorCommandPayload(command=""), config),
     )
-    session.playback.active = False
-    session.playback.paused = False
     deps.set_busy(editor, True, f"{label}...")
     deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
     record_breadcrumb(

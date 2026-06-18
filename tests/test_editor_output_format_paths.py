@@ -113,7 +113,7 @@ def test_special_transform_filename_uses_config_output_format_by_default(tmp_pat
         deps.render_output_names.append(output_path.name)
         output_path.write_bytes(b"rendered")
 
-    deps.replace_current_field_after_noise_removal = (
+    deps.replace_current_field_after_special_transform = (
         lambda _editor, saved_name, **_kwargs: deps.finished_names.append(saved_name)
     )
 
@@ -153,7 +153,7 @@ def test_special_transform_explicit_output_format_overrides_config(tmp_path: Pat
         deps.render_output_names.append(output_path.name)
         output_path.write_bytes(b"rendered")
 
-    deps.replace_current_field_after_noise_removal = (
+    deps.replace_current_field_after_special_transform = (
         lambda _editor, saved_name, **_kwargs: deps.finished_names.append(saved_name)
     )
 

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .editor_deps_protocols import ProcessingDeps
 
 
-def replace_current_field_after_noise_removal(
+def replace_current_field_after_special_transform(
     editor: Any,
     saved_name: str,
     deps: ProcessingDeps,
@@ -46,7 +46,7 @@ def replace_current_field_after_noise_removal(
     replace_first_sound_reference_in_field(
         editor, field_index=field_index, saved_name=saved_name, missing_message=deps.current_field_audio_missing,
     )
-    should_redraw_graph = _replace_noise_reduction_session_state(editor, session, field_index, saved_name)
+    should_redraw_graph = _replace_special_transform_session_state(editor, session, field_index, saved_name)
     deps.request_playback_after_edit(
         editor,
         field_index,
@@ -68,7 +68,25 @@ def replace_current_field_after_noise_removal(
         deps.set_busy(editor, False)
 
 
-def _replace_noise_reduction_session_state(
+def replace_current_field_after_noise_removal(
+    editor: Any,
+    saved_name: str,
+    deps: ProcessingDeps,
+    *,
+    guard: EditorProcessingGuard | None = None,
+    output_path: Path | None = None,
+) -> None:
+    """Compatibility alias for the generic special-transform post-processing path."""
+    replace_current_field_after_special_transform(
+        editor,
+        saved_name,
+        deps,
+        guard=guard,
+        output_path=output_path,
+    )
+
+
+def _replace_special_transform_session_state(
     editor: Any,
     session: EditorSession | None,
     field_index: int,

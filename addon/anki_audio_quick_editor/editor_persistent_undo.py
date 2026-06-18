@@ -224,7 +224,7 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
     state = audio_edit_state_from_json(operation.old_state_json) or AudioEditState(operation.old_filename)
     entry = UndoEntry(state, operation.old_filename, status_summary=operation.status_summary)
     deps.stop_session_playback(session)
-    session.post_edit_playback.generation += 1
+    session.post_edit_playback.bump()
     editor.note.fields[field_index] = restored_html
     repository = repository_for_editor(editor)
     undone_at_ms = _now_ms()
@@ -234,10 +234,8 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
     session.current_filename = operation.old_filename
     session.field_index = field_index
     session.status_summary = restored_status_summary(entry)
-    session.processing.next_status_summary = ""
     session.cursor_ms = 0
-    session.playback.active = False
-    session.playback.paused = False
+    session.finish_processing_without_edit()
     deps.request_playback_after_edit(
         editor,
         field_index,
