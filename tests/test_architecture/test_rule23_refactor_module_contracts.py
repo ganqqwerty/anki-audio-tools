@@ -60,6 +60,9 @@ EDITOR_SPLIT_MODULES = {
     "editor_settings_actions",
     "editor_status",
     "editor_split_defaults",
+    "editor_transform_failure_support",
+    "editor_transform_orchestration",
+    "editor_transform_post_processing",
 }
 
 BROWSER_SPLIT_MODULES = {

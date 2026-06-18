@@ -9,6 +9,7 @@ from typing import Any, Callable
 from . import (
     editor_analysis,
     editor_bridge,
+    editor_conversion,
     editor_dependencies,
     editor_deps_protocols,
     editor_frontend_callbacks,
@@ -23,7 +24,11 @@ from . import (
     editor_settings_actions,
     editor_sharing,
     editor_source_metadata,
+    editor_special_transforms,
     editor_split_defaults,
+    editor_transform_failure_support,
+    editor_transform_orchestration,
+    editor_transform_post_processing,
 )
 
 _dispose_editor_frontend_controls = editor_frontend_callbacks._dispose_editor_frontend_controls
@@ -174,29 +179,29 @@ _restore_persistent_undo_steps = _with_deps(
     _history_deps,
 )
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
-_denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
-_convert_async = _with_deps(editor_processing.convert_async, _processing_deps)
-_rnnoise_async = _with_deps(editor_processing.rnnoise_async, _processing_deps)
-_dpdfnet_async = _with_deps(editor_processing.dpdfnet_async, _processing_deps)
-_voice_only_async = _with_deps(editor_processing.voice_only_async, _processing_deps)
-_pitch_hum_async = _with_deps(editor_processing.pitch_hum_async, _processing_deps)
+_denoise_standard_async = _with_deps(editor_special_transforms.denoise_standard_async, _processing_deps)
+_convert_async = _with_deps(editor_conversion.convert_async, _processing_deps)
+_rnnoise_async = _with_deps(editor_special_transforms.rnnoise_async, _processing_deps)
+_dpdfnet_async = _with_deps(editor_special_transforms.dpdfnet_async, _processing_deps)
+_voice_only_async = _with_deps(editor_special_transforms.voice_only_async, _processing_deps)
+_pitch_hum_async = _with_deps(editor_special_transforms.pitch_hum_async, _processing_deps)
 _run_processing_preset_async = _with_deps(
     editor_presets.run_processing_preset_async,
     _processing_deps,
 )
-_reduce_size_async = _with_deps(editor_processing.reduce_size_async, _processing_deps)
+_reduce_size_async = _with_deps(editor_special_transforms.reduce_size_async, _processing_deps)
 _run_special_audio_transform_async = _with_keyword_deps(
-    editor_processing.run_special_audio_transform_async,
+    editor_transform_orchestration.run_special_audio_transform_async,
     _processing_deps,
 )
 _replace_current_field_after_noise_removal = _with_deps(
-    editor_processing.replace_current_field_after_noise_removal,
+    editor_transform_post_processing.replace_current_field_after_noise_removal,
     _processing_deps,
 )
-_record_rnnoise_failure_context = editor_processing.record_rnnoise_failure_context
-_record_dpdfnet_failure_context = editor_processing.record_dpdfnet_failure_context
-_record_spleeter_failure_context = editor_processing.record_spleeter_failure_context
-_log_special_transform_failure = editor_processing.log_special_transform_failure
+_record_rnnoise_failure_context = editor_transform_failure_support.record_rnnoise_failure_context
+_record_dpdfnet_failure_context = editor_transform_failure_support.record_dpdfnet_failure_context
+_record_spleeter_failure_context = editor_transform_failure_support.record_spleeter_failure_context
+_log_special_transform_failure = editor_transform_failure_support.log_special_transform_failure
 
 _delete_selection_from_frontend = _with_deps(
     editor_region_delete.delete_selection_from_frontend,
