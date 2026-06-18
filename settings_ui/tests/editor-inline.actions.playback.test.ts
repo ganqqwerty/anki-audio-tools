@@ -183,6 +183,26 @@ describe("editor inline audio-clock workflows", () => {
     expect(stopEditorPlayback(9)).toBe(false);
   });
 
+  it("logs selected playback engine and native reason for playback requests", async () => {
+    await mountTrack(100);
+    warnSpy.mockClear();
+
+    const request = playbackRequest(0);
+
+    expect(request.engine).toBe("native");
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[editor] playback.engine_selected",
+      expect.objectContaining({
+        action: "start",
+        audioClockReady: false,
+        engine: "native",
+        graphHasTrack: true,
+        reason: "audio_clock_not_ready",
+        trigger: "playback_request",
+      }),
+    );
+  });
+
   it("supports pause and resume commands while HTML audio is active", async () => {
     const visualizer = await mountTrack(200);
     const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;

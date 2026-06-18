@@ -183,6 +183,16 @@ def start_playback_from_cursor(
         source_duration_ms is None or playback_end_ms < max(0, source_duration_ms - 20)
     )
     if offset_seconds <= 0 and not bounded_to_selection:
+        logger.debug(
+            "playback.native_direct_started | %s",
+            {
+                "cursor_ms": session.cursor_ms,
+                "end_ms": playback_end_ms,
+                "field_index": field_index,
+                "filename": str(play_path),
+                "source": source,
+            },
+        )
         record_breadcrumb(
             "editor.playback.native_started",
             source="editor",
@@ -211,6 +221,17 @@ def start_playback_from_cursor(
     if not session.playback.preserve_status:
         deps.set_busy(editor, True, t("editor.playback.preparing"))
     deps.eval_playback_state(editor, field_index, "stopped", session.cursor_ms)
+    logger.debug(
+        "playback.native_segment_prepare_started | %s",
+        {
+            "cursor_ms": playback_cursor_ms,
+            "end_ms": playback_end_context,
+            "field_index": field_index,
+            "filename": str(play_path),
+            "generation": generation,
+            "source": source,
+        },
+    )
     record_breadcrumb(
         "editor.playback.segment_render_started",
         source="editor",
@@ -297,6 +318,16 @@ def playback_segment_ready(
     session.playback.paused = False
     av_player.stop_and_clear_queue()
     av_player.play_tags([SoundOrVideoTag(str(playback_path))])
+    logger.debug(
+        "playback.native_segment_ready | %s",
+        {
+            "cursor_ms": cursor_ms,
+            "field_index": field_index,
+            "generation": generation,
+            "source": source,
+            "temp_path": str(playback_path),
+        },
+    )
     if not session.playback.preserve_status:
         deps.set_busy(editor, False)
     deps.eval_playback_state(editor, field_index, "playing", cursor_ms)
@@ -318,6 +349,15 @@ def playback_segment_failed(editor: Any, generation: int, message: str, deps: Pl
     session.playback.paused = False
     deps.set_busy(editor, False)
     deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
+    logger.debug(
+        "playback.native_segment_failed | %s",
+        {
+            "cursor_ms": session.cursor_ms,
+            "field_index": session.field_index,
+            "generation": generation,
+            "message": message,
+        },
+    )
     display_message = message or t("editor.playback.prepare_failed")
     deps.eval_status(
         editor,
