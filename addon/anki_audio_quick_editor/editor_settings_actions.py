@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable
 
+from .editor_recording_state import ready_learner_recording_media_path
 from .editor_reload_status import reload_editor_with_pending_status
 from .editor_runtime import SettingsLifecycleCallbacks
-from .editor_session import ready_learner_recording_media_path
 from .error_codes import (
     AQE_FILE_REVEAL_FAILED,
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,

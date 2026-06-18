@@ -22,7 +22,8 @@ from .editor_actions import (
     decode_editor_command_payload,
     processing_config_for_command,
 )
-from .editor_session import RegionDeleteRequest, UndoEntry
+from .editor_edit_history import UndoEntry
+from .editor_region_delete_request import RegionDeleteRequest
 from .i18n import t
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import wraps
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 from . import (
     editor_analysis,
@@ -66,6 +66,7 @@ _ALSO_EXPORT = frozenset({
     "stop_session_playback",
     "pending_post_edit_playback_payload",
 })
+DepsT = TypeVar("DepsT")
 
 
 def _exports() -> SimpleNamespace:
@@ -78,7 +79,7 @@ def _exports() -> SimpleNamespace:
     )
 
 
-def _deps[DepsT](builder: Callable[[Any, Any], DepsT]) -> DepsT:
+def _deps(builder: Callable[[Any, Any], DepsT]) -> DepsT:  # noqa: UP047 - system dev runner parses this with Python 3.9
     """Build a dependency namespace for the given builder.
 
     Passes the same ``_exports()`` namespace to both ``callbacks`` and

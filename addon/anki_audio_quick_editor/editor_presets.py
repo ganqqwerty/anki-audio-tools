@@ -21,14 +21,14 @@ from .audio_processing_presets import (
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_actions import EditorCommandPayload
-from .editor_processing_shared import cancel_graph_analysis_for_processing
-from .editor_session import (
+from .editor_processing_guard import (
     EditorProcessingGuard,
-    EditorSession,
     begin_processing_guard,
     clear_processing_for_stale_guard,
     is_current_processing_guard,
 )
+from .editor_processing_shared import cancel_graph_analysis_for_processing
+from .editor_session import EditorSession
 from .error_codes import AQE_AUDIO_PROCESSING_FAILED, coded_error
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance

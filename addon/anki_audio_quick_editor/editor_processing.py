@@ -18,6 +18,13 @@ from .editor_media_replacement import (
     persist_generated_media,
     replace_first_sound_reference_in_field,
 )
+from .editor_processing_guard import (
+    EditorProcessingGuard,
+    begin_processing_guard,
+    clear_processing_for_stale_guard,
+    is_current_processing_guard,
+    processing_guard_matches_editor,
+)
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing as _cancel_graph_analysis_for_processing,
 )
@@ -28,14 +35,7 @@ from .editor_processing_shared import (
     sync_history_availability as _sync_history_availability,
 )
 from .editor_reload_status import reload_editor_with_pending_status
-from .editor_session import (
-    EditorProcessingGuard,
-    EditorSession,
-    begin_processing_guard,
-    clear_processing_for_stale_guard,
-    is_current_processing_guard,
-    processing_guard_matches_editor,
-)
+from .editor_session import EditorSession
 from .editor_status import command_status_summary
 from .error_codes import (
     AQE_AUDIO_PROCESSING_FAILED,

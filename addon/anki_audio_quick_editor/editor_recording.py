@@ -29,13 +29,13 @@ from .editor_recording_requests import (
     learner_recording_request_from_state,
     recording_parent,
 )
-from .editor_session import (
-    EditorSession,
+from .editor_recording_state import (
     LearnerRecordingState,
     begin_learner_recording_state,
     learner_recording_is_current,
     reset_learner_playback_state,
 )
+from .editor_session import EditorSession
 from .error_codes import (
     AQE_MEDIA_REFERENCED_AUDIO_MISSING,
     AQE_RECORDING_FAILED,

@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .audio_state import AudioEditState
+from .editor_edit_history import UndoEntry
 from .editor_history_settings import normalize_editor_history_size
 from .editor_reload_status import reload_editor_with_pending_status
-from .editor_session import EditorSession, UndoEntry
+from .editor_session import EditorSession
 from .editor_status import restored_status_summary, undo_status_message
 from .error_codes import AQE_PERSISTENT_UNDO_UNAVAILABLE, coded_error
 from .i18n import t

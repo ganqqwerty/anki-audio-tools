@@ -11,7 +11,7 @@ from .editor_recording_frontend import (
     learner_prosody_payload,
 )
 from .editor_recording_requests import LearnerRecordingRequest
-from .editor_session import learner_recording_is_current
+from .editor_recording_state import learner_recording_is_current
 from .error_codes import AQE_RECORDING_FAILED, coded_error
 from .prosody_types import ProsodyTrack
 
