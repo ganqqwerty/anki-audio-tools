@@ -7,7 +7,6 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from . import editor_special_transforms as _special_transforms
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_actions import (
@@ -15,7 +14,6 @@ from .editor_actions import (
     apply_processing_command,
     processing_config_for_command,
 )
-from .editor_conversion import convert_async as _convert_async
 from .editor_media_replacement import (
     persist_generated_media,
     replace_first_sound_reference_in_field,
@@ -51,19 +49,6 @@ if TYPE_CHECKING:
     from .editor_deps_protocols import ProcessingDeps
 
 logger = logging.getLogger(__name__)
-convert_async = _convert_async
-denoise_standard_async = _special_transforms.denoise_standard_async
-dpdfnet_async = _special_transforms.dpdfnet_async
-log_special_transform_failure = _special_transforms.log_special_transform_failure
-pitch_hum_async = _special_transforms.pitch_hum_async
-reduce_size_async = _special_transforms.reduce_size_async
-record_dpdfnet_failure_context = _special_transforms.record_dpdfnet_failure_context
-record_rnnoise_failure_context = _special_transforms.record_rnnoise_failure_context
-record_spleeter_failure_context = _special_transforms.record_spleeter_failure_context
-replace_current_field_after_noise_removal = _special_transforms.replace_current_field_after_noise_removal
-rnnoise_async = _special_transforms.rnnoise_async
-run_special_audio_transform_async = _special_transforms.run_special_audio_transform_async
-voice_only_async = _special_transforms.voice_only_async
 
 
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: ProcessingDeps) -> None:

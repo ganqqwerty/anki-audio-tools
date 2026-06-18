@@ -16,7 +16,7 @@ from anki_audio_quick_editor.editor_session import (
     RegionDeleteRequest,
     reset_for_note_load,
 )
-from anki_audio_quick_editor.editor_special_transforms import (
+from anki_audio_quick_editor.editor_transform_orchestration import (
     run_special_audio_transform_async,
 )
 from tests.race_test_helpers import (
