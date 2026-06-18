@@ -10,8 +10,8 @@ from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
 from .editor_actions import EditorCommandPayload, processing_config_for_command
+from .editor_processing_guard import begin_processing_guard
 from .editor_processing_shared import cancel_graph_analysis_for_processing
-from .editor_session import begin_processing_guard
 from .editor_special_transform_worker import run_special_transform_worker
 from .editor_status import command_status_summary
 from .prosody_settings import config_with_graph_settings

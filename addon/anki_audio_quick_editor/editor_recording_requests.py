@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .editor_session import EditorSession, LearnerRecordingState
+from .editor_recording_state import LearnerRecordingState
+from .editor_session import EditorSession
 from .errors import AudioProcessingError
 from .i18n import t
 from .sound_refs import safe_media_basename

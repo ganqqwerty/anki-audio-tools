@@ -5,13 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .editor_edit_history import UndoEntry
 from .editor_history_settings import (
     DEFAULT_EDITOR_HISTORY_SIZE,
     normalize_editor_history_size,
 )
 from .editor_history_snapshot import HistorySnapshot, history_snapshot_for_field
 from .editor_reload_status import reload_editor_with_pending_status
-from .editor_session import EditorSession, UndoEntry
+from .editor_session import EditorSession
 from .editor_status import (
     redo_status_message,
     restored_status_summary,

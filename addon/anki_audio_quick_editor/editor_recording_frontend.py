@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 from .contracts_generated import ProsodyPayload
-from .editor_session import LearnerRecordingState
+from .editor_recording_state import LearnerRecordingState
 from .prosody_types import ProsodyTrack
 
 

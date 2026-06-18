@@ -10,18 +10,18 @@ from .editor_media_replacement import (
     persist_generated_media,
     replace_first_sound_reference_in_field,
 )
+from .editor_processing_guard import (
+    EditorProcessingGuard,
+    clear_processing_for_stale_guard,
+    processing_guard_matches_editor,
+)
 from .editor_processing_shared import (
     request_history_availability_after_edit,
     resolved_field_index,
     sync_history_availability,
 )
 from .editor_reload_status import reload_editor_with_pending_status
-from .editor_session import (
-    EditorProcessingGuard,
-    EditorSession,
-    clear_processing_for_stale_guard,
-    processing_guard_matches_editor,
-)
+from .editor_session import EditorSession
 from .media_paths import existing_media_file_path
 
 if TYPE_CHECKING:

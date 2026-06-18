@@ -14,11 +14,20 @@ from .editor_media_replacement import (
     persist_generated_media,
     replace_first_sound_reference_in_field,
 )
+from .editor_processing_guard import (
+    EditorProcessingGuard,
+    begin_processing_guard,
+    clear_processing_for_stale_guard,
+    processing_guard_matches_editor,
+)
 from .editor_processing_shared import (
     request_history_availability_after_edit as _request_history_availability_after_edit,
 )
 from .editor_processing_shared import (
     sync_history_availability as _sync_history_availability,
+)
+from .editor_region_delete_request import (
+    RegionDeleteRequest,
 )
 from .editor_region_delete_request import (
     parse_region_delete_request as _parse_region_delete_request,
@@ -33,14 +42,7 @@ from .editor_region_delete_worker import (
     run_region_delete_worker,
 )
 from .editor_reload_status import reload_editor_with_pending_status
-from .editor_session import (
-    EditorProcessingGuard,
-    EditorSession,
-    RegionDeleteRequest,
-    begin_processing_guard,
-    clear_processing_for_stale_guard,
-    processing_guard_matches_editor,
-)
+from .editor_session import EditorSession
 from .editor_status import region_operation_status_summary
 from .error_codes import (
     AQE_AUDIO_PROCESSING_FAILED,

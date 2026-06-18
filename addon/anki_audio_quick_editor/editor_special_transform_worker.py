@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING, Any, Callable
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception
-from .editor_session import (
+from .editor_processing_guard import (
     EditorProcessingGuard,
-    EditorSession,
     clear_processing_for_stale_guard,
     is_current_processing_guard,
 )
+from .editor_session import EditorSession
 from .errors import AudioAlreadyCompactError
 from .permission_guidance import message_with_permission_guidance
 
