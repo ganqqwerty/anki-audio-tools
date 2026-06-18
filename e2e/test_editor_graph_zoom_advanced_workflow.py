@@ -2,19 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from e2e.editor_graph_helpers import (
-    _click_graph_and_wait,
     _install_html_audio_test_driver,
     _wait_for_html_playback,
 )
-from e2e.editor_note_helpers import (
-    _basic_audio_note,
-    _button_selector,
-    _configure_ffmpeg,
-    _open_editor,
-)
+from e2e.editor_graph_zoom_helpers import _open_zoom_graph_editor
+from e2e.editor_note_helpers import _button_selector
 from e2e.editor_playback_helpers import _record_fake_playback
 from e2e.editor_region_loop_helpers import (
     _drag_resize_handle,
@@ -24,23 +17,9 @@ from e2e.editor_region_loop_helpers import (
 )
 from e2e.helpers import (
     click_selector,
-    generate_tone,
     run_js,
     wait_for_js_condition,
-    wait_for_selector,
 )
-
-
-def _open_zoom_graph_editor(anki_mw, ffmpeg_config, filename: str, duration_s: float = 4.0):
-    media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / filename
-    generate_tone(ffmpeg_config, source, duration_s=duration_s)
-    note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config)
-    editor, parent = _open_editor(anki_mw, note)
-    wait_for_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
-    track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
-    return media_dir, source, editor, parent, track
 
 
 def test_editor_graph_zoom_to_selection_fits_active_region(

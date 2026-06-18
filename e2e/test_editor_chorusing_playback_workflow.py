@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from e2e.editor_chorusing_markers_workflow import (
+from e2e.editor_chorusing_helpers import (
     _click_chorusing_marker,
     _click_chorusing_practice,
 )
