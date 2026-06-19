@@ -121,6 +121,7 @@ def test_native_selected_one_shot_playback_renders_only_selected_region(
             media_dir,
             {source.name: round(track["durationMs"])},
             ffmpeg_config=ffmpeg_config,
+            max_attempt_count=1,
         ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             _state(

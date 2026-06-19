@@ -32,7 +32,12 @@ def test_standard_edit_plays_new_generated_audio(anki_mw, ffmpeg_config) -> None
     editor, parent = _open_editor(anki_mw, note)
     try:
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
-        with _record_fake_playback(media_dir, {source.name: 1000}, ffmpeg_config=ffmpeg_config) as playback:
+        with _record_fake_playback(
+            media_dir,
+            {source.name: 1000},
+            ffmpeg_config=ffmpeg_config,
+            max_attempt_count=1,
+        ) as playback:
             click_selector(editor.web, _button_selector("aqe:faster"), timeout=5.0)
             generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
             wait_for_condition(
@@ -60,7 +65,12 @@ def test_post_edit_playback_waits_for_frontend_ready_event(anki_mw, ffmpeg_confi
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
         _delay_post_edit_playback_ready_event(editor, delay_ms=1500)
 
-        with _record_fake_playback(media_dir, {source.name: 1000}, ffmpeg_config=ffmpeg_config) as playback:
+        with _record_fake_playback(
+            media_dir,
+            {source.name: 1000},
+            ffmpeg_config=ffmpeg_config,
+            max_attempt_count=1,
+        ) as playback:
             click_selector(editor.web, _button_selector("aqe:faster"), timeout=5.0)
             generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
             wait_for_condition(

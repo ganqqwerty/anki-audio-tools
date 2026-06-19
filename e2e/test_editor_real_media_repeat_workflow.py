@@ -24,11 +24,13 @@ from e2e.editor_region_loop_helpers import (
 )
 from e2e.helpers import (
     _run_event_loop_step,
+    run_js,
     wait_for_js_condition,
 )
 
 MEDIA_FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "audio"
 EXPECTED_FORVO_REPEAT_PLAY_CALLS = 3
+MAX_FORVO_REPEAT_PLAY_CALLS = EXPECTED_FORVO_REPEAT_PLAY_CALLS + 1
 
 
 def test_real_media_repeat_keeps_audio_playing_after_repeated_full_file_loops(
@@ -46,19 +48,7 @@ def test_real_media_repeat_keeps_audio_playing_after_repeated_full_file_loops(
         _trusted_click_selector(editor, _button_selector("aqe:play"))
         _wait_for_real_html_playback(editor)
 
-        repeated = wait_for_js_condition(
-            editor.web,
-            _real_audio_probe_js(),
-            lambda value: value is not None
-            and value["state"]["playbackState"] == "playing"
-            and value["state"]["playbackEngine"] == "html"
-            and value["state"]["repeatEnabled"] is True
-            and value["paused"] is False
-            and value["errorCode"] is None
-            and value["playCalls"] >= EXPECTED_FORVO_REPEAT_PLAY_CALLS
-            and value["nativePlaybackRequests"] == [],
-            timeout=(track["durationMs"] / 1000) * (EXPECTED_FORVO_REPEAT_PLAY_CALLS + 1) + 8.0,
-        )
+        repeated = _wait_for_bounded_real_repeat(editor, track["durationMs"])
 
         assert repeated["state"]["playbackState"] == "playing"
         assert repeated["state"]["playbackEngine"] == "html"
@@ -66,10 +56,11 @@ def test_real_media_repeat_keeps_audio_playing_after_repeated_full_file_loops(
         assert repeated["loop"] is False
         assert repeated["paused"] is False, repeated
         assert repeated["errorCode"] is None, repeated
-        assert repeated["playCalls"] >= EXPECTED_FORVO_REPEAT_PLAY_CALLS
+        assert EXPECTED_FORVO_REPEAT_PLAY_CALLS <= repeated["playCalls"] <= MAX_FORVO_REPEAT_PLAY_CALLS
         assert repeated["nativePlaybackRequests"] == []
         assert source.name == "forvo_Vertrag.ogg"
     finally:
+        _stop_real_audio_playback(editor)
         editor.set_note(None)
         parent.close()
 
@@ -141,6 +132,58 @@ def _wait_for_real_audio_ready(editor, ord_: int = 0) -> None:
         and state["audioClockReady"] is True,
         timeout=10.0,
     )
+
+
+def _wait_for_bounded_real_repeat(editor, duration_ms: int, ord_: int = 0):
+    return wait_for_js_condition(
+        editor.web,
+        _real_audio_probe_js(ord_),
+        _real_repeat_reached_expected_passes,
+        timeout=(duration_ms / 1000) * (EXPECTED_FORVO_REPEAT_PLAY_CALLS + 1) + 8.0,
+    )
+
+
+def _real_repeat_reached_expected_passes(value) -> bool:
+    if value is None:
+        return False
+    if value["playCalls"] > MAX_FORVO_REPEAT_PLAY_CALLS:
+        raise AssertionError(
+            "Real-media repeat playback exceeded the bounded play-call budget: "
+            f"{value['playCalls']} > {MAX_FORVO_REPEAT_PLAY_CALLS}. Probe: {value!r}"
+        )
+    if value["nativePlaybackRequests"]:
+        raise AssertionError(
+            "Real-media repeat playback fell back to native playback unexpectedly: "
+            f"{value['nativePlaybackRequests']!r}"
+        )
+    return (
+        value["state"]["playbackState"] == "playing"
+        and value["state"]["playbackEngine"] == "html"
+        and value["state"]["repeatEnabled"] is True
+        and value["paused"] is False
+        and value["errorCode"] is None
+        and value["playCalls"] >= EXPECTED_FORVO_REPEAT_PLAY_CALLS
+    )
+
+
+def _stop_real_audio_playback(editor, ord_: int = 0) -> None:
+    run_js(
+        editor.web,
+        f"""
+        (() => {{
+          window.__aqeStopEditorPlayback?.({ord_});
+          const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
+          if (audio) {{
+            try {{ audio.pause(); }} catch (_error) {{}}
+            audio.removeAttribute("src");
+            try {{ audio.load(); }} catch (_error) {{}}
+          }}
+          return true;
+        }})()
+        """,
+    )
+    for _ in range(5):
+        _run_event_loop_step()
 
 
 def _trusted_click_selector(editor, selector: str) -> None:
