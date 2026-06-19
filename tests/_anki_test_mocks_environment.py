@@ -37,6 +37,7 @@ class _MockState:
     aqt_gui_hooks: types.ModuleType
     aqt_sound: types.ModuleType
     aqt_browser: types.ModuleType
+    aqt_operations: types.ModuleType
     anki_hooks: types.ModuleType
 
 
@@ -88,6 +89,9 @@ def _build_mock_modules() -> _MockState:
     _aqt_mediacheck = types.ModuleType("aqt.mediacheck")
     _aqt_mediacheck.check_media_db = _named_mock("aqt.mediacheck.check_media_db")
 
+    _aqt_operations = types.ModuleType("aqt.operations")
+    _aqt_operations.on_op_finished = _named_mock("aqt.operations.on_op_finished")
+
     _anki = types.ModuleType("anki")
     _anki_collection = types.ModuleType("anki.collection")
     _anki_collection.Collection = _Collection
@@ -133,6 +137,7 @@ def _build_mock_modules() -> _MockState:
     _aqt.utils = _aqt_utils
     _aqt.webview = _webview
     _aqt.mediacheck = _aqt_mediacheck
+    _aqt.operations = _aqt_operations
     modules = {
         "aqt": _aqt,
         "aqt.addons": _aqt_addons,
@@ -146,6 +151,7 @@ def _build_mock_modules() -> _MockState:
         "aqt.browser": _aqt_browser,
         "aqt.main": _aqt_main,
         "aqt.mediacheck": _aqt_mediacheck,
+        "aqt.operations": _aqt_operations,
         "aqt.sound": _aqt_sound,
         "aqt.taskman": _aqt_taskman,
         "anki": _anki,
@@ -171,6 +177,7 @@ def _build_mock_modules() -> _MockState:
         aqt_gui_hooks=_aqt_gui_hooks,
         aqt_sound=_aqt_sound,
         aqt_browser=_aqt_browser,
+        aqt_operations=_aqt_operations,
         anki_hooks=_anki_hooks,
     )
 
@@ -212,6 +219,7 @@ def reset_static_mock_modules(mock_state: _MockState) -> None:
     _reset_mock_tree(mock_state.aqt_utils.tooltip)
     _reset_mock_tree(mock_state.aqt_utils.openLink)
     _reset_mock_tree(mock_state.aqt_browser.Browser)
+    _reset_mock_tree(mock_state.aqt_operations.on_op_finished)
     _configure_av_player(mock_state.aqt_sound)
 
     for hook_name in _GUI_HOOK_NAMES:

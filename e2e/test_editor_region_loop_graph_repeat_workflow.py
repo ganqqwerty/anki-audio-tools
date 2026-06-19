@@ -171,6 +171,7 @@ def test_aac_full_repeat_falls_back_to_native_when_browser_audio_rejects_after_g
             media_dir,
             {source.name: round(track["durationMs"])},
             ffmpeg_config=ffmpeg_config,
+            max_attempt_count=1,
         ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             playing = _state(

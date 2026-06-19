@@ -280,6 +280,7 @@ def test_editor_voice_recording_comparison_workflow(
             media_dir,
             {fake_recorder.output_path.name: learner["learnerDurationMs"]},
             ffmpeg_config=ffmpeg_config,
+            max_attempt_count=1,
         ) as playback:
             click_selector(editor.web, play_yours_selector, timeout=5.0)
             wait_for_condition(

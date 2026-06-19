@@ -43,11 +43,13 @@ class FakePlaybackRecorder:
         *,
         apply_immediate_seek: bool = True,
         ffmpeg_config: Any | None = None,
+        max_attempt_count: int | None = None,
     ) -> None:
         self.media_dir = media_dir
         self.durations_ms = durations_ms
         self.apply_immediate_seek = apply_immediate_seek
         self.ffmpeg_config = ffmpeg_config
+        self.max_attempt_count = max_attempt_count
         self.attempts: list[PlaybackAttempt] = []
         self.unknown_filenames: list[str] = []
         self.stop_count = 0
@@ -77,6 +79,12 @@ class FakePlaybackRecorder:
             attempt.audible_start_ms = segment_start_ms
             attempt.audible_end_ms = attempt.end_ms
         self.attempts.append(attempt)
+        if self.max_attempt_count is not None and len(self.attempts) > self.max_attempt_count:
+            raise AssertionError(
+                "Native playback attempt count exceeded the test budget: "
+                f"{len(self.attempts)} > {self.max_attempt_count}; "
+                f"attempts={[attempt.filename for attempt in self.attempts]!r}"
+            )
 
     def _duration_ms(self, path: Path) -> int:
         duration_ms = self.durations_ms.get(path.name)
@@ -128,6 +136,7 @@ def _record_fake_playback(
     *,
     apply_immediate_seek: bool = True,
     ffmpeg_config: Any | None = None,
+    max_attempt_count: int | None = None,
 ):
     from aqt.sound import av_player
 
@@ -137,6 +146,7 @@ def _record_fake_playback(
         durations_ms,
         apply_immediate_seek=apply_immediate_seek,
         ffmpeg_config=ffmpeg_config,
+        max_attempt_count=max_attempt_count,
     )
     _FAKE_PLAYBACK_ACTIVE += 1
     try:

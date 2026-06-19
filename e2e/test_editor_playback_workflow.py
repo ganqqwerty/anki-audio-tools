@@ -205,7 +205,7 @@ def test_play_without_graph_shown_uses_pause_button_until_native_playback_ends(
             and state["playButtonLabel"] == "Play",
             timeout=5.0,
         )
-        with _record_fake_playback(media_dir, {source.name: 1000}) as playback:
+        with _record_fake_playback(media_dir, {source.name: 1000}, max_attempt_count=1) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             playing = wait_for_js_condition(
                 editor.web,
@@ -253,7 +253,7 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
             lambda state: state is not None and state["playButtonLabel"] == "Play",
             timeout=5.0,
         )
-        with _record_fake_playback(media_dir, {source.name: 1000}) as playback:
+        with _record_fake_playback(media_dir, {source.name: 1000}, max_attempt_count=1) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             wait_for_condition(
                 lambda: len(playback.attempts) == 1,
