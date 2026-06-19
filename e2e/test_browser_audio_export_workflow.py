@@ -114,7 +114,11 @@ def _run_export_dialog_from_browser(
     try:
         with opened_context as opened:
             trigger_cards_menu_action(browser, action_label)
-            assert len(opened) == 1
+            wait_for_condition(
+                lambda: len(opened) == 1,
+                timeout=10.0,
+                message="Browser audio export dialog did not open after saving the editor",
+            )
             dialog = opened[0]
             wait_for_js_condition(
                 dialog._webview,

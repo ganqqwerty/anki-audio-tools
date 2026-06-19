@@ -42,7 +42,11 @@ def test_browser_batch_reduce_size_renders_smaller_mp3_from_selected_row(
 
     with opened_context as opened:
         trigger_cards_menu_action(browser, action_label)
-        assert len(opened) == 1
+        wait_for_condition(
+            lambda: len(opened) == 1,
+            timeout=10.0,
+            message="Browser batch dialog did not open after saving the editor",
+        )
         dialog = opened[0]
         wait_for_batch_dialog_ready(dialog)
         select_batch_operation(dialog, "reduce_size")
@@ -60,13 +64,11 @@ def test_browser_batch_reduce_size_renders_smaller_mp3_from_selected_row(
         click_batch_start(dialog)
         wait_for_dialog_finished(dialog, timeout=30.0)
 
-    wait_for_condition(
-        lambda: _sound_filename(anki_mw.col.get_note(int(note.id))["Front"]) != source.name,
-        timeout=10.0,
-        message="Browser batch workflow did not persist the generated audio reference",
+    generated_name = _wait_for_front_audio_replacement(
+        anki_mw,
+        note_id=int(note.id),
+        previous_name=source.name,
     )
-    reloaded = anki_mw.col.get_note(int(note.id))
-    generated_name = _sound_filename(reloaded["Front"])
     generated_path = media_dir / generated_name
 
     assert generated_name != source.name
@@ -74,3 +76,31 @@ def test_browser_batch_reduce_size_renders_smaller_mp3_from_selected_row(
     assert generated_path.is_file()
     assert generated_path.stat().st_size < len(original_bytes)
     assert source.read_bytes() == original_bytes
+
+
+def _wait_for_front_audio_replacement(
+    anki_mw,
+    *,
+    note_id: int,
+    previous_name: str,
+) -> str:
+    last_front = ""
+
+    def has_replacement() -> bool:
+        nonlocal last_front
+        last_front = anki_mw.col.get_note(note_id)["Front"]
+        return _sound_filename(last_front) != previous_name
+
+    try:
+        wait_for_condition(
+            has_replacement,
+            timeout=30.0,
+            message="Browser batch workflow did not persist the generated audio reference",
+        )
+    except TimeoutError as exc:
+        raise TimeoutError(
+            "Browser batch workflow did not persist the generated audio reference; "
+            f"last persisted Front field was {last_front!r}"
+        ) from exc
+
+    return _sound_filename(last_front)

@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 ACTION_LABEL = "Run Audio Batch Operation..."
 EXPORT_ACTION_LABEL = "Export Audio..."
+BROWSER_EDITOR_SAVE_READY_RETRY_MS = 50
+BROWSER_EDITOR_SAVE_READY_MAX_ATTEMPTS = 100
 
 
 def register_browser_hooks(gui_hooks: Any) -> None:
@@ -48,10 +50,45 @@ def _on_browser_menus_did_init(browser: Any) -> None:
 
     action = browser.form.menu_Cards.addAction(_tr("batch.action"))
     assert action is not None
-    qconnect(action.triggered, lambda _checked=False, b=browser: _open_batch_dialog(b))
+    qconnect(action.triggered, lambda _checked=False, b=browser: _after_browser_editor_saved(b, _open_batch_dialog))
     export_action = browser.form.menu_Cards.addAction(_tr("audio_export.action"))
     assert export_action is not None
-    qconnect(export_action.triggered, lambda _checked=False, b=browser: _open_audio_export_dialog(b))
+    qconnect(
+        export_action.triggered,
+        lambda _checked=False, b=browser: _after_browser_editor_saved(b, _open_audio_export_dialog),
+    )
+
+
+def _after_browser_editor_saved(browser: Any, callback: Any, attempt: int = 0) -> None:
+    editor = getattr(browser, "editor", None)
+    if editor is None:
+        callback(browser)
+        return
+    web = getattr(editor, "web", None)
+    if web is None or not hasattr(web, "evalWithCallback"):
+        editor.call_after_note_saved(lambda: callback(browser))
+        return
+
+    def after_ready(ready: Any) -> None:
+        if ready is True:
+            editor.call_after_note_saved(lambda: callback(browser))
+            return
+        if attempt >= BROWSER_EDITOR_SAVE_READY_MAX_ATTEMPTS:
+            logger.warning("browser editor save API did not become ready before opening add-on dialog")
+            callback(browser)
+            return
+        _retry_after_browser_editor_save_ready(browser, callback, attempt + 1)
+
+    web.evalWithCallback("typeof saveNow === 'function'", after_ready)
+
+
+def _retry_after_browser_editor_save_ready(browser: Any, callback: Any, attempt: int) -> None:
+    from aqt.qt import QTimer
+
+    QTimer.singleShot(
+        BROWSER_EDITOR_SAVE_READY_RETRY_MS,
+        lambda: _after_browser_editor_saved(browser, callback, attempt),
+    )
 
 
 def _open_batch_dialog(browser: Any) -> None:
