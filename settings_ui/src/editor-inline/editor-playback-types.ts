@@ -38,7 +38,7 @@ export interface PlaybackRequest {
   action: "start" | "pause" | "resume";
   cursorMs: number;
   endMs?: number;
-  engine?: "html" | "native" | "";
+  engine?: "html" | "";
   loop?: boolean;
   ord: number;
   regionMode?: "selection" | "full";
@@ -67,7 +67,7 @@ export interface RegionDeleteRequest {
 export interface CursorIntent {
   cursorMs: number;
   endMs?: number;
-  engine?: "html" | "native" | "";
+  engine?: "html" | "";
   previousPlaybackState: PlaybackState;
   regionMode?: "selection" | "full";
   restartPlayback: boolean;
@@ -113,7 +113,7 @@ export interface GraphStateForTest {
   buttonIconStrokeValues: string[];
   playButtonLabel: string;
   playButtonState: string;
-  playbackEngine: "html" | "native";
+  playbackEngine: "html" | "";
   playbackEndMs: number;
   playbackRegionMode: "selection" | "full";
   playbackStartMs: number;

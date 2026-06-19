@@ -149,7 +149,7 @@ describe("editor inline denoise integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     updateFieldState(0, (state) => ({
       ...state,
-      playback: { ...state.playback, clockMode: "manual", engine: "native", state: "playing" },
+      playback: { ...state.playback, clockMode: "manual", engine: "html", state: "playing" },
     }));
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();

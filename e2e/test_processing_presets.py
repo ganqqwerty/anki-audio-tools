@@ -26,6 +26,7 @@ from e2e.settings_dialog_helpers import open_settings_dialog
 def test_settings_dialog_constructs_and_saves_processing_preset(anki_mw) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     config["audio_processing_presets"] = []
+    config["dpdfnet_attn_limit_db"] = 12.0
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
 
     dialog = open_settings_dialog(anki_mw)

@@ -58,7 +58,6 @@ import { resetVisualizerRuntimeState, clearVisualizerRuntimeStates } from "./vis
 import { clearLearnerRecordingStateStore } from "./recording-state-store.js";
 import { initFieldState, readFieldState, updateFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
-import { clearPostEditPlaybackReadinessTimers } from "./post-edit-playback.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -243,7 +242,6 @@ function pendingGraphRedrawMatches(ord: number, sourceFilename: string): boolean
 
 export function prepareForNewNote(): void {
   clearPendingNoteScopedBridgeRequests();
-  clearPostEditPlaybackReadinessTimers();
   clearSourceMetadataRequests();
   resetEditorControlState();
   clearVisualizerRuntimeStates();

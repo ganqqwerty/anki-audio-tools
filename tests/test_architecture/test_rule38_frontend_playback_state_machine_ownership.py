@@ -7,29 +7,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EDITOR_INLINE = ROOT / "settings_ui" / "src" / "editor-inline"
 
-LEGACY_FRONTEND_PLAYBACK_OWNER_ALLOWLIST = {
-    "settings_ui/src/editor-inline/actions-playback.ts",
-    "settings_ui/src/editor-inline/actions-selection.ts",
+LEGACY_FRONTEND_AUDIO_OWNER_ALLOWLIST = {
     "settings_ui/src/editor-inline/audio-clock.ts",
-    "settings_ui/src/editor-inline/chorusing-controller.ts",
-    "settings_ui/src/editor-inline/graph-countdown-overlay.ts",
-    "settings_ui/src/editor-inline/playback-actions.ts",
     "settings_ui/src/editor-inline/playback-controller.ts",
     "settings_ui/src/editor-inline/playback-controller-frame.ts",
-    "settings_ui/src/editor-inline/playback-controller-state.ts",
-    "settings_ui/src/editor-inline/playback-engine-decision.ts",
-    "settings_ui/src/editor-inline/playback-html-fallback.ts",
-    "settings_ui/src/editor-inline/playback-model.ts",
     "settings_ui/src/editor-inline/post-edit-playback.ts",
+}
+
+LEGACY_FRONTEND_TRANSITION_OWNER_ALLOWLIST = {
+    "settings_ui/src/editor-inline/audio-clock.ts",
+    "settings_ui/src/editor-inline/playback-model.ts",
 }
 
 STATE_TRANSITION_ALLOWED = {
     "settings_ui/src/editor-inline/source-playback-machine.ts",
+    "settings_ui/src/editor-inline/source-playback-controller.ts",
+    "settings_ui/src/editor-inline/source-playback-repeat-loop.ts",
     "settings_ui/src/editor-inline/learner-recording-playback-machine.ts",
+    "settings_ui/src/editor-inline/learner-recording-playback.ts",
 }
 
 SOURCE_AUDIO_OPERATION_ALLOWED = {
     "settings_ui/src/editor-inline/source-playback-controller.ts",
+    "settings_ui/src/editor-inline/source-playback-repeat-loop.ts",
     "settings_ui/src/editor-inline/learner-recording-playback.ts",
 }
 
@@ -72,7 +72,7 @@ def test_frontend_playback_audio_operations_are_quarantined() -> None:
 
     for path in _editor_inline_sources():
         relative = path.relative_to(ROOT).as_posix()
-        if relative in LEGACY_FRONTEND_PLAYBACK_OWNER_ALLOWLIST | SOURCE_AUDIO_OPERATION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
+        if relative in LEGACY_FRONTEND_AUDIO_OWNER_ALLOWLIST | SOURCE_AUDIO_OPERATION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
             continue
         for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             stripped = line.strip()
@@ -97,7 +97,7 @@ def test_frontend_playback_transitions_are_quarantined() -> None:
 
     for path in _editor_inline_sources():
         relative = path.relative_to(ROOT).as_posix()
-        if relative in LEGACY_FRONTEND_PLAYBACK_OWNER_ALLOWLIST | STATE_TRANSITION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
+        if relative in LEGACY_FRONTEND_TRANSITION_OWNER_ALLOWLIST | STATE_TRANSITION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
             continue
         if not _is_playback_file(path):
             continue

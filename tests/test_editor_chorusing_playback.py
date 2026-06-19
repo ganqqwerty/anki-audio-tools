@@ -6,8 +6,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-import pytest
-
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import _play_with_request
 from anki_audio_quick_editor.editor_runtime import SESSIONS
@@ -40,10 +38,6 @@ def test_chorusing_html_playback_status_includes_practice_guidance(tmp_path: Pat
     SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_playback_segment",
-        lambda *_args, **_kwargs: pytest.fail("HTML playback should not render a segment"),
-    )
 
     _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700, "source": "chorusing"})
 

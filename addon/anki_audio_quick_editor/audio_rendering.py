@@ -14,7 +14,6 @@ from .audio_commands import (
     build_audio_filters,
     build_convert_audio_command,
     build_ffmpeg_command,
-    build_playback_segment_filters,
     build_region_delete_command,
     build_region_delete_plan,
     build_region_keep_plan,
@@ -272,41 +271,6 @@ def render_audio_region_kept(
     )
 
 
-def render_playback_segment(
-        source_path: Path,
-        start_ms: int,
-        config: AudioProcessingConfig,
-        output_path: Path | None = None,
-        on_command: Callable[[tuple[str, ...]], None] | None = None,
-        end_ms: int | None = None,
-) -> AudioProcessingResult:
-    """Render a temporary segment for deterministic native playback."""
-    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    duration_ms = probe_duration_ms(source_path, config)
-    clamped_start_ms = max(0, min(int(start_ms), duration_ms))
-    clamped_end_ms = duration_ms if end_ms is None else max(0, min(int(end_ms), duration_ms))
-    if clamped_start_ms >= max(0, clamped_end_ms - 20):
-        raise AudioProcessingError("Cursor is at the end of the audio.")
-
-    if output_path is None:
-        output_path = temp_playback_path(source_path.name, clamped_start_ms)
-
-    filters = build_playback_segment_filters(clamped_start_ms, None if end_ms is None else clamped_end_ms)
-    cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
-    if on_command:
-        on_command(cmd)
-    result = _run_render_command(cmd, "Could not start playback segment rendering.")
-    if result.returncode != 0:
-        raise AudioProcessingError(
-            render_external_error_message(result, "Playback segment rendering failed.")
-        )
-    return AudioProcessingResult(
-        output_path=output_path,
-        command=cmd,
-        duration_ms=probe_duration_ms(output_path, config),
-    )
-
-
 def make_output_filename(
         source_filename: str,
         now: datetime | None = None,
@@ -377,23 +341,3 @@ def temp_final_path(filename: str) -> Path:
     """Return a temp path preserving a final desired basename for diagnostics."""
     temp_dir = Path(tempfile.mkdtemp(prefix="aqe_final_"))
     return temp_dir / os.path.basename(filename)
-
-
-def make_playback_segment_filename(
-        source_filename: str,
-        start_ms: int,
-        token: str | None = None,
-) -> str:
-    """Return a debuggable temp filename for cursor playback segments."""
-    token = token or uuid.uuid4().hex[:8]  # pragma: no mutate
-    stem = _safe_filename_stem(Path(source_filename).stem or "audio")  # pragma: no mutate
-    suffix = f"__from_{max(0, int(start_ms))}ms_{token}.mp3"
-    prefix = "aqe_playback_"
-    max_stem_length = max(1, 160 - len(prefix) - len(suffix))  # pragma: no mutate
-    return f"{prefix}{stem[:max_stem_length]}{suffix}"
-
-
-def temp_playback_path(source_filename: str, start_ms: int) -> Path:
-    """Return a temp path for a cursor-to-end playback segment."""
-    temp_dir = Path(tempfile.mkdtemp(prefix="aqe_playback_"))  # pragma: no mutate
-    return temp_dir / make_playback_segment_filename(source_filename, start_ms)

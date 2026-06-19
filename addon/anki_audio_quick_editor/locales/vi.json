@@ -388,6 +388,7 @@
   "editor.status.delete_whole_clip": "Không thể xóa toàn bộ đoạn âm thanh.",
   "editor.status.keep_whole_clip": "Vùng chọn đã bao phủ toàn bộ đoạn âm thanh.",
   "editor.status.deleting_region_plain": "Xóa vùng",
+  "editor.status.browser_audio_unavailable": "Âm thanh trình duyệt không khả dụng.",
   "editor.status.selected_repeat_browser_audio": "Phát lặp vùng đã chọn cần âm thanh trình duyệt.",
   "batch.action": "Chạy thao tác âm thanh hàng loạt...",
   "batch.undo_label": "Thao tác âm thanh hàng loạt",

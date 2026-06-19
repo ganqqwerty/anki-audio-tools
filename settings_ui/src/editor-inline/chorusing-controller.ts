@@ -3,10 +3,9 @@ import { focusAndSendCommand } from "./bridge.js";
 import { markerClickFromEvent } from "./graph-overlay-geometry.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
 import {
-  playbackEngineFor,
   pauseProgressClock,
   sendPlaybackRequest,
-  startEditorHtmlPlayback,
+  startSourcePlayback,
   stopProgressClock,
 } from "./playback-actions.js";
 import type { PlaybackRequest, VisualizerElement } from "./types.js";
@@ -271,7 +270,7 @@ function startPracticePlayback(visualizer: VisualizerElement, state: ChorusingSt
     action: "start",
     cursorMs: Math.round(suffix.startMs),
     endMs: Math.round(suffix.endMs),
-    engine: playbackEngineFor(visualizer),
+    engine: "html",
     loop: true,
     ord,
     regionMode: "selection",
@@ -282,23 +281,16 @@ function startPracticePlayback(visualizer: VisualizerElement, state: ChorusingSt
     practiceState: "playing",
     repeatPassesCompleted: 0,
   });
-  if (request.engine === "html") {
-    startEditorHtmlPlayback(visualizer, request);
-  } else {
-    sendPlaybackRequest(request);
-  }
+  startSourcePlayback(visualizer, request);
 }
 
 function pauseChorusing(visualizer: VisualizerElement, state: ChorusingState): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const activeEngine = readFieldState(ord).playback.engine;
   pauseProgressClock(visualizer);
   sendPlaybackRequest({
     action: "pause",
     cursorMs: readVisualizerCursorMs(visualizer),
-    engine: activeEngine === "html" || activeEngine === "native"
-      ? activeEngine
-      : playbackEngineFor(visualizer),
+    engine: "html",
     loop: true,
     ord,
     regionMode: "selection",

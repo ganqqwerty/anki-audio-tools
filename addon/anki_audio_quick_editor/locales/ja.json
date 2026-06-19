@@ -388,6 +388,7 @@
   "editor.status.delete_whole_clip": "音声クリップ全体は削除できません。",
   "editor.status.keep_whole_clip": "選択範囲はすでに音声クリップ全体を覆っています。",
   "editor.status.deleting_region_plain": "範囲を削除",
+  "editor.status.browser_audio_unavailable": "ブラウザー音声を利用できません。",
   "editor.status.selected_repeat_browser_audio": "選択範囲のリピート再生にはブラウザー音声が必要です。",
   "batch.action": "音声バッチ操作を実行...",
   "batch.undo_label": "音声バッチ操作",

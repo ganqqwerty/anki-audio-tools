@@ -25,6 +25,5 @@ class AudioModuleDeps:
     render_external_error_message: Callable[..., str]
     run_external_command: Callable[..., Any]
     external_command_run_kwargs: Callable[..., dict[str, Any]]
-    make_playback_segment_filename: Callable[..., Any]
     render_pause_removal_pipeline_audio: Callable[..., Any]
     bundled_deep_filter_path: Callable[..., Path | None]

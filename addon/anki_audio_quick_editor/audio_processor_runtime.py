@@ -43,7 +43,6 @@ def sync_rendering_dependencies(audio_rendering: Any, deps: AudioModuleDeps) -> 
     audio_rendering.resolve_output_policy = deps.resolve_output_policy
     audio_rendering.render_pause_removal_pipeline_audio = deps.render_pause_removal_pipeline_audio
     audio_rendering.external_command_run_kwargs = deps.external_command_run_kwargs
-    audio_rendering.make_playback_segment_filename = deps.make_playback_segment_filename
 
 
 def sync_noise_dependencies(audio_noise_reduction: Any, deps: AudioModuleDeps) -> None:

@@ -16,7 +16,7 @@ import {
 } from "./visualizer-state.js";
 
 type CursorOptions = {
-  engine?: "html" | "native" | "";
+  engine?: "html" | "";
   previousPlaybackState?: PlaybackState;
   restartPlayback?: boolean;
   updateAnchor?: boolean;
@@ -33,7 +33,6 @@ export interface SelectionGestureDependencies {
     visualizer: VisualizerElement,
     ord: number,
     startMs: number,
-    engine?: "html" | "native" | "",
   ) => PlaybackRequest;
   playbackStateFor: (visualizer: VisualizerElement) => PlaybackState;
   seekAudioClock: (visualizer: VisualizerElement, ms: number) => boolean;
@@ -51,7 +50,7 @@ export interface SelectionGestureDependencies {
     endMs: number,
     options?: { redraw?: boolean },
   ) => boolean;
-  startEditorHtmlPlayback: (visualizer: VisualizerElement, request: PlaybackRequest) => boolean;
+  startSourcePlayback: (visualizer: VisualizerElement, request: PlaybackRequest) => boolean;
   stopProgressClock: (
     visualizer: VisualizerElement,
     options?: { clearAudio?: boolean; clearEngine?: boolean },
@@ -109,7 +108,7 @@ export function startCursorDrag(
       deps.seekAudioClock(visualizer, releasedMs);
     }
     if (restartPlayback && restartEngine === "html") {
-      deps.startEditorHtmlPlayback(visualizer, deps.playbackRequestForStart(visualizer, ord, releasedMs, "html"));
+      deps.startSourcePlayback(visualizer, deps.playbackRequestForStart(visualizer, ord, releasedMs));
     }
   };
   move(event);
@@ -340,9 +339,9 @@ function resumeInterruptedSelectionPlayback(
   interruptedProgressMs: number,
 ): void {
   if (previousPlaybackState !== "playing" || !stoppedForGesture) return;
-  deps.startEditorHtmlPlayback(
+  deps.startSourcePlayback(
     visualizer,
-    deps.playbackRequestForStart(visualizer, ord, interruptedProgressMs, "html"),
+    deps.playbackRequestForStart(visualizer, ord, interruptedProgressMs),
   );
 }
 
@@ -356,8 +355,8 @@ function restartCommittedSelectionPlayback(
 ): void {
   if (previousPlaybackState !== "playing" || !stoppedForGesture) return;
   const committedSelection = deps.selectionForVisualizer(visualizer);
-  deps.startEditorHtmlPlayback(
+  deps.startSourcePlayback(
     visualizer,
-    deps.playbackRequestForStart(visualizer, ord, committedSelection?.startMs ?? fallbackStartMs, "html"),
+    deps.playbackRequestForStart(visualizer, ord, committedSelection?.startMs ?? fallbackStartMs),
   );
 }

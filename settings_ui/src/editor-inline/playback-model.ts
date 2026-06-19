@@ -1,7 +1,7 @@
 import type { PlaybackRequest, PlaybackState } from "./types.js";
 
 export type PlaybackRegionMode = "selection" | "full";
-export type PlaybackEngine = "html" | "native" | "";
+export type PlaybackEngine = "html" | "";
 
 export interface PlaybackRegion {
   endMs: number;

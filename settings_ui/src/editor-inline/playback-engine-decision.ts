@@ -4,7 +4,6 @@ import type { HtmlAudioReadinessReason, HtmlAudioReadinessState } from "./audio-
 
 export type PlaybackEngineSelectionReason =
   | "active_engine_html"
-  | "active_engine_native"
   | "audio_clock_not_ready"
   | "audio_clock_ready"
   | "audio_metadata_loading"
@@ -34,35 +33,32 @@ export interface PlaybackEngineDecisionInput {
 }
 
 export interface PlaybackEngineDecision {
-  engine: "html" | "native";
+  engine: "html";
   reason: PlaybackEngineSelectionReason;
 }
 
 export function choosePlaybackEngine(input: PlaybackEngineDecisionInput): PlaybackEngineDecision {
   if (!input.visualizerPresent) {
-    return { engine: "native", reason: "visualizer_missing" };
+    return { engine: "html", reason: "visualizer_missing" };
   }
-  if (input.playbackState !== "stopped" && input.activeEngine === "html") {
+  if (input.playbackState !== "stopped") {
     return { engine: "html", reason: "active_engine_html" };
-  }
-  if (input.playbackState !== "stopped" && input.activeEngine === "native") {
-    return { engine: "native", reason: "active_engine_native" };
   }
   if (input.regionMode === "selection" && input.repeat) {
     return { engine: "html", reason: "selected_repeat_requires_html" };
   }
   if (input.htmlAudioReadinessFailed) {
-    return { engine: "native", reason: "audio_readiness_failed" };
+    return { engine: "html", reason: "audio_readiness_failed" };
   }
   if (!input.graphHasTrack) {
     if (input.audioClockReady) return { engine: "html", reason: "no_graph_track_audio_ready" };
     if (input.htmlAudioReadinessTransient) return { engine: "html", reason: "no_graph_track_audio_loading" };
-    return { engine: "native", reason: "no_graph_track_audio_clock_not_ready" };
+    return { engine: "html", reason: "no_graph_track_audio_clock_not_ready" };
   }
   if (input.htmlAudioReadinessTransient) {
     return { engine: "html", reason: "audio_metadata_loading" };
   }
   return input.audioClockReady
     ? { engine: "html", reason: "audio_clock_ready" }
-    : { engine: "native", reason: "audio_clock_not_ready" };
+    : { engine: "html", reason: "audio_clock_not_ready" };
 }

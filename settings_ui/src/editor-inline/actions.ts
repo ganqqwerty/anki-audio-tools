@@ -51,7 +51,7 @@ export {
   setPlaybackButtonLabel,
   setPlaybackState,
   startAudioProgressClock,
-  startEditorHtmlPlayback,
+  startSourcePlayback,
   startManualProgressClock,
   startProgressClock,
   stopEditorPlayback,

@@ -368,3 +368,11 @@ body.nightMode .aqe-controls,
   min-width: 0;
   white-space: pre-wrap;
 }
+
+.aqe-playback-warning,
+.aqe-ui-root .aqe-playback-warning {
+  color: #9a5b00;
+  flex: 0 1 auto;
+  font-size: 12px;
+  min-width: 0;
+}

@@ -256,11 +256,3 @@ def build_audio_encode_command(
         str(output_path),
     )
 
-
-def build_playback_segment_filters(start_ms: int, end_ms: int | None = None) -> str:
-    """Build filters for a temporary native playback segment."""
-    start_s = max(0, int(start_ms)) / 1000
-    if end_ms is None:
-        return f"atrim=start={start_s:.3f},asetpts=PTS-STARTPTS"
-    end_s = max(start_s, int(end_ms) / 1000)
-    return f"atrim=start={start_s:.3f}:end={end_s:.3f},asetpts=PTS-STARTPTS"

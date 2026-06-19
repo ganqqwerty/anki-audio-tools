@@ -6,8 +6,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-import pytest
-
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import _set_cursor_from_web
 from anki_audio_quick_editor.editor_runtime import SESSIONS
@@ -45,10 +43,6 @@ def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Pat
             {"cursorMs": 1400, "restartPlayback": True, "engine": "html"},
         ),
     )
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_callbacks._start_playback_from_cursor",
-        lambda *_args, **_kwargs: pytest.fail("HTML cursor restart should not start native playback"),
-    )
 
     _set_cursor_from_web(editor)
 
@@ -57,7 +51,10 @@ def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Pat
     assert session.playback.paused is False
 
 
-def test_native_cursor_restart_intent_keeps_selected_end_boundary(tmp_path: Path, monkeypatch) -> None:
+def test_unsupported_engine_cursor_restart_intent_updates_cursor_without_restart(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     class Editor:
         pass
 
@@ -82,7 +79,6 @@ def test_native_cursor_restart_intent_keeps_selected_end_boundary(tmp_path: Path
         ),
     )
     SESSIONS[editor] = session
-    starts: list[tuple[int, int | None]] = []
 
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._eval_with_callback",
@@ -96,15 +92,12 @@ def test_native_cursor_restart_intent_keeps_selected_end_boundary(tmp_path: Path
             },
         ),
     )
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_callbacks._start_playback_from_cursor",
-        lambda _editor, _session, _source_path, _field_index, cursor_ms, end_ms: starts.append((cursor_ms, end_ms)),
-    )
 
     _set_cursor_from_web(editor)
 
     assert session.cursor_ms == 700
-    assert starts == [(700, 1250)]
+    assert session.playback.active is False
+    assert session.playback.paused is False
 
 
 def test_late_cursor_intent_is_ignored_after_editor_note_is_cleared(monkeypatch) -> None:

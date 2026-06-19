@@ -46,10 +46,9 @@ export function mountController(target: FieldTarget): FieldController | null {
     if (visualizer) {
       const s = readFieldState(target.ord);
       if (s.graph.busy || s.graph.hasTrack) {
-        const renderedSource = s.sourceFilename || target.sourceFilename;
-        existing.sourceFilename = renderedSource;
+        existing.sourceFilename = target.sourceFilename;
         const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
-        if (controls) controls.dataset.aqeSourceFilename = renderedSource;
+        if (controls) controls.dataset.aqeSourceFilename = target.sourceFilename;
         removeDuplicateControls(target.ord, existing.host);
         applyInitialStatus(target.ord, initialStatus);
         return existing;

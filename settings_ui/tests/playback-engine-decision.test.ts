@@ -21,12 +21,12 @@ const baseInput: PlaybackEngineDecisionInput = {
 };
 
 describe("playback engine decision", () => {
-  it("keeps the active playback engine while playback is not stopped", () => {
+  it("keeps active playback on the HTML path while playback is not stopped", () => {
     expect(choosePlaybackEngine({
       ...baseInput,
-      activeEngine: "native",
+      activeEngine: "html",
       playbackState: "playing",
-    })).toEqual({ engine: "native", reason: "active_engine_native" });
+    })).toEqual({ engine: "html", reason: "active_engine_html" });
     expect(choosePlaybackEngine({
       ...baseInput,
       activeEngine: "html",
@@ -43,7 +43,7 @@ describe("playback engine decision", () => {
     })).toEqual({ engine: "html", reason: "selected_repeat_requires_html" });
   });
 
-  it("keeps transient loading on the HTML path instead of selecting native", () => {
+  it("keeps transient loading on the HTML path", () => {
     expect(choosePlaybackEngine({
       ...baseInput,
       audioClockReady: false,
@@ -54,14 +54,14 @@ describe("playback engine decision", () => {
     })).toEqual({ engine: "html", reason: "audio_metadata_loading" });
   });
 
-  it("records native reasons for hard browser audio failures", () => {
+  it("records hard browser audio failures as HTML-path failures", () => {
     expect(choosePlaybackEngine({
       ...baseInput,
       audioClockReady: false,
       htmlAudioReadinessFailed: true,
       htmlAudioReadinessReason: "audio_error",
       htmlAudioReadinessState: "failed",
-    })).toEqual({ engine: "native", reason: "audio_readiness_failed" });
+    })).toEqual({ engine: "html", reason: "audio_readiness_failed" });
   });
 
   it("uses HTML for hidden no-graph playback once metadata is ready", () => {

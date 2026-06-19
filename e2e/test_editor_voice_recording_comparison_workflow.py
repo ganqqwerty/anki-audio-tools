@@ -15,7 +15,6 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _sound_filename,
 )
-from e2e.editor_playback_helpers import _record_fake_playback
 from e2e.helpers import (
     click_selector,
     generate_tone,
@@ -276,61 +275,45 @@ def test_editor_voice_recording_comparison_workflow(
         assert fake_recorder.output_path.is_file()
         assert learner["learnerStartCursorMs"] == 900
 
-        with _record_fake_playback(
-            media_dir,
-            {fake_recorder.output_path.name: learner["learnerDurationMs"]},
-            ffmpeg_config=ffmpeg_config,
-            max_attempt_count=1,
-        ) as playback:
-            click_selector(editor.web, play_yours_selector, timeout=5.0)
-            wait_for_condition(
-                lambda: len(playback.attempts) == 1,
-                timeout=5.0,
-                message="Play yours did not route to native learner playback",
-            )
-            wait_for_js_condition(
-                editor.web,
-                f"""
-                (() => {{
-                  const state = window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0) : null;
-                  const play = document.querySelector({play_yours_selector!r});
-                  return state && play ? {{
-                    ...state,
-                    playYoursLabel: play.querySelector('.aqe-button-label')?.textContent || play.textContent || "",
-                  }} : null;
-                }})()
-                """,
-                lambda value: value is not None
-                and value["learnerPlaybackStatus"] == "playing"
-                and "Pause" in value["playYoursLabel"],
-                timeout=5.0,
-            )
-            click_selector(editor.web, play_yours_selector, timeout=5.0)
-            wait_for_condition(
-                lambda: playback.toggle_count == 1,
-                timeout=5.0,
-                message="Play yours did not toggle learner playback pause",
-            )
-            wait_for_js_condition(
-                editor.web,
-                f"""
-                (() => {{
-                  const state = window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0) : null;
-                  const play = document.querySelector({play_yours_selector!r});
-                  return state && play ? {{
-                    ...state,
-                    playYoursLabel: play.querySelector('.aqe-button-label')?.textContent || play.textContent || "",
-                  }} : null;
-                }})()
-                """,
-                lambda value: value is not None
-                and value["learnerPlaybackStatus"] == "paused"
-                and "Play" in value["playYoursLabel"],
-                timeout=5.0,
-            )
+        learner_driver = _install_learner_audio_test_driver(
+            editor,
+            fake_recorder.output_path.name,
+        )
+        assert learner_driver["src"] == fake_recorder.output_path.name
 
-        assert playback.current is not None
-        assert playback.current.path == fake_recorder.output_path
+        click_selector(editor.web, play_yours_selector, timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _learner_playback_state_js(play_yours_selector),
+            lambda value: value is not None
+            and value["learnerPlaybackStatus"] == "playing"
+            and value["playCalls"] == 1
+            and value["pauseCalls"] == 0
+            and "Pause" in value["playYoursLabel"],
+            timeout=5.0,
+        )
+        click_selector(editor.web, play_yours_selector, timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _learner_playback_state_js(play_yours_selector),
+            lambda value: value is not None
+            and value["learnerPlaybackStatus"] == "paused"
+            and value["playCalls"] == 1
+            and value["pauseCalls"] == 1
+            and "Play" in value["playYoursLabel"],
+            timeout=5.0,
+        )
+        click_selector(editor.web, play_yours_selector, timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _learner_playback_state_js(play_yours_selector),
+            lambda value: value is not None
+            and value["learnerPlaybackStatus"] == "playing"
+            and value["playCalls"] == 2
+            and value["pauseCalls"] == 1
+            and "Pause" in value["playYoursLabel"],
+            timeout=5.0,
+        )
 
         click_selector(editor.web, show_yours_selector, timeout=5.0)
         wait_for_condition(
@@ -347,3 +330,47 @@ def test_editor_voice_recording_comparison_workflow(
     finally:
         editor.set_note(None)
         parent.close()
+
+
+def _install_learner_audio_test_driver(editor: Any, expected_filename: str) -> dict[str, Any]:
+    return wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          const audio = document.querySelector('[data-testid="aqe-learner-audio-0"]');
+          if (!audio) return null;
+          window.__aqeLearnerAudioTestDriver = {{ playCalls: 0, pauseCalls: 0 }};
+          audio.play = () => {{
+            window.__aqeLearnerAudioTestDriver.playCalls += 1;
+            return Promise.resolve();
+          }};
+          audio.pause = () => {{
+            window.__aqeLearnerAudioTestDriver.pauseCalls += 1;
+          }};
+          return {{
+            src: audio.getAttribute("src") || "",
+            expected: {expected_filename!r},
+          }};
+        }})()
+        """,
+        lambda value: value is not None and value["src"] == expected_filename,
+        timeout=5.0,
+    )
+
+
+def _learner_playback_state_js(play_yours_selector: str) -> str:
+    return f"""
+    (() => {{
+      const state = window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0) : null;
+      const play = document.querySelector({play_yours_selector!r});
+      const audio = document.querySelector('[data-testid="aqe-learner-audio-0"]');
+      const driver = window.__aqeLearnerAudioTestDriver || {{ playCalls: 0, pauseCalls: 0 }};
+      return state && play && audio ? {{
+        ...state,
+        learnerAudioSrc: audio.getAttribute("src") || "",
+        pauseCalls: driver.pauseCalls,
+        playCalls: driver.playCalls,
+        playYoursLabel: play.querySelector('.aqe-button-label')?.textContent || play.textContent || "",
+      }} : null;
+    }})()
+    """

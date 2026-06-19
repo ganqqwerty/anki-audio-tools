@@ -1,4 +1,4 @@
-"""Noise-reduction and playback command builder tests."""
+"""Noise-reduction command builder tests."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from anki_audio_quick_editor.audio_commands import (
     build_deep_filter_prepare_command,
     build_dpdfnet_command,
     build_mp3_encode_command,
-    build_playback_segment_filters,
     build_rnnoise_command,
     build_rnnoise_encode_command,
     build_rnnoise_prepare_command,
@@ -27,18 +26,6 @@ DPDFNET = str(Path("/bin/dpdfnet"))
 FFMPEG = str(Path("/bin/ffmpeg"))
 RNNOISE = str(Path("/bin/rnnoise-cli"))
 SPLEETER = str(Path("/bin/sherpa-spleeter"))
-
-
-def test_build_playback_segment_filters_starts_at_cursor_and_resets_timestamps() -> None:
-    assert build_playback_segment_filters(700) == "atrim=start=0.700,asetpts=PTS-STARTPTS"
-
-
-def test_build_playback_segment_filters_honors_selected_end_boundary() -> None:
-    assert build_playback_segment_filters(700, 1250) == "atrim=start=0.700:end=1.250,asetpts=PTS-STARTPTS"
-
-
-def test_build_playback_segment_filters_clamps_negative_cursor_to_zero() -> None:
-    assert build_playback_segment_filters(-200) == "atrim=start=0.000,asetpts=PTS-STARTPTS"
 
 
 def test_build_deep_filter_prepare_command_uses_48khz_mono_pcm(tmp_path: Path) -> None:

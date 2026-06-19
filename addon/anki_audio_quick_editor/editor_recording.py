@@ -30,14 +30,11 @@ from .editor_recording_requests import (
     recording_parent,
 )
 from .editor_recording_state import (
-    LearnerRecordingState,
     begin_learner_recording_state,
     learner_recording_is_current,
-    reset_learner_playback_state,
 )
 from .editor_session import EditorSession
 from .error_codes import (
-    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
     AQE_RECORDING_FAILED,
     coded_error,
 )
@@ -234,123 +231,3 @@ def analyze_learner_recording_async(
             )
 
     deps.threading.Thread(target=_run, daemon=True).start()
-
-
-def play_learner_recording(editor: Any, deps: RecordingDeps) -> None:
-    """Toggle playback for the latest learner recording if one exists."""
-    session = deps.sessions.get(editor)
-    if session is None:
-        message = t("editor.status.referenced_audio_missing")
-        deps.eval_status(editor, coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message), kind="error")
-        return
-    state = session.learner_recording
-    media_path = state.media_path
-    if state.status != "ready" or media_path is None or not media_path.is_file():
-        reset_learner_playback_state(session)
-        session.learner_recording = replace(
-            session.learner_recording,
-            status="failed",
-            failure_message=t("editor.status.referenced_audio_missing"),
-        )
-        eval_learner_recording_state(editor, session.learner_recording)
-        message = t("editor.status.referenced_audio_missing")
-        deps.eval_status(editor, coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message), kind="error")
-        return
-
-    from aqt.sound import av_player
-
-    if state.playback_status in {"playing", "paused"}:
-        try:
-            av_player.toggle_pause()
-        except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
-            logger.info("learner recording pause/resume failed: %s", exc)
-            deps.eval_status(editor, t("editor.playback.pause_unavailable"), kind="warning")
-            return
-        now = time.monotonic()
-        if state.playback_status == "playing":
-            position_ms = _learner_playback_position_ms(state, now)
-            session.learner_recording = replace(
-                state,
-                playback_status="paused",
-                playback_position_ms=position_ms,
-                playback_started_at_monotonic=None,
-                playback_generation=state.playback_generation + 1,
-            )
-            eval_learner_recording_state(editor, session.learner_recording)
-            deps.eval_status(editor, t("editor.playback.paused"))
-            return
-        session.learner_recording = replace(
-            state,
-            playback_status="playing",
-            playback_started_at_monotonic=now,
-            playback_generation=state.playback_generation + 1,
-        )
-        eval_learner_recording_state(editor, session.learner_recording)
-        _schedule_learner_playback_finished(editor, session, session.learner_recording, deps)
-        deps.eval_status(editor, t("editor.playback.playing"))
-        return
-
-    from anki.sound import SoundOrVideoTag
-
-    deps.stop_session_playback(session)
-    state = session.learner_recording
-    av_player.play_tags([SoundOrVideoTag(str(media_path))])
-    session.learner_recording = replace(
-        state,
-        playback_status="playing",
-        playback_position_ms=0,
-        playback_started_at_monotonic=time.monotonic(),
-        playback_generation=state.playback_generation + 1,
-    )
-    eval_learner_recording_state(editor, session.learner_recording)
-    _schedule_learner_playback_finished(editor, session, session.learner_recording, deps)
-    deps.eval_status(editor, t("editor.playback.playing"))
-
-
-def _schedule_learner_playback_finished(
-    editor: Any,
-    session: EditorSession,
-    state: LearnerRecordingState,
-    deps: RecordingDeps,
-) -> None:
-    duration_ms = int(state.recording_duration_ms or state.target_duration_ms or 0)
-    remaining_ms = max(0, duration_ms - int(state.playback_position_ms or 0))
-    if remaining_ms <= 0:
-        remaining_ms = 1
-    playback_generation = state.playback_generation
-    recording_generation = state.generation
-
-    def _finish() -> None:
-        current = session.learner_recording
-        if (
-            current.generation != recording_generation
-            or current.playback_generation != playback_generation
-            or current.playback_status != "playing"
-        ):
-            return
-        session.learner_recording = replace(
-            current,
-            playback_status="stopped",
-            playback_position_ms=0,
-            playback_started_at_monotonic=None,
-            playback_generation=current.playback_generation + 1,
-        )
-        eval_learner_recording_state(editor, session.learner_recording)
-
-    from aqt.qt import QTimer
-
-    QTimer.singleShot(remaining_ms, lambda: deps.main(editor, _finish))
-
-
-def _learner_playback_position_ms(state: LearnerRecordingState, now: float) -> int:
-    if state.playback_started_at_monotonic is None:
-        return int(state.playback_position_ms or 0)
-    elapsed_ms = round((now - state.playback_started_at_monotonic) * 1000)
-    duration_ms = int(state.recording_duration_ms or state.target_duration_ms or 0)
-    return _clamp_ms(int(state.playback_position_ms or 0) + elapsed_ms, duration_ms)
-
-
-def _clamp_ms(value: int | None, duration_ms: int) -> int:
-    if value is None:
-        return 0
-    return max(0, min(int(value), max(0, int(duration_ms))))
