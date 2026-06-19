@@ -1,5 +1,6 @@
 import type { ChorusingState } from "./chorusing-state";
 import type { GraphSettings } from "./graph-settings.js";
+import type { HtmlAudioReadinessReason, HtmlAudioReadinessState } from "./audio-readiness.js";
 import type { PlaybackProgressPlan } from "./playback-progress-clock.js";
 
 export type { FrontendLogPayload as FrontendLogQueueItem } from "../lib/generated/contracts.js";
@@ -95,6 +96,8 @@ export interface GraphStateForTest {
   graphButtonTitle: string;
   hasTrack: boolean;
   hidden: boolean;
+  htmlAudioReadinessReason: HtmlAudioReadinessReason;
+  htmlAudioReadinessState: HtmlAudioReadinessState;
   intensity: string;
   learnerDurationMs: number;
   learnerIntensityPaths: number;
@@ -193,6 +196,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeAudioClockAvailable?: boolean;
   __aqeAudioClockFallback?: boolean;
   __aqeAudioClockLastSeekedMs?: number;
+  __aqeHtmlAudioFailureReason?: HtmlAudioReadinessReason | "";
   __aqeCursorPaintedAtMs?: number;
   __aqeCursorRenderCache?: CursorRenderCache;
   __aqeCursorTextPaintedAtMs?: number;

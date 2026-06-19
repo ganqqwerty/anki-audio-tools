@@ -1,5 +1,6 @@
 import { COMMAND_SLUGS } from "./commands.js";
 import { audioClockFor } from "./audio-clock.js";
+import { htmlAudioReadinessFor } from "./audio-readiness.js";
 import {
   allButtons,
   controlsForOrd,
@@ -189,6 +190,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     Array.from(button.querySelectorAll<SVGElement>(".aqe-button-icon svg"))
   ));
   const audio = audioClockFor(visualizer);
+  const readiness = htmlAudioReadinessFor(visualizer);
   const selection = selectionForVisualizer(visualizer);
   const draftSelection = draftSelectionForVisualizer(visualizer);
   const plot = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
@@ -211,6 +213,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     busy: visualizer.dataset.graphBusy === "true",
     hidden: !!visualizer.hidden,
     hasTrack: visualizer.dataset.hasTrack === "true",
+    htmlAudioReadinessReason: readiness.reason,
+    htmlAudioReadinessState: readiness.state,
     durationMs: Number(visualizer.dataset.durationMs || "0"),
     targetDurationMs: readVisualizerTargetDurationMs(visualizer),
     viewportStartMs: viewport.startMs,
@@ -279,7 +283,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
     audioClockSrc: audio ? (audio.getAttribute("src") || "") : "",
     audioClockCurrentMs: audio ? Math.round((Number(audio.currentTime) || 0) * 1000) : 0,
-    audioClockReady: !!(audio && visualizer.__aqeAudioClockAvailable),
+    audioClockReady: readiness.ready,
     audioClockFallback: !!visualizer.__aqeAudioClockFallback,
     audioClockMuted: !!(audio && audio.muted),
     audioPlaybackTestDriver: !!(audio && audio.__aqeTestDriverInstalled),

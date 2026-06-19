@@ -7,6 +7,7 @@ import {
   controlsForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
+import { htmlAudioReadinessFor } from "./audio-readiness.js";
 import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
@@ -303,6 +304,18 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
   const ord = Number(button.closest<HTMLElement>(".aqe-controls")?.dataset.aqeFieldOrd || "0");
   const busy = anyBusy();
   const command = button.dataset.aqeCommand;
+  if (command === "aqe:play") {
+    const visualizer = visualizerForOrd(ord);
+    const readinessBlocksStart = readFieldState(ord).playback.state === "stopped"
+      && htmlAudioReadinessFor(visualizer).transient;
+    button.disabled = busy || readinessBlocksStart;
+    if (readinessBlocksStart) {
+      button.dataset.aqeDisabledTitle = t("tooltip.disabled.audio_metadata_loading");
+    } else if (button.dataset.aqeDisabledTitle === t("tooltip.disabled.audio_metadata_loading")) {
+      delete button.dataset.aqeDisabledTitle;
+    }
+    return;
+  }
   if (command === "aqe:undo") {
     button.disabled = busy || !historyAvailability(ord).canUndo;
     return;

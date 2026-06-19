@@ -604,6 +604,7 @@
   "settings.toolbar_visibility.mode_locked_tooltip": "Эта настройка отображения заблокирована, потому что кнопка входит в сгруппированную панель инструментов.",
   "tooltip.disabled.batch_running": "Отключено, пока выполняется пакетная обработка.",
   "tooltip.disabled.editor_busy": "Дождитесь завершения текущей обработки аудио.",
+  "tooltip.disabled.audio_metadata_loading": "Загрузка метаданных аудио...",
   "tooltip.disabled.recording_active": "Остановите текущую запись, прежде чем использовать этот элемент управления.",
   "editor.selection_shift.start_previous": "Сдвинуть начало выделения к предыдущему маркеру",
   "editor.selection_shift.start_next": "Сдвинуть начало выделения к следующему маркеру",

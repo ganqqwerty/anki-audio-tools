@@ -19,6 +19,10 @@ export function playbackEngineDecisionFor(visualizer: VisualizerElement | null):
       audioClockReady: false,
       graphDurationMs: 0,
       graphHasTrack: false,
+      htmlAudioReadinessFailed: true,
+      htmlAudioReadinessReason: "audio_element_missing",
+      htmlAudioReadinessState: "missing",
+      htmlAudioReadinessTransient: false,
       playbackState: "stopped",
       regionMode: "full",
       repeat: false,
@@ -27,11 +31,16 @@ export function playbackEngineDecisionFor(visualizer: VisualizerElement | null):
   }
   const state = readFieldState(fieldOrd(visualizer));
   const region = effectivePlaybackRegion(visualizer);
+  const telemetry = audioClockTelemetryFor(visualizer);
   return choosePlaybackEngine({
     activeEngine: state.playback.engine,
-    audioClockReady: audioClockTelemetryFor(visualizer).audioClockReady,
+    audioClockReady: telemetry.audioClockReady,
     graphDurationMs: state.graph.durationMs,
     graphHasTrack: state.graph.hasTrack,
+    htmlAudioReadinessFailed: telemetry.htmlAudioReadinessFailed,
+    htmlAudioReadinessReason: telemetry.htmlAudioReadinessReason,
+    htmlAudioReadinessState: telemetry.htmlAudioReadinessState,
+    htmlAudioReadinessTransient: telemetry.htmlAudioReadinessTransient,
     playbackState: state.playback.state,
     regionMode: region.mode,
     repeat: state.playback.repeat,
