@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from .audio_state import AudioProcessingConfig
@@ -238,10 +239,7 @@ def publish_collection_changes(browser: Any, changes: Any) -> None:
     if changes is None:
         return
     try:
-        from aqt import gui_hooks
-
-        browser.mw.update_undo_actions()
-        gui_hooks.operation_did_execute(changes, browser)
+        _publish_operation_finished(browser.mw, changes, browser)
     except Exception as exc:  # pragma: no cover - UI refresh is best effort
         capture_exception(
             "browser.refresh_after_batch",
@@ -251,6 +249,12 @@ def publish_collection_changes(browser: Any, changes: Any) -> None:
             context={"has_changes": changes is not None},
             log=logger,
         )
+
+
+def _publish_operation_finished(mw: Any, changes: Any, initiator: Any) -> None:
+    from aqt.operations import on_op_finished
+
+    on_op_finished(mw, SimpleNamespace(changes=changes), initiator)
 
 
 def _format_parameters(request: BatchRunRequest) -> str:
