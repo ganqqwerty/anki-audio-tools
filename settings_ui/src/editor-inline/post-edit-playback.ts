@@ -9,6 +9,15 @@ import { readFieldState } from "./field-state-store.js";
 import { isEditorBusy } from "./editor-control-state.js";
 import { readRepeatPauseSecondsRuntime } from "./visualizer-runtime-state.js";
 import type { EditorCommandPayload, PostEditPlaybackIntent } from "./types.js";
+import {
+  AUDIO_CLOCK_READINESS_CHANGED_EVENT,
+  HTML_METADATA_WAIT_TIMEOUT_MS,
+  htmlAudioReadinessFor,
+  markHtmlAudioFailure,
+  type AudioClockReadinessChangedDetail,
+} from "./audio-readiness.js";
+
+const metadataWaitTimers: Map<number, number> = new Map();
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
   const visualizer = visualizerForOrd(ord);
@@ -45,6 +54,21 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     logger.info("post-edit playback ready deferred: graph not ready", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
   }
+  const readiness = postEditHtmlReadiness(ord);
+  if (!readiness) {
+    logger.info("post-edit playback ready deferred: visualizer missing", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    return;
+  }
+  if (readiness.transient) {
+    ensureMetadataWaitTimer(ord, sourceFilename);
+    logger.info("post-edit playback ready deferred: browser audio loading", {
+      ...postEditPlaybackDiagnosticContext(ord, sourceFilename),
+      htmlAudioReadinessReason: readiness.reason,
+      htmlAudioReadinessState: readiness.state,
+    });
+    return;
+  }
+  clearMetadataWaitTimer(ord);
   dispatchPostEditPlaybackReady({
     command: "aqe:post-edit-playback-ready",
     fieldOrd: ord,
@@ -74,6 +98,59 @@ export function notifyMountedPostEditPlaybackReady(): void {
   });
 }
 
+export function installPostEditPlaybackReadinessListener(): void {
+  window.removeEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handlePostEditReadinessChanged);
+  window.addEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handlePostEditReadinessChanged);
+}
+
+export function disposePostEditPlaybackReadiness(): void {
+  window.removeEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handlePostEditReadinessChanged);
+  clearAllMetadataWaitTimers();
+}
+
+export function clearPostEditPlaybackReadinessTimers(): void {
+  clearAllMetadataWaitTimers();
+}
+
+function handlePostEditReadinessChanged(event: Event): void {
+  const detail = (event as CustomEvent<AudioClockReadinessChangedDetail>).detail;
+  if (!detail || detail.readiness.transient) return;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
+  if (!pending || pending.fieldOrd !== detail.ord) return;
+  notifyPostEditPlaybackReady(detail.ord, readFieldState(detail.ord).sourceFilename);
+}
+
+function postEditHtmlReadiness(ord: number) {
+  const visualizer = visualizerForOrd(ord);
+  return visualizer ? htmlAudioReadinessFor(visualizer) : null;
+}
+
+function ensureMetadataWaitTimer(ord: number, sourceFilename: string): void {
+  if (metadataWaitTimers.has(ord)) return;
+  const timer = window.setTimeout(() => {
+    metadataWaitTimers.delete(ord);
+    const visualizer = visualizerForOrd(ord);
+    if (!visualizer) return;
+    logger.warn("post-edit playback metadata wait timed out", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    markHtmlAudioFailure(visualizer, "metadata_timeout");
+  }, HTML_METADATA_WAIT_TIMEOUT_MS);
+  metadataWaitTimers.set(ord, timer);
+}
+
+function clearMetadataWaitTimer(ord: number): void {
+  const timer = metadataWaitTimers.get(ord);
+  if (timer === undefined) return;
+  window.clearTimeout(timer);
+  metadataWaitTimers.delete(ord);
+}
+
+function clearAllMetadataWaitTimers(): void {
+  for (const timer of metadataWaitTimers.values()) {
+    window.clearTimeout(timer);
+  }
+  metadataWaitTimers.clear();
+}
+
 function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string): Record<string, unknown> {
   const pending = editorRuntimeConfig().pendingPostEditPlayback;
   const visualizer = visualizerForOrd(ord);
@@ -98,6 +175,7 @@ function dispatchPostEditPlaybackReady(
   ord: number,
   sourceFilename: string,
 ): void {
+  clearMetadataWaitTimer(ord);
   const testDispatcher = window.__aqeDispatchPostEditPlaybackReadyForTest;
   const dispatch = () => {
     sendCommandPayload(payload);

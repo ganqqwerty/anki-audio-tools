@@ -10,6 +10,7 @@ from anki_audio_quick_editor.editor_region_delete_worker import run_region_delet
 from anki_audio_quick_editor.editor_session import (
     EditorProcessingGuard,
     EditorSession,
+    ProcessingState,
     RegionDeleteRequest,
 )
 from anki_audio_quick_editor.editor_special_transform_worker import (
@@ -44,7 +45,11 @@ class OutputPathDeps:
 
 
 def _current_guard() -> tuple[EditorSession, EditorProcessingGuard]:
-    session = EditorSession(current_filename="clip.mp3", field_index=0, processing_generation=1)
+    session = EditorSession(
+        current_filename="clip.mp3",
+        field_index=0,
+        processing=ProcessingState(generation=1),
+    )
     guard = EditorProcessingGuard(
         generation=1,
         note_id=None,
@@ -108,7 +113,7 @@ def test_special_transform_filename_uses_config_output_format_by_default(tmp_pat
         deps.render_output_names.append(output_path.name)
         output_path.write_bytes(b"rendered")
 
-    deps.replace_current_field_after_noise_removal = (
+    deps.replace_current_field_after_special_transform = (
         lambda _editor, saved_name, **_kwargs: deps.finished_names.append(saved_name)
     )
 
@@ -148,7 +153,7 @@ def test_special_transform_explicit_output_format_overrides_config(tmp_path: Pat
         deps.render_output_names.append(output_path.name)
         output_path.write_bytes(b"rendered")
 
-    deps.replace_current_field_after_noise_removal = (
+    deps.replace_current_field_after_special_transform = (
         lambda _editor, saved_name, **_kwargs: deps.finished_names.append(saved_name)
     )
 

@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from . import audio_pause_pipeline_stage as _stage
-from .audio_artifacts import _artifact_record
+from .audio_artifacts import artifact_record
 from .audio_commands import (
     WAV_MIME_TYPE,
     build_dpdfnet_command,
@@ -32,7 +32,7 @@ from .errors import AudioProcessingError
 DENOISE_EXTERNAL_TIMEOUT_SECONDS = 20 * 60
 
 
-def _analysis_source_for_detection(
+def analysis_source_for_detection(
     config: AudioProcessingConfig,
     ffmpeg_path: Path,
     working_original: Path,
@@ -79,12 +79,12 @@ def _analysis_source_for_detection(
         "implementation": "dpdfnet",
         "analysis_source": str(denoised_analysis),
     }
-    artifacts.append(_artifact_record("denoised_analysis", denoised_analysis, WAV_MIME_TYPE))
+    artifacts.append(artifact_record("denoised_analysis", denoised_analysis, WAV_MIME_TYPE))
     write_manifest()
     return denoised_analysis
 
 
-def _detect_silencedetect_pause_intervals(
+def detect_silencedetect_pause_intervals(
     config: AudioProcessingConfig,
     ffmpeg_path: Path,
     analysis_source: Path,
@@ -123,15 +123,15 @@ def _detect_silencedetect_pause_intervals(
     )
     artifacts.extend(
         [
-            _artifact_record("silencedetect_stderr", raw_silence_path, "text/plain"),
-            _artifact_record("detected_pause_intervals", detected_intervals_path, "application/json"),
+            artifact_record("silencedetect_stderr", raw_silence_path, "text/plain"),
+            artifact_record("detected_pause_intervals", detected_intervals_path, "application/json"),
         ]
     )
     write_manifest()
     return detected_intervals, silence_cmd
 
 
-def _detect_silero_pause_intervals(
+def detect_silero_pause_intervals(
     config: AudioProcessingConfig,
     ffmpeg_path: Path,
     run_dir: Path,
@@ -163,7 +163,7 @@ def _detect_silero_pause_intervals(
         attempted_commands,
         on_command,
     )
-    artifacts.append(_artifact_record("silero_vad_input", analysis_input, WAV_MIME_TYPE))
+    artifacts.append(artifact_record("silero_vad_input", analysis_input, WAV_MIME_TYPE))
     write_manifest()
 
     silero_cmd = build_silero_vad_command(
@@ -184,7 +184,7 @@ def _detect_silero_pause_intervals(
         attempted_commands,
         on_command,
     )
-    artifacts.append(_artifact_record("silero_vad_output", silero_output, WAV_MIME_TYPE))
+    artifacts.append(artifact_record("silero_vad_output", silero_output, WAV_MIME_TYPE))
     raw_silero_path.write_text(silero_result.stderr.strip(), encoding="utf-8")
     speech_intervals = parse_silero_vad_speech_intervals(silero_result.stderr, working_duration_ms)
     detected_intervals = speech_intervals_to_silence_intervals(speech_intervals, working_duration_ms)
@@ -198,9 +198,9 @@ def _detect_silero_pause_intervals(
     )
     artifacts.extend(
         [
-            _artifact_record("silero_vad_stderr", raw_silero_path, "text/plain"),
-            _artifact_record("silero_speech_intervals", speech_intervals_path, "application/json"),
-            _artifact_record("detected_pause_intervals", detected_intervals_path, "application/json"),
+            artifact_record("silero_vad_stderr", raw_silero_path, "text/plain"),
+            artifact_record("silero_speech_intervals", speech_intervals_path, "application/json"),
+            artifact_record("detected_pause_intervals", detected_intervals_path, "application/json"),
         ]
     )
     write_manifest()

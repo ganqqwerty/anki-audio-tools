@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.errors import AudioAlreadyCompactError
@@ -98,7 +98,7 @@ def test_convert_replaces_current_media_using_default_output_format(
         fake_render_converted_audio,
     )
 
-    _handle_bridge_command(editor, "aqe:convert")
+    handle_bridge_command(editor, "aqe:convert")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -108,7 +108,7 @@ def test_convert_replaces_current_media_using_default_output_format(
     assert session.undo_history.pop().filename == "clip.wav"
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
-    assert session.processing is False
+    assert session.processing.active is False
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 
@@ -130,14 +130,14 @@ def test_convert_records_pending_post_edit_playback(tmp_path: Path, monkeypatch)
         fake_render_converted_audio,
     )
 
-    _handle_bridge_command(editor, "aqe:convert")
+    handle_bridge_command(editor, "aqe:convert")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
     assert editor.note.fields == [f"[sound:{saved_name}]"]
-    assert session.pending_post_edit_playback_field_index == 0
-    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
-    assert session.pending_post_edit_playback_source_filename == saved_name
+    assert session.post_edit_playback.pending_field_index == 0
+    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
+    assert session.post_edit_playback.pending_source_filename == saved_name
 
 
 def test_convert_uses_payload_target_format_override(tmp_path: Path, monkeypatch) -> None:
@@ -160,7 +160,7 @@ def test_convert_uses_payload_target_format_override(tmp_path: Path, monkeypatch
         fake_render_converted_audio,
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         json.dumps(
             {
@@ -189,11 +189,11 @@ def test_convert_same_visible_extension_is_noop(tmp_path: Path, monkeypatch) -> 
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not render")),
     )
 
-    _handle_bridge_command(editor, "aqe:convert")
+    handle_bridge_command(editor, "aqe:convert")
 
     editor.mw.col.media.write_data.assert_not_called()
     assert editor.note.fields == ["[sound:clip.MP3]"]
-    assert SESSIONS[editor].processing is False
+    assert SESSIONS[editor].processing.active is False
     assert any("Already in MP3 format." in call.args[0] for call in editor.web.eval.call_args_list)
 
 
@@ -223,7 +223,7 @@ def test_reduce_size_replaces_current_media_as_mp3(tmp_path: Path, monkeypatch) 
         fake_render_size_reduced_audio,
     )
 
-    _handle_bridge_command(editor, "aqe:reduce-size")
+    handle_bridge_command(editor, "aqe:reduce-size")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -232,7 +232,7 @@ def test_reduce_size_replaces_current_media_as_mp3(tmp_path: Path, monkeypatch) 
     assert editor.note.fields == [f"[sound:{saved_name}]"]
     assert session.undo_history.pop().filename == "clip.wav"
     assert session.state == AudioEditState(source_file=saved_name)
-    assert session.processing is False
+    assert session.processing.active is False
 
 
 def test_reduce_size_uses_payload_mode_override(tmp_path: Path, monkeypatch) -> None:
@@ -263,7 +263,7 @@ def test_reduce_size_uses_payload_mode_override(tmp_path: Path, monkeypatch) -> 
         fake_render_size_reduced_audio,
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         json.dumps(
             {
@@ -304,7 +304,7 @@ def test_reduce_size_uses_payload_advanced_overrides(tmp_path: Path, monkeypatch
         fake_render_size_reduced_audio,
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         json.dumps(
             {
@@ -335,9 +335,9 @@ def test_reduce_size_already_compact_is_noop(tmp_path: Path, monkeypatch) -> Non
         fake_render_size_reduced_audio,
     )
 
-    _handle_bridge_command(editor, "aqe:reduce-size")
+    handle_bridge_command(editor, "aqe:reduce-size")
 
     editor.mw.col.media.write_data.assert_not_called()
     assert editor.note.fields == ["[sound:clip.mp3]"]
-    assert SESSIONS[editor].processing is False
+    assert SESSIONS[editor].processing.active is False
     assert any("already compact" in call.args[0] for call in editor.web.eval.call_args_list)

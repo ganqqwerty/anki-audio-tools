@@ -92,11 +92,11 @@ def _audio_module_deps() -> AudioModuleDeps:
         build_convert_audio_command=build_convert_audio_command,
         build_size_reduction_audio_command=build_size_reduction_audio_command,
         resolve_output_policy=resolve_output_policy,
-        render_external_error_message=_render_external_error_message,
-        run_external_command=_run_external_command,
-        external_command_run_kwargs=_external_command_run_kwargs,
+        render_external_error_message=render_external_error_message,
+        run_external_command=run_external_command,
+        external_command_run_kwargs=external_command_run_kwargs,
         make_playback_segment_filename=make_playback_segment_filename,
-        render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
+        render_pause_removal_pipeline_audio=render_pause_removal_pipeline_audio,
         bundled_deep_filter_path=_bundled_deep_filter_path,
     )
 
@@ -191,26 +191,26 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
     return _audio_external.probe_duration_ms(source_path, config)
 
 
-def _run_external_command(
+def run_external_command(
         command: tuple[str, ...],
         launch_error_message: str,
         timeout_seconds: float | None = None,
         env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     _sync_external_dependencies()
-    return _audio_external._run_external_command(command, launch_error_message, timeout_seconds, env)
+    return _audio_external.run_external_command(command, launch_error_message, timeout_seconds, env)
 
 
-def _external_command_run_kwargs() -> dict[str, Any]:
+def external_command_run_kwargs() -> dict[str, Any]:
     _sync_external_dependencies()
-    return _audio_external._external_command_run_kwargs()
+    return _audio_external.external_command_run_kwargs()
 
 
-def _render_external_error_message(
+def render_external_error_message(
         result: subprocess.CompletedProcess[str],
         default_message: str,
 ) -> str:
-    return _audio_external._render_external_error_message(result, default_message)
+    return _audio_external.render_external_error_message(result, default_message)
 
 
 def _sync_pause_dependencies() -> None:
@@ -222,7 +222,7 @@ def _sync_pause_dependencies() -> None:
     )
 
 
-def _render_pause_removal_pipeline_audio(
+def render_pause_removal_pipeline_audio(
     source_path: Path,
     state: AudioEditState,
     config: AudioProcessingConfig,
@@ -234,7 +234,7 @@ def _render_pause_removal_pipeline_audio(
     source_duration_ms: int,
 ) -> AudioProcessingResult:
     _sync_pause_dependencies()
-    return _audio_pause_pipeline._render_pause_removal_pipeline_audio(
+    return _audio_pause_pipeline.render_pause_removal_pipeline_audio(
         source_path,
         state,
         config,

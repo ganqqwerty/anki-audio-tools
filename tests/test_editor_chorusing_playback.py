@@ -11,7 +11,10 @@ import pytest
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import _play_with_request
 from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import (
+    EditorSession,
+    GraphVisualizationState,
+)
 
 
 def test_chorusing_html_playback_status_includes_practice_guidance(tmp_path: Path, monkeypatch) -> None:
@@ -32,7 +35,7 @@ def test_chorusing_html_playback_status_includes_practice_guidance(tmp_path: Pat
         field_index=0,
         current_filename="clip.mp3",
         source_mtime_ns=source.stat().st_mtime_ns,
-        visualized_duration_ms=2000,
+        graph=GraphVisualizationState(visualized_duration_ms=2000),
     )
     SESSIONS[editor] = session
 

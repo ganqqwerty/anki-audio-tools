@@ -62,7 +62,7 @@ def _deps(editor, session: EditorSession, source: Path, config: dict) -> SimpleN
         render_noise_reduced_audio=MagicMock(),
         render_rnnoise_audio=MagicMock(),
         render_voice_only_audio=MagicMock(),
-        replace_current_field_after_noise_removal=MagicMock(),
+        replace_current_field_after_special_transform=MagicMock(),
         request_graph_redraw=MagicMock(),
         sessions={editor: session},
         set_busy=MagicMock(),
@@ -100,7 +100,7 @@ def test_editor_preset_graph_only_runs_graph_with_preset_settings(
     )
 
     assert run_calls[0]["render_graph"] is False
-    assert session.processing is False
+    assert session.processing.active is False
     deps.analyze_current_async.assert_called_once_with(
         editor,
         graph_settings={
@@ -157,8 +157,8 @@ def test_editor_preset_transform_replaces_audio_and_requests_graph(
         deps,
     )
 
-    deps.replace_current_field_after_noise_removal.assert_called_once()
-    assert deps.replace_current_field_after_noise_removal.call_args.kwargs["output_path"] == final_audio
+    deps.replace_current_field_after_special_transform.assert_called_once()
+    assert deps.replace_current_field_after_special_transform.call_args.kwargs["output_path"] == final_audio
     deps.request_graph_redraw.assert_called_once()
     assert deps.request_graph_redraw.call_args.args[2]["voiceRange"] == "general"
     assert not final_audio.parent.exists()

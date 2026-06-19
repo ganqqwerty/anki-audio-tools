@@ -16,8 +16,8 @@ from .audio_commands import (
     build_deep_filter_prepare_command,
 )
 from .audio_external import (
-    _run_external_command,
     probe_duration_ms,
+    run_external_command,
 )
 from .audio_output_policy import (
     AudioOutputPolicy,
@@ -144,7 +144,7 @@ def _run_audio_stage(
 ) -> subprocess.CompletedProcess[str]:
     if on_command:
         on_command(command)
-    result = _run_external_command(command, launch_error)
+    result = run_external_command(command, launch_error)
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or failure_message)
     return result

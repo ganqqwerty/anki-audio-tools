@@ -15,6 +15,11 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "external_links",
         ),
     ),
+    "editor_edit_history": contract(
+        "editor_edit_history",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_state", "editor_history_settings"),
+    ),
     "editor_media": contract(
         "editor_media",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -34,6 +39,7 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         "editor_history_snapshot",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
+            "editor_edit_history",
             "editor_history_settings",
             "editor_session",
             "i18n",
@@ -42,12 +48,36 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_region_delete_request": contract(
         "editor_region_delete_request",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("editor_session", "i18n", "sound_refs"),
+        allowed_addon_deps=("i18n", "sound_refs"),
+    ),
+    "editor_processing_guard": contract(
+        "editor_processing_guard",
+        layer=Layer.IMPORT_SAFE_CORE,
+    ),
+    "editor_recording_state": contract(
+        "editor_recording_state",
+        layer=Layer.IMPORT_SAFE_CORE,
+    ),
+    "editor_session_state": contract(
+        "editor_session_state",
+        layer=Layer.IMPORT_SAFE_CORE,
+    ),
+    "editor_session_types": contract(
+        "editor_session_types",
+        layer=Layer.IMPORT_SAFE_CORE,
     ),
     "editor_session": contract(
         "editor_session",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "editor_history_settings"),
+        allowed_addon_deps=(
+            "audio_state",
+            "editor_edit_history",
+            "editor_processing_guard",
+            "editor_recording_state",
+            "editor_region_delete_request",
+            "editor_session_state",
+            "editor_session_types",
+        ),
     ),
     "editor_ui": contract("editor_ui", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),
     "editor_deps_protocols": contract(

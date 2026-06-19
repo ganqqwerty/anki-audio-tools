@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
 
@@ -93,7 +93,7 @@ def test_pitch_hum_replaces_current_media_and_resets_state(tmp_path: Path, monke
         fake_render_pitch_hum_audio,
     )
 
-    _handle_bridge_command(editor, "aqe:pitch-hum")
+    handle_bridge_command(editor, "aqe:pitch-hum")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -102,7 +102,7 @@ def test_pitch_hum_replaces_current_media_and_resets_state(tmp_path: Path, monke
     assert session.undo_history.pop().filename == "clip.mp3"
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
-    assert session.processing is False
+    assert session.processing.active is False
     assert session.pending_status == PendingEditorStatus(0, message="Rendered pitch hum with Pitch-to-hum mode.")
     editor.loadNote.assert_called_once_with(focusTo=0)
 
@@ -136,7 +136,7 @@ def test_pitch_hum_uses_current_graph_analysis_settings(tmp_path: Path, monkeypa
         fake_render_pitch_hum_audio,
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         json.dumps(
             {
@@ -194,7 +194,7 @@ def _assert_pitch_tier_renderer_selection(
         fake_renderer(pitch_tier_calls, b"pitch-tier"),
     )
 
-    _handle_bridge_command(editor, command)
+    handle_bridge_command(editor, command)
 
     assert direct_calls == []
     assert pitch_tier_calls == [source]

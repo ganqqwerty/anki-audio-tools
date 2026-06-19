@@ -11,17 +11,17 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_actions import BRIDGE_COMMANDS
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command, _set_busy
-from anki_audio_quick_editor.editor_integration import (
-    _on_editor_did_init,
-    _on_editor_will_load_note,
-    register_editor_hooks,
-)
+from anki_audio_quick_editor.editor_bridge_hooks import on_editor_did_init
+from anki_audio_quick_editor.editor_callbacks import _set_busy, handle_bridge_command
+from anki_audio_quick_editor.editor_integration import register_editor_hooks
 from anki_audio_quick_editor.editor_media import audio_field_indices
+from anki_audio_quick_editor.editor_note_load_hooks import on_editor_will_load_note
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import (
+    AnalysisState,
     EditorSession,
     PendingEditorStatus,
+    PlaybackState,
     UndoHistory,
 )
 from anki_audio_quick_editor.editor_webview_injection import (
@@ -37,8 +37,8 @@ def test_register_editor_hooks() -> None:
 
     hooks.editor_did_init.append.assert_called_once()
     hooks.editor_will_load_note.append.assert_called_once()
-    assert hooks.editor_did_init.append.call_args.args == (_on_editor_did_init,)
-    assert hooks.editor_will_load_note.append.call_args.args == (_on_editor_will_load_note,)
+    assert hooks.editor_did_init.append.call_args.args == (on_editor_did_init,)
+    assert hooks.editor_will_load_note.append.call_args.args == (on_editor_will_load_note,)
 
 
 def test_entrypoint_registers_editor_startup_hook() -> None:
@@ -52,12 +52,10 @@ def test_entrypoint_registers_editor_startup_hook() -> None:
 
 
 def test_editor_init_registers_all_bridge_commands(tmp_path: Path) -> None:
-    from anki_audio_quick_editor.editor_integration import _on_editor_did_init
-
     editor = SimpleNamespace(_links={}, mw=MagicMock(), web=MagicMock(), currentField=0)
     editor.mw.col.media.dir.return_value = str(tmp_path)
 
-    _on_editor_did_init(editor)
+    on_editor_did_init(editor)
 
     assert set(BRIDGE_COMMANDS) <= set(editor._links)
 
@@ -197,7 +195,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
-    _handle_bridge_command(editor, "aqe:undo")
+    handle_bridge_command(editor, "aqe:undo")
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert session.state == AudioEditState("clip.mp3")
@@ -211,7 +209,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
         "clip__aqe_first.mp3",
         status_summary="Increased speed to x1.5.",
     )
-    _handle_bridge_command(editor, "aqe:redo")
+    handle_bridge_command(editor, "aqe:redo")
 
     assert editor.note.fields == ["[sound:clip__aqe_first.mp3]"]
     assert session.state == generated_state
@@ -223,88 +221,9 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": false' in call and '"canRedo": true' in call for call in evals)
     assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": true' in call and '"canRedo": false' in call for call in evals)
-    assert session.pending_post_edit_playback_field_index == 0
-    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
-    assert session.pending_post_edit_playback_source_filename == "clip__aqe_first.mp3"
-
-
-def _history_editor(tmp_path: Path) -> tuple[object, EditorSession]:
-    media_dir = tmp_path / "media"
-    media_dir.mkdir()
-    for name in ["clip0.mp3", "clip1.mp3", "clip2.mp3", "clip3.mp3"]:
-        (media_dir / name).write_bytes(name.encode("utf-8"))
-
-    class Editor:
-        pass
-
-    editor = Editor()
-    editor.currentField = 0
-    editor.note = SimpleNamespace(fields=["[sound:clip3.mp3]"])
-    editor.web = MagicMock()
-    editor.loadNote = MagicMock()
-    editor.mw = SimpleNamespace(
-        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
-        addonManager=SimpleNamespace(
-            addonFromModule=lambda _module: "addon",
-            getConfig=lambda _addon: {"editor_history_size": 100},
-        ),
-    )
-    session = EditorSession(
-        state=AudioEditState("clip3.mp3"),
-        field_index=0,
-        current_filename="clip3.mp3",
-        status_summary="Third edit",
-    )
-    session.undo_history.push(AudioEditState("clip0.mp3"), "clip0.mp3", status_summary="Original")
-    session.undo_history.push(AudioEditState("clip1.mp3"), "clip1.mp3", status_summary="First edit")
-    session.undo_history.push(AudioEditState("clip2.mp3"), "clip2.mp3", status_summary="Second edit")
-    SESSIONS[editor] = session
-    return editor, session
-
-
-def test_history_jump_undo_restores_selected_depth(tmp_path: Path, monkeypatch) -> None:
-    editor, session = _history_editor(tmp_path)
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
-    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
-
-    _handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":2}')
-
-    assert editor.note.fields == ["[sound:clip1.mp3]"]
-    assert session.current_filename == "clip1.mp3"
-    assert [entry.filename for entry in session.undo_history.entries] == ["clip0.mp3"]
-    assert [entry.filename for entry in session.redo_history.entries] == ["clip3.mp3", "clip2.mp3"]
-
-
-def test_history_jump_rejects_out_of_range_without_partial_restore(tmp_path: Path, monkeypatch) -> None:
-    editor, session = _history_editor(tmp_path)
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
-
-    _handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":20}')
-
-    assert editor.note.fields == ["[sound:clip3.mp3]"]
-    assert session.current_filename == "clip3.mp3"
-    assert [entry.filename for entry in session.undo_history.entries] == ["clip0.mp3", "clip1.mp3", "clip2.mp3"]
-    assert session.redo_history.entries == []
-
-
-def test_history_jump_redo_restores_selected_depth(tmp_path: Path, monkeypatch) -> None:
-    editor, session = _history_editor(tmp_path)
-    session.undo_history.clear()
-    session.redo_history.push(AudioEditState("clip3.mp3"), "clip3.mp3", status_summary="Third edit")
-    session.redo_history.push(AudioEditState("clip2.mp3"), "clip2.mp3", status_summary="Second edit")
-    editor.note.fields = ["[sound:clip1.mp3]"]
-    session.state = AudioEditState("clip1.mp3")
-    session.current_filename = "clip1.mp3"
-    session.status_summary = "First edit"
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
-    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
-
-    _handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"redo","steps":2}')
-
-    assert editor.note.fields == ["[sound:clip3.mp3]"]
-    assert session.current_filename == "clip3.mp3"
-    assert [entry.filename for entry in session.undo_history.entries] == ["clip1.mp3", "clip2.mp3"]
-    assert session.redo_history.entries == []
+    assert session.post_edit_playback.pending_field_index == 0
+    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
+    assert session.post_edit_playback.pending_source_filename == "clip__aqe_first.mp3"
 
 
 def test_editor_settings_command_opens_settings_and_refreshes_after_save(
@@ -328,10 +247,8 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
-        analysis_busy=True,
-        playback_active=True,
-        playback_paused=True,
-        playback_preparing=True,
+        analysis=AnalysisState(busy=True),
+        playback=PlaybackState(active=True, paused=True, preparing=True),
     )
     editor.loadNote = MagicMock(side_effect=lambda **_kwargs: reload_statuses.append(_initial_status_by_field(session)))
     SESSIONS[editor] = session
@@ -342,19 +259,19 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.SETTINGS_OPENER", fake_settings_opener)
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:settings")
+    handle_bridge_command(editor, "aqe:settings")
 
     assert len(callbacks) == 1
     assert any("Opened settings." in call.args[0] for call in editor.web.eval.call_args_list)
 
     callbacks[0].on_saved()
 
-    assert session.analysis_generation == 1
-    assert session.processing is False
-    assert session.analysis_busy is False
-    assert session.playback_active is False
-    assert session.playback_paused is False
-    assert session.playback_preparing is False
+    assert session.analysis.generation == 1
+    assert session.processing.active is False
+    assert session.analysis.busy is False
+    assert session.playback.active is False
+    assert session.playback.paused is False
+    assert session.playback.preparing is False
     assert reload_statuses == [{0: {"kind": "info", "message": "Closed settings."}}]
     assert session.pending_status == PendingEditorStatus(0, message="Closed settings.")
     assert editor.loadNote.call_args.args == ()
@@ -391,7 +308,7 @@ def test_editor_settings_command_reports_closed_settings_without_refresh_on_clos
         lambda callback: callbacks.append(callback),
     )
 
-    _handle_bridge_command(editor, "aqe:settings")
+    handle_bridge_command(editor, "aqe:settings")
     callbacks[0].on_closed()
 
     assert any("Opened settings." in call.args[0] for call in editor.web.eval.call_args_list)

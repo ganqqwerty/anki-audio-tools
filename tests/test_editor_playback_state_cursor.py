@@ -11,7 +11,10 @@ import pytest
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import _set_cursor_from_web
 from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import (
+    EditorSession,
+    GraphVisualizationState,
+)
 
 
 def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Path, monkeypatch) -> None:
@@ -32,7 +35,7 @@ def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Pat
         field_index=0,
         current_filename="clip.mp3",
         source_mtime_ns=source.stat().st_mtime_ns,
-        visualized_duration_ms=2000,
+        graph=GraphVisualizationState(visualized_duration_ms=2000),
     )
     SESSIONS[editor] = session
 
@@ -50,8 +53,8 @@ def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Pat
     _set_cursor_from_web(editor)
 
     assert session.cursor_ms == 1400
-    assert session.playback_active is True
-    assert session.playback_paused is False
+    assert session.playback.active is True
+    assert session.playback.paused is False
 
 
 def test_native_cursor_restart_intent_keeps_selected_end_boundary(tmp_path: Path, monkeypatch) -> None:
@@ -72,9 +75,11 @@ def test_native_cursor_restart_intent_keeps_selected_end_boundary(tmp_path: Path
         field_index=0,
         current_filename="clip.m4a",
         source_mtime_ns=source.stat().st_mtime_ns,
-        visualized_duration_ms=2000,
-        visualized_filenames_by_field={0: "clip.m4a"},
-        visualized_durations_by_field={0: 2000},
+        graph=GraphVisualizationState(
+            visualized_duration_ms=2000,
+            filenames_by_field={0: "clip.m4a"},
+            durations_by_field={0: 2000},
+        ),
     )
     SESSIONS[editor] = session
     starts: list[tuple[int, int | None]] = []

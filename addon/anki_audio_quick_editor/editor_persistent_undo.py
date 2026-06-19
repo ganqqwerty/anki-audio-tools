@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .audio_state import AudioEditState
+from .editor_edit_history import UndoEntry
 from .editor_history_settings import normalize_editor_history_size
 from .editor_reload_status import reload_editor_with_pending_status
-from .editor_session import EditorSession, UndoEntry
+from .editor_session import EditorSession
 from .editor_status import restored_status_summary, undo_status_message
 from .error_codes import AQE_PERSISTENT_UNDO_UNAVAILABLE, coded_error
 from .i18n import t
@@ -223,7 +224,7 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
     state = audio_edit_state_from_json(operation.old_state_json) or AudioEditState(operation.old_filename)
     entry = UndoEntry(state, operation.old_filename, status_summary=operation.status_summary)
     deps.stop_session_playback(session)
-    session.post_edit_playback_generation += 1
+    session.post_edit_playback.bump()
     editor.note.fields[field_index] = restored_html
     repository = repository_for_editor(editor)
     undone_at_ms = _now_ms()
@@ -233,14 +234,12 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
     session.current_filename = operation.old_filename
     session.field_index = field_index
     session.status_summary = restored_status_summary(entry)
-    session.next_status_summary = ""
     session.cursor_ms = 0
-    session.playback_active = False
-    session.playback_paused = False
+    session.finish_processing_without_edit()
     deps.request_playback_after_edit(
         editor,
         field_index,
-        require_graph_redraw=field_index in session.graph_active_fields,
+        require_graph_redraw=field_index in session.analysis.graph_active_fields,
     )
     reload_editor_with_pending_status(
         editor,

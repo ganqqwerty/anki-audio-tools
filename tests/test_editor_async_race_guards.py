@@ -16,7 +16,7 @@ from anki_audio_quick_editor.editor_session import (
     RegionDeleteRequest,
     reset_for_note_load,
 )
-from anki_audio_quick_editor.editor_special_transforms import (
+from anki_audio_quick_editor.editor_transform_orchestration import (
     run_special_audio_transform_async,
 )
 from tests.race_test_helpers import (
@@ -126,7 +126,7 @@ def _special_deps(tmp_path: Path, session: EditorSession, source: Path) -> Simpl
         desired_name,
         output_path.read_bytes(),
     )
-    deps.replace_current_field_after_noise_removal = MagicMock()
+    deps.replace_current_field_after_special_transform = MagicMock()
     deps.render_failed = MagicMock()
     deps.log_special_transform_failure = MagicMock()
     deps.stop_session_playback = MagicMock()
@@ -170,7 +170,7 @@ def test_standard_render_completion_does_not_replace_after_note_change(tmp_path:
     assert not list((tmp_path / "media").glob("*__aqe_race.mp3")), sorted(
         path.name for path in (tmp_path / "media").glob("*")
     )
-    assert session.processing is False
+    assert session.processing.active is False
 
 
 def test_standard_render_failure_does_not_reset_new_note_busy_state(tmp_path: Path) -> None:
@@ -205,7 +205,7 @@ def test_standard_render_failure_does_not_reset_new_note_busy_state(tmp_path: Pa
     join_background_threads()
 
     deps.render_failed.assert_not_called()
-    assert session.processing is False
+    assert session.processing.active is False
 
 
 def test_special_transform_completion_does_not_replace_after_note_change(tmp_path: Path) -> None:
@@ -248,10 +248,10 @@ def test_special_transform_completion_does_not_replace_after_note_change(tmp_pat
     barrier.allow_completion()
     join_background_threads()
 
-    deps.replace_current_field_after_noise_removal.assert_not_called()
+    deps.replace_current_field_after_special_transform.assert_not_called()
     assert editor.note.fields[0] == "[sound:other.mp3]", editor.note.fields
     assert not list(media_dir.glob("*__aqe_special_race.mp3")), sorted(path.name for path in media_dir.glob("*"))
-    assert session.processing is False
+    assert session.processing.active is False
 
 
 def test_region_delete_completion_does_not_replace_after_field_change(tmp_path: Path) -> None:
@@ -298,4 +298,4 @@ def test_region_delete_completion_does_not_replace_after_field_change(tmp_path: 
     deps.replace_current_field_after_region_delete.assert_not_called()
     assert editor.note.fields == ["[sound:clip.mp3]", "[sound:other.mp3]"], editor.note.fields
     assert not list(media_dir.glob("*__aqe_*.mp3")), sorted(path.name for path in media_dir.glob("*"))
-    assert session.processing is False
+    assert session.processing.active is False

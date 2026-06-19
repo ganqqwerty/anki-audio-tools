@@ -2,15 +2,43 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from dataclasses import dataclass
+from typing import Any, Literal, cast
 
-from .editor_session import RegionDeleteOperation, RegionDeleteRequest
 from .i18n import t
 from .sound_refs import safe_media_basename
 
+RegionDeleteOperation = Literal["delete-selection", "delete-rest"]
 REGION_DELETE_OPERATION: RegionDeleteOperation = "delete-selection"
 REGION_KEEP_OPERATION: RegionDeleteOperation = "delete-rest"
 REGION_DELETE_OPERATIONS = {REGION_DELETE_OPERATION, REGION_KEEP_OPERATION}
+
+
+@dataclass(frozen=True)
+class RegionDeleteRequest:
+    """Frontend request to delete or keep a selected graph region."""
+
+    field_index: int
+    source_filename: str
+    selection_start_ms: int
+    selection_end_ms: int
+    cursor_ms: int
+    duration_ms: int
+    trigger: str
+    playback_active: bool
+    operation: RegionDeleteOperation = "delete-selection"
+
+    @property
+    def selected_duration_ms(self) -> int:
+        """Return the normalized selected duration."""
+        return self.selection_end_ms - self.selection_start_ms
+
+    @property
+    def removed_duration_ms(self) -> int:
+        """Return the approximate duration removed by this operation."""
+        if self.operation == "delete-rest":
+            return self.duration_ms - self.selected_duration_ms
+        return self.selected_duration_ms
 
 
 def parse_region_delete_request(request: Any) -> RegionDeleteRequest | None:

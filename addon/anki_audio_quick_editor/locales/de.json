@@ -607,6 +607,7 @@
   "settings.toolbar_visibility.mode_locked_tooltip": "Diese Anzeigeeinstellung ist gesperrt, weil die Schaltfläche zu einer gruppierten Werkzeugleisten-Gruppe gehört.",
   "tooltip.disabled.batch_running": "Während der Stapelverarbeitung deaktiviert.",
   "tooltip.disabled.editor_busy": "Warte, bis die aktuelle Audioverarbeitung abgeschlossen ist.",
+  "tooltip.disabled.audio_metadata_loading": "Audio-Metadaten werden geladen...",
   "tooltip.disabled.recording_active": "Stoppe die aktuelle Aufnahme, bevor du diese Steuerung verwendest.",
   "editor.selection_shift.start_previous": "Auswahlanfang zum vorherigen Marker verschieben",
   "editor.selection_shift.start_next": "Auswahlanfang zum nächsten Marker verschieben",

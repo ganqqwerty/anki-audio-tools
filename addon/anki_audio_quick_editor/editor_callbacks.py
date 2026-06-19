@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from functools import wraps
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 from . import (
     editor_analysis,
     editor_bridge,
+    editor_conversion,
     editor_dependencies,
     editor_deps_protocols,
     editor_frontend_callbacks,
@@ -23,7 +24,11 @@ from . import (
     editor_settings_actions,
     editor_sharing,
     editor_source_metadata,
+    editor_special_transforms,
     editor_split_defaults,
+    editor_transform_failure_support,
+    editor_transform_orchestration,
+    editor_transform_post_processing,
 )
 
 _dispose_editor_frontend_controls = editor_frontend_callbacks._dispose_editor_frontend_controls
@@ -40,7 +45,7 @@ _history_availability_expression = editor_frontend_callbacks._history_availabili
 _history_snapshot_expression = editor_frontend_callbacks._history_snapshot_expression
 _handle_post_edit_playback_ready = editor_frontend_callbacks._handle_post_edit_playback_ready
 _main = editor_frontend_callbacks._main
-_pending_post_edit_playback_payload = editor_frontend_callbacks._pending_post_edit_playback_payload
+pending_post_edit_playback_payload = editor_frontend_callbacks._pending_post_edit_playback_payload
 _playback_after_edit_expression = editor_frontend_callbacks._playback_after_edit_expression
 _request_history_availability_after_edit = editor_frontend_callbacks._request_history_availability_after_edit
 _request_history_snapshot_after_edit = editor_frontend_callbacks._request_history_snapshot_after_edit
@@ -56,24 +61,69 @@ _set_busy = editor_frontend_callbacks._set_busy
 _set_busy_for_field = editor_frontend_callbacks._set_busy_for_field
 
 
+_EXPORT_NAMES = (
+    "analysis_failed", "analysis_finished", "analyze_current_async",
+    "analyze_field_from_frontend", "analyze_requested_field_async", "begin_field_analysis",
+    "can_persistent_undo", "cleanup_temp_playback", "convert_async",
+    "delete_selection_from_frontend", "delete_selection_with_request", "denoise_standard_async",
+    "dispose_editor_frontend_controls", "dpdfnet_async", "end_field_analysis",
+    "eval_history_availability", "eval_history_snapshot", "eval_learner_recording_state",
+    "eval_playback_state", "eval_status", "eval_visualizer_status",
+    "eval_visualizer_status_for_field", "eval_with_callback", "fail_field_analysis_without_generation",
+    "finish_ignored_field_analysis", "finish_shared_audio", "graph_redraw_expression",
+    "handle_bridge_command", "handle_editor_frontend_log", "handle_non_processing_command",
+    "handle_pending_command_payload", "handle_post_edit_playback_ready", "history_availability_expression",
+    "history_jump", "history_snapshot_expression", "is_current_field_analysis",
+    "latest_persistent_undo_item", "log_editor_frontend_payload", "log_special_transform_failure",
+    "main", "open_external_url", "open_settings_from_editor",
+    "parse_graph_analysis_request", "parse_region_delete_request", "pending_post_edit_playback_payload",
+    "persistent_undo_items", "pitch_hum_async", "play",
+    "play_ended", "play_learner_recording", "play_with_request",
+    "playback_after_edit_expression", "playback_segment_failed", "playback_segment_ready",
+    "record_dpdfnet_failure_context", "record_learner_voice", "record_rnnoise_failure_context",
+    "record_spleeter_failure_context", "record_standard_persistent_undo", "redo",
+    "reduce_size_async", "refresh_editor_after_settings_save", "region_delete_log_context",
+    "region_delete_source_filename",
+    "region_delete_trigger", "render_and_replace_async", "render_failed",
+    "replace_current_field_after_noise_removal", "replace_current_field_after_region_delete",
+    "replace_current_field_after_render", "replace_current_field_after_special_transform",
+    "request_graph_redraw", "request_history_availability_after_edit",
+    "request_history_snapshot_after_edit", "request_playback_after_edit", "request_source_metadata",
+    "required_region_delete_values", "restore_history_entry", "restore_persistent_undo",
+    "restore_persistent_undo_steps", "retry_graph_redraw", "retry_history_availability",
+    "retry_history_snapshot", "rnnoise_async", "run_processing_preset_async",
+    "run_special_audio_transform_async", "save_split_defaults_from_frontend",
+    "schedule_graph_redraw_attempt", "schedule_history_availability_attempt",
+    "schedule_history_snapshot_attempt", "set_busy", "set_busy_for_field",
+    "set_cursor_from_web", "share_current_audio_file", "share_failed",
+    "share_learner_recording_file", "show_current_audio_file", "show_learner_recording_file",
+    "start_field_analysis_async", "start_playback_from_cursor", "stop_audio_playback",
+    "stop_learner_recording", "stop_playback", "stop_session_playback",
+    "undo", "update_state_and_render", "voice_only_async", "write_generated_media",
+)
+DepsT = TypeVar("DepsT")
+
+
 def _exports() -> SimpleNamespace:
-    return SimpleNamespace(
-        **{
-            name[1:]: value
-            for name, value in globals().items()
-            if name.startswith("_") and callable(value)
-        }
-    )
+    return SimpleNamespace(**{name: _export_value(name) for name in _EXPORT_NAMES})
 
 
-def _deps[DepsT](builder: Callable[[Any, Any], DepsT]) -> DepsT:
+def _export_value(name: str) -> Any:
+    value = globals().get(name)
+    if value is not None:
+        return value
+    return globals()[f"_{name}"]
+
+
+def _deps(builder: Callable[[Any, Any], DepsT]) -> DepsT:  # noqa: UP047 - system dev runner parses this with Python 3.9
     """Build a dependency namespace for the given builder.
 
     Passes the same ``_exports()`` namespace to both ``callbacks`` and
     ``frontend_callbacks`` parameters.  The builders use separate parameter
     names for readability and to document which side of the concern boundary
     each dependency serves, but the underlying namespace is shared because
-    ``_exports()`` collects all ``_``-prefixed module-level callables.
+    ``_exports()`` publishes an explicit callback surface shared by both
+    dependency namespaces.
     """
     exports = _exports()
     return builder(exports, exports)
@@ -136,7 +186,7 @@ def _with_keyword_deps(
     return _wrapper
 
 
-_handle_bridge_command = _with_deps(editor_bridge.handle_bridge_command, _bridge_deps)
+handle_bridge_command = _with_deps(editor_bridge.handle_bridge_command, _bridge_deps)
 _handle_pending_command_payload = _with_deps(editor_bridge.handle_pending_command_payload, _bridge_deps)
 _handle_non_processing_command = _with_deps(editor_bridge.handle_non_processing_command, _bridge_deps)
 _handle_editor_frontend_log = _with_deps(editor_bridge.handle_editor_frontend_log, _bridge_deps)
@@ -167,29 +217,30 @@ _restore_persistent_undo_steps = _with_deps(
     _history_deps,
 )
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
-_denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
-_convert_async = _with_deps(editor_processing.convert_async, _processing_deps)
-_rnnoise_async = _with_deps(editor_processing.rnnoise_async, _processing_deps)
-_dpdfnet_async = _with_deps(editor_processing.dpdfnet_async, _processing_deps)
-_voice_only_async = _with_deps(editor_processing.voice_only_async, _processing_deps)
-_pitch_hum_async = _with_deps(editor_processing.pitch_hum_async, _processing_deps)
+_denoise_standard_async = _with_deps(editor_special_transforms.denoise_standard_async, _processing_deps)
+_convert_async = _with_deps(editor_conversion.convert_async, _processing_deps)
+_rnnoise_async = _with_deps(editor_special_transforms.rnnoise_async, _processing_deps)
+_dpdfnet_async = _with_deps(editor_special_transforms.dpdfnet_async, _processing_deps)
+_voice_only_async = _with_deps(editor_special_transforms.voice_only_async, _processing_deps)
+_pitch_hum_async = _with_deps(editor_special_transforms.pitch_hum_async, _processing_deps)
 _run_processing_preset_async = _with_deps(
     editor_presets.run_processing_preset_async,
     _processing_deps,
 )
-_reduce_size_async = _with_deps(editor_processing.reduce_size_async, _processing_deps)
+_reduce_size_async = _with_deps(editor_special_transforms.reduce_size_async, _processing_deps)
 _run_special_audio_transform_async = _with_keyword_deps(
-    editor_processing.run_special_audio_transform_async,
+    editor_transform_orchestration.run_special_audio_transform_async,
     _processing_deps,
 )
-_replace_current_field_after_noise_removal = _with_deps(
-    editor_processing.replace_current_field_after_noise_removal,
+_replace_current_field_after_special_transform = _with_deps(
+    editor_transform_post_processing.replace_current_field_after_special_transform,
     _processing_deps,
 )
-_record_rnnoise_failure_context = editor_processing.record_rnnoise_failure_context
-_record_dpdfnet_failure_context = editor_processing.record_dpdfnet_failure_context
-_record_spleeter_failure_context = editor_processing.record_spleeter_failure_context
-_log_special_transform_failure = editor_processing.log_special_transform_failure
+_replace_current_field_after_noise_removal = _replace_current_field_after_special_transform
+_record_rnnoise_failure_context = editor_transform_failure_support.record_rnnoise_failure_context
+_record_dpdfnet_failure_context = editor_transform_failure_support.record_dpdfnet_failure_context
+_record_spleeter_failure_context = editor_transform_failure_support.record_spleeter_failure_context
+_log_special_transform_failure = editor_transform_failure_support.log_special_transform_failure
 
 _delete_selection_from_frontend = _with_deps(
     editor_region_delete.delete_selection_from_frontend,
@@ -211,7 +262,7 @@ _region_delete_trigger = editor_region_delete.region_delete_trigger
 _region_delete_log_context = editor_region_delete.region_delete_log_context
 
 _stop_audio_playback = editor_playback.stop_audio_playback
-_stop_session_playback = editor_runtime.stop_session_playback
+stop_session_playback = editor_runtime.stop_session_playback
 _cleanup_temp_playback = editor_playback.cleanup_temp_playback
 _play = _with_deps(editor_playback.play, _playback_deps)
 _play_ended = _with_deps(editor_playback.play_ended, _playback_deps)

@@ -21,9 +21,9 @@ from .audio_commands import (
     build_size_reduction_audio_command,
 )
 from .audio_external import (
-    _external_command_run_kwargs,
-    _render_external_error_message,
+    external_command_run_kwargs,
     probe_duration_ms,
+    render_external_error_message,
 )
 from .audio_formats import (
     DEFAULT_OUTPUT_FORMAT,
@@ -41,7 +41,7 @@ from .audio_output_policy import (
     resolve_output_policy_from_metadata,
     synthetic_audio_metadata,
 )
-from .audio_pause_pipeline import _render_pause_removal_pipeline_audio
+from .audio_pause_pipeline import render_pause_removal_pipeline_audio
 from .audio_size_reduction import size_reduction_plan_from_metadata
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
@@ -71,7 +71,7 @@ def render_audio(
         output_policy = _resolve_filename_output_policy(source_path, config, output_path)
         if output_path is None:
             output_path = Path(tempfile.mkstemp(prefix="aqe_preview_", suffix=output_policy.extension)[1])
-        return _render_pause_removal_pipeline_audio(
+        return render_pause_removal_pipeline_audio(
             source_path,
             state,
             config,
@@ -99,7 +99,7 @@ def render_audio(
     result = _run_render_command(cmd, "Could not start audio processing.")
     if result.returncode != 0:
         raise AudioProcessingError(
-            _render_external_error_message(result, "Audio processing failed.")
+            render_external_error_message(result, "Audio processing failed.")
         )
     return AudioProcessingResult(
         output_path=output_path,
@@ -141,7 +141,7 @@ def render_converted_audio(
     result = _run_render_command(cmd, "Could not start audio conversion.")
     if result.returncode != 0:
         raise AudioProcessingError(
-            _render_external_error_message(result, "Audio conversion failed.")
+            render_external_error_message(result, "Audio conversion failed.")
         )
     return AudioProcessingResult(
         output_path=output_path,
@@ -182,7 +182,7 @@ def render_size_reduced_audio(
     result = _run_render_command(cmd, "Could not start audio size reduction.")
     if result.returncode != 0:
         raise AudioProcessingError(
-            _render_external_error_message(result, "Audio size reduction failed.")
+            render_external_error_message(result, "Audio size reduction failed.")
         )
     if output_path.stat().st_size >= source_path.stat().st_size:
         output_path.unlink(missing_ok=True)
@@ -237,7 +237,7 @@ def _render_region_filter_complex(
     result = _run_render_command(cmd, "Could not start selected-region rendering.")
     if result.returncode != 0:
         raise AudioProcessingError(
-            _render_external_error_message(result, "Audio processing failed.")
+            render_external_error_message(result, "Audio processing failed.")
         )
     return AudioProcessingResult(
         output_path=output_path,
@@ -298,7 +298,7 @@ def render_playback_segment(
     result = _run_render_command(cmd, "Could not start playback segment rendering.")
     if result.returncode != 0:
         raise AudioProcessingError(
-            _render_external_error_message(result, "Playback segment rendering failed.")
+            render_external_error_message(result, "Playback segment rendering failed.")
         )
     return AudioProcessingResult(
         output_path=output_path,
@@ -333,7 +333,7 @@ def _run_render_command(command: tuple[str, ...], launch_error: str) -> subproce
             check=False,
             encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
             errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            **_external_command_run_kwargs(),
+            **external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
         raise AudioProcessingError(launch_error_message(launch_error, exc)) from exc

@@ -28,8 +28,8 @@ from .audio_export_types import (
     AudioExportRequest,
 )
 from .audio_external import (
-    _render_external_error_message,
-    _run_external_command,
+    render_external_error_message,
+    run_external_command,
 )
 from .audio_processor import find_ffmpeg
 from .batch_operation_types import BatchNoteSnapshot
@@ -297,9 +297,9 @@ def _concat_paths_with_silence(
 
 
 def _run_export_command(command: tuple[str, ...], launch_error_prefix: str) -> None:
-    result = _run_external_command(command, launch_error_prefix)
+    result = run_external_command(command, launch_error_prefix)
     if result.returncode != 0:
-        raise RuntimeError(_render_external_error_message(result, "Audio export failed."))
+        raise RuntimeError(render_external_error_message(result, "Audio export failed."))
 
 
 def _add_log(report: AudioExportReport, on_log: LogCallback, line: str) -> None:

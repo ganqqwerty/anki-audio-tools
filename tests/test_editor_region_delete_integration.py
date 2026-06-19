@@ -261,9 +261,9 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
         "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list
     )
-    assert session.pending_post_edit_playback_field_index == 1
-    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
-    assert session.pending_post_edit_playback_source_filename == "clip__aqe_cut.mp3"
+    assert session.post_edit_playback.pending_field_index == 1
+    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
+    assert session.post_edit_playback.pending_source_filename == "clip__aqe_cut.mp3"
     persistent_recorder.assert_called_once()
     call = persistent_recorder.call_args.kwargs
     assert call["field_index"] == 1

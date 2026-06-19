@@ -247,6 +247,7 @@ def test_run_batch_logs_preset_selection(monkeypatch, tmp_path: Path) -> None:
 def test_run_batch_in_background_publishes_changes_and_finishes_dialog(monkeypatch, tmp_path: Path) -> None:
     report = BatchRunReport(total=1, processed=1, written=1, changes=object())
     calls: list[object] = []
+    published: list[tuple[object, object, object]] = []
 
     class Taskman:
         def run_on_main(self, callback) -> None:
@@ -277,6 +278,10 @@ def test_run_batch_in_background_publishes_changes_and_finishes_dialog(monkeypat
         finish_with_error=MagicMock(),
     )
     monkeypatch.setattr("anki_audio_quick_editor.browser_batch_runner.run_batch", lambda *_args, **_kwargs: report)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_batch_runner._publish_operation_finished",
+        lambda mw, changes, initiator: published.append((mw, changes, initiator)),
+    )
 
     run_batch_in_background(
         browser,
@@ -287,8 +292,7 @@ def test_run_batch_in_background_publishes_changes_and_finishes_dialog(monkeypat
 
     assert calls[0] == ("uses_collection", True)
     assert calls[1] == ("task_result", report)
-    browser.mw.update_undo_actions.assert_called_once()
-    aqt.gui_hooks.operation_did_execute.assert_called_once_with(report.changes, browser)
+    assert published == [(browser.mw, report.changes, browser)]
     dialog.finish_with_report.assert_called_once_with(report)
     dialog.finish_with_error.assert_not_called()
 

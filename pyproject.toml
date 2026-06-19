@@ -1,6 +1,6 @@
 [project]
 name = "anki-audio-quick-editor"
-version = "1.8.1"
+version = "1.9.0"
 requires-python = ">=3.13"
 license = "AGPL-3.0-or-later"
 dependencies = [
@@ -341,14 +341,19 @@ source_modules = [
     "anki_audio_quick_editor.editor_button_visibility",
     "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_deps_protocols",
+    "anki_audio_quick_editor.editor_edit_history",
     "anki_audio_quick_editor.editor_history_settings",
     "anki_audio_quick_editor.editor_history_snapshot",
     "anki_audio_quick_editor.editor_media",
     "anki_audio_quick_editor.editor_media_replacement",
     "anki_audio_quick_editor.editor_playback_bounds",
+    "anki_audio_quick_editor.editor_processing_guard",
     "anki_audio_quick_editor.editor_processing_shared",
+    "anki_audio_quick_editor.editor_recording_state",
     "anki_audio_quick_editor.editor_region_delete_request",
     "anki_audio_quick_editor.editor_session",
+    "anki_audio_quick_editor.editor_session_state",
+    "anki_audio_quick_editor.editor_session_types",
     "anki_audio_quick_editor.editor_ui",
     "anki_audio_quick_editor.error_codes",
     "anki_audio_quick_editor.errors",
@@ -407,6 +412,7 @@ forbidden_modules = [
     "anki_audio_quick_editor.browser_result_application",
     "anki_audio_quick_editor.editor_analysis",
     "anki_audio_quick_editor.editor_bridge",
+    "anki_audio_quick_editor.editor_bridge_hooks",
     "anki_audio_quick_editor.editor_callbacks",
     "anki_audio_quick_editor.editor_conversion",
     "anki_audio_quick_editor.editor_dependencies",
@@ -414,6 +420,7 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_frontend_callbacks",
     "anki_audio_quick_editor.editor_history",
     "anki_audio_quick_editor.editor_integration",
+    "anki_audio_quick_editor.editor_note_load_hooks",
     "anki_audio_quick_editor.editor_persistent_undo",
     "anki_audio_quick_editor.editor_playback",
     "anki_audio_quick_editor.editor_presets",
@@ -432,6 +439,9 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_special_transforms",
     "anki_audio_quick_editor.editor_source_metadata",
     "anki_audio_quick_editor.editor_status",
+    "anki_audio_quick_editor.editor_transform_failure_support",
+    "anki_audio_quick_editor.editor_transform_orchestration",
+    "anki_audio_quick_editor.editor_transform_post_processing",
     "anki_audio_quick_editor.editor_sharing",
     "anki_audio_quick_editor.editor_split_defaults",
     "anki_audio_quick_editor.editor_webview_injection",

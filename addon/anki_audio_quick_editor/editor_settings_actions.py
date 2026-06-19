@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable
 
+from .editor_recording_state import ready_learner_recording_media_path
 from .editor_reload_status import reload_editor_with_pending_status
 from .editor_runtime import SettingsLifecycleCallbacks
-from .editor_session import ready_learner_recording_media_path
 from .error_codes import (
     AQE_FILE_REVEAL_FAILED,
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
@@ -66,13 +66,10 @@ def refresh_editor_after_settings_save(
     field_index = deps.current_field_index(editor)
     session = deps.sessions.get(editor)
     if session is not None:
-        session.analysis_generation += 1
+        session.analysis.cancel_all()
         deps.stop_session_playback(session)
-        session.processing = False
-        session.analysis_busy = False
-        session.playback_active = False
-        session.playback_paused = False
-        session.playback_preparing = False
+        session.finish_processing_without_edit()
+        session.playback.preparing = False
     reload_editor_with_pending_status(
         editor,
         session,

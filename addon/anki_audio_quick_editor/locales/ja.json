@@ -607,6 +607,7 @@
   "settings.toolbar_visibility.mode_locked_tooltip": "この表示設定は、ボタンがグループ化されたツールバーパネルに属しているためロックされています。",
   "tooltip.disabled.batch_running": "バッチ処理中は無効です。",
   "tooltip.disabled.editor_busy": "現在の音声処理が完了するまで待ってください。",
+  "tooltip.disabled.audio_metadata_loading": "音声メタデータを読み込んでいます...",
   "tooltip.disabled.recording_active": "この操作を使う前に、現在の録音を停止してください。",
   "editor.selection_shift.start_previous": "選択開始を前のマーカーへ移動",
   "editor.selection_shift.start_next": "選択開始を次のマーカーへ移動",

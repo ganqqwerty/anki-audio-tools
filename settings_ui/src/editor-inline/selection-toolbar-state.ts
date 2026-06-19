@@ -13,6 +13,7 @@ import { buttonTooltipContent, tooltipWithDisabledClarification } from "../lib/d
 import type { VisualizerElement } from "./types.js";
 import { readFieldState } from "./field-state-store.js";
 import { isEditorBusy } from "./editor-control-state.js";
+import { htmlAudioReadinessFor } from "./audio-readiness.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -109,16 +110,23 @@ function syncSelectionToolbarButtons(
 function syncToolbarPlayButton(visualizer: VisualizerElement, busy: boolean): void {
   const play = playButtonFor(visualizer);
   if (!play) return;
-  const playing = readFieldState(fieldOrd(visualizer)).playback.state === "playing";
+  const playbackState = readFieldState(fieldOrd(visualizer)).playback.state;
+  const playing = playbackState === "playing";
+  const loading = playbackState === "stopped" && htmlAudioReadinessFor(visualizer).transient;
   const title = playing ? PAUSE_SELECTION_TITLE : PLAY_SELECTION_TITLE;
   const label = playing ? t("editor.command.pause.label") : t("editor.command.play.label");
-  play.disabled = busy;
+  play.disabled = busy || loading;
   play.dataset.aqeButtonState = playing ? "pause" : "play";
+  const reason = busy
+    ? t("tooltip.disabled.editor_busy")
+    : loading
+      ? t("tooltip.disabled.audio_metadata_loading")
+      : undefined;
   setButtonTooltipContent(
     play,
     tooltipWithDisabledClarification(
       buttonTooltipContent(label, title),
-      busy ? t("tooltip.disabled.editor_busy") : undefined,
+      reason,
     ),
   );
   play.setAttribute("aria-disabled", play.disabled ? "true" : "false");

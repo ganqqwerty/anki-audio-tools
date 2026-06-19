@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from anki_audio_quick_editor.audio_pause_pipeline_steps import (
-    _render_pause_removal_audio,
+    render_pause_removal_audio,
 )
 from anki_audio_quick_editor.audio_pause_settings import preset_for_pause_detection
 from anki_audio_quick_editor.audio_pipeline import (
@@ -114,7 +114,7 @@ def test_silero_pipeline_cuts_pauses_and_renders_from_original_audio(
         lambda *_args: 1200,
     )
 
-    result = _render_pause_removal_audio(
+    result = render_pause_removal_audio(
         AudioEditState("source.wav", remove_internal_pauses_enabled=True),
         AudioProcessingConfig(
             pause_detection_algorithm="silero_vad",
@@ -232,7 +232,7 @@ def test_denoise_preprocessing_changes_detection_input_not_render_source(
         lambda *_args: 800,
     )
 
-    _render_pause_removal_audio(
+    render_pause_removal_audio(
         AudioEditState("source.wav", remove_internal_pauses_enabled=True),
         AudioProcessingConfig(
             pause_detection_algorithm="silencedetect",

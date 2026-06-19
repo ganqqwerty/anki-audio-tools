@@ -607,6 +607,7 @@
   "settings.toolbar_visibility.mode_locked_tooltip": "Cài đặt hiển thị này bị khóa vì nút thuộc một nhóm thanh công cụ.",
   "tooltip.disabled.batch_running": "Bị tắt trong khi lô đang chạy.",
   "tooltip.disabled.editor_busy": "Chờ thao tác xử lý âm thanh hiện tại hoàn tất.",
+  "tooltip.disabled.audio_metadata_loading": "Đang tải siêu dữ liệu âm thanh...",
   "tooltip.disabled.recording_active": "Dừng bản ghi hiện tại trước khi dùng điều khiển này.",
   "editor.selection_shift.start_previous": "Di chuyển đầu vùng chọn tới mốc trước",
   "editor.selection_shift.start_next": "Di chuyển đầu vùng chọn tới mốc sau",

@@ -12,7 +12,7 @@ EDITOR_STATUS_RELOAD_MODULES = {
     "editor_processing.py",
     "editor_region_delete.py",
     "editor_settings_actions.py",
-    "editor_special_transforms.py",
+    "editor_transform_post_processing.py",
 }
 PENDING_STATUS_OWNER_MODULES = {"editor_reload_status.py"}
 

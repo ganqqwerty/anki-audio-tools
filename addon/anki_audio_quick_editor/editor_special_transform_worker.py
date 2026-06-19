@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING, Any, Callable
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception
-from .editor_session import (
+from .editor_processing_guard import (
     EditorProcessingGuard,
-    EditorSession,
     clear_processing_for_stale_guard,
     is_current_processing_guard,
 )
+from .editor_session import EditorSession
 from .errors import AudioAlreadyCompactError
 from .permission_guidance import message_with_permission_guidance
 
@@ -93,7 +93,7 @@ def _schedule_special_transform_finish(
 
     def _finish() -> None:
         try:
-            deps.replace_current_field_after_noise_removal(
+            deps.replace_current_field_after_special_transform(
                 editor,
                 desired_name,
                 guard=guard,
@@ -157,8 +157,7 @@ def _handle_already_compact(
         return
 
     def _finish() -> None:
-        session.processing = False
-        session.next_status_summary = ""
+        session.finish_processing_without_edit()
         deps.set_busy(editor, False)
         deps.eval_status(editor, message)
 
