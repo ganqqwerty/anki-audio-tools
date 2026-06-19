@@ -15,6 +15,7 @@ import {
   pauseChorusingForNormalPlay,
   toggleChorusingForOrd,
 } from "./chorusing-controller.js";
+import { toggleLearnerRecordingHtmlPlayback } from "./learner-recording-playback.js";
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
 import { editorRuntimeConfig } from "./editor-runtime-config.js";
@@ -51,6 +52,10 @@ export function send(
     return;
   }
   if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {
+    return;
+  }
+  if (command === "aqe:play-recording") {
+    toggleLearnerRecordingHtmlPlayback(ord);
     return;
   }
   if (shouldPlayAfterSuccessfulEdit(command)) {

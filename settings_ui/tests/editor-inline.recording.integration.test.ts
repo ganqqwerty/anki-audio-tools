@@ -238,6 +238,7 @@ describe("editor inline learner recording integration", () => {
       generation: 1,
       mediaFilename: "target__aqe_voice.wav",
       playbackStatus: "stopped",
+      recordingDurationMs: 500,
       status: "ready",
       targetDurationMs: track.durationMs,
     });
@@ -245,28 +246,19 @@ describe("editor inline learner recording integration", () => {
     expect(shareYoursButton.disabled).toBe(false);
     expect(showYoursButton.disabled).toBe(false);
 
+    const playSpy = vi.spyOn(window.HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
+    const pauseSpy = vi.spyOn(window.HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
     playYoursButton.click();
-    expect(bridgeCommands()).toContain("aqe:play-recording");
-
-    window.__aqeSetLearnerRecordingState?.({
-      fieldOrd: 0,
-      generation: 1,
-      mediaFilename: "target__aqe_voice.wav",
-      playbackStatus: "playing",
-      status: "ready",
-      targetDurationMs: track.durationMs,
-    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(bridgeCommands()).not.toContain("aqe:play-recording");
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(document.querySelector<HTMLAudioElement>('[data-testid="aqe-learner-audio-0"]')).not.toBeNull();
     expect(playYoursButton.dataset.aqeButtonState).toBe("pause");
     expect(playYoursButton.textContent).toContain("Pause yours");
 
-    window.__aqeSetLearnerRecordingState?.({
-      fieldOrd: 0,
-      generation: 1,
-      mediaFilename: "target__aqe_voice.wav",
-      playbackStatus: "stopped",
-      status: "ready",
-      targetDurationMs: track.durationMs,
-    });
+    playYoursButton.click();
+    expect(pauseSpy).toHaveBeenCalledTimes(1);
     expect(playYoursButton.dataset.aqeButtonState).toBe("default");
     expect(playYoursButton.textContent).toContain("Play yours");
 
@@ -296,7 +288,7 @@ describe("editor inline learner recording integration", () => {
       fieldOrd: 0,
       generation: 1,
       mediaFilename: "target__aqe_voice.wav",
-      playbackStatus: "playing",
+      playbackStatus: "stopped",
       startCursorMs: 400,
       status: "ready",
       targetDurationMs: track.durationMs,
@@ -312,10 +304,10 @@ describe("editor inline learner recording integration", () => {
 
     syncRecordingControls(0);
 
-    expect(playYoursButton.dataset.aqeButtonState).toBe("pause");
-    expect(playYoursButton.textContent).toContain("Pause yours");
+    expect(playYoursButton.dataset.aqeButtonState).toBe("default");
+    expect(playYoursButton.textContent).toContain("Play yours");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      learnerPlaybackStatus: "playing",
+      learnerPlaybackStatus: "stopped",
       learnerRecordingStatus: "ready",
       learnerStartCursorMs: 400,
       targetDurationMs: 1000,

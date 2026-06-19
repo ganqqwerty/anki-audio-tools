@@ -400,6 +400,7 @@
   "editor.status.delete_whole_clip": "Der gesamte Audioclip kann nicht gelöscht werden.",
   "editor.status.keep_whole_clip": "Die Auswahl deckt bereits den gesamten Audioclip ab.",
   "editor.status.deleting_region_plain": "Bereich löschen",
+  "editor.status.browser_audio_unavailable": "Browser-Audio ist nicht verfügbar.",
   "editor.status.selected_repeat_browser_audio": "Ausgewählte Wiederholungswiedergabe benötigt Browser-Audio.",
   "batch.action": "Audio-Stapeloperation ausführen...",
   "batch.undo_label": "Audio-Stapeloperation",

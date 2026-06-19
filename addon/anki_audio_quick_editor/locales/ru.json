@@ -388,6 +388,7 @@
   "editor.status.delete_whole_clip": "Нельзя удалить весь аудиоклип.",
   "editor.status.keep_whole_clip": "Выделение уже покрывает весь аудиоклип.",
   "editor.status.deleting_region_plain": "Удаление области",
+  "editor.status.browser_audio_unavailable": "Браузерное аудио недоступно.",
   "editor.status.selected_repeat_browser_audio": "Для повтора выбранной области нужно браузерное аудио.",
   "batch.action": "Запустить пакетную операцию аудио...",
   "batch.undo_label": "Пакетная операция аудио",

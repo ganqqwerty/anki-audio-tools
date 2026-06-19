@@ -85,6 +85,30 @@ describe("editor inline graph queue integration", () => {
     });
   });
 
+  it("auto-queues a default graph for a generated source while the old graph is still rendered", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0], showGraphByDefault: true });
+    scan({ audioFieldIndices: [0], showGraphByDefault: true });
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toMatchObject({
+      ord: 0,
+      sourceFilename: "clip one.mp3",
+    });
+    window.__aqeSetVisualizer?.(0, track, 0);
+    await Promise.resolve();
+
+    document.getElementById("f0")!.innerHTML = "[sound:updated.mp3]";
+    scan({ audioFieldIndices: [0], showGraphByDefault: true });
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      busy: true,
+      hasTrack: false,
+    });
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      graphSettings: defaultGraphSettings,
+      ord: 0,
+      sourceFilename: "updated.mp3",
+    });
+  });
+
   it("replays a pending graph redraw after the editor runtime remounts", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

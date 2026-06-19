@@ -45,6 +45,7 @@ const querySelectorAllowlist = new Set([
 const requestAnimationFrameAllowlist = new Set([
   "src/editor-inline/playback-controller.ts",
   "src/editor-inline/playback-controller-frame.ts",
+  "src/editor-inline/learner-recording-playback.ts",
   "src/editor-inline/recording-actions.ts",
   "src/editor-inline/recording-actions-state.ts",
   "src/editor-inline/test-contract.ts",
@@ -52,8 +53,10 @@ const requestAnimationFrameAllowlist = new Set([
 
 const audioElementAllowlist = new Set([
   "src/editor-inline/audio-clock.ts",
+  "src/editor-inline/learner-recording-playback.ts",
   "src/editor-inline/playback-controller.ts",
   "src/editor-inline/playback-controller-audio.ts",
+  "src/editor-inline/source-playback-repeat-loop.ts",
   "src/editor-inline/test-contract.ts",
 ]);
 

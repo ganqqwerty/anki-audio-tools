@@ -245,24 +245,6 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Lazy editor source metadata worker sends non-blocking UI error callbacks instead of leaking thread exceptions.",
     ),
     BroadExceptionAllowance(
-        "editor_playback",
-        "stop_audio_playback",
-        1,
-        "Best-effort playback backend integration cannot assume a stable Anki audio API surface.",
-    ),
-    BroadExceptionAllowance(
-        "editor_playback_request",
-        "toggle_native_pause_resume",
-        1,
-        "Best-effort playback backend integration reports pause/resume unavailability as a warning.",
-    ),
-    BroadExceptionAllowance(
-        "editor_playback",
-        "start_playback_from_cursor._run",
-        1,
-        "Background playback-segment worker boundary reports failures on the main thread.",
-    ),
-    BroadExceptionAllowance(
         "editor_analysis",
         "start_field_analysis_async._run",
         1,
@@ -273,12 +255,6 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "analyze_learner_recording_async._run",
         1,
         "Background learner-recording analysis worker reports analyzer failures on the main thread.",
-    ),
-    BroadExceptionAllowance(
-        "editor_recording",
-        "play_learner_recording",
-        1,
-        "Best-effort learner playback integration reports pause/resume unavailability as a warning.",
     ),
     BroadExceptionAllowance(
         "file_reveal",

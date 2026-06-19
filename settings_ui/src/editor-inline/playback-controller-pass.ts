@@ -103,7 +103,7 @@ function playbackStateForDataset(value: string | undefined): PlaybackState {
 }
 
 function playbackEngineForDataset(value: string | undefined): PlaybackEngine {
-  return value === "html" || value === "native" ? value : "";
+  return value === "html" ? value : "";
 }
 
 function playbackRegionModeForDataset(value: string | undefined): PlaybackRegionMode {

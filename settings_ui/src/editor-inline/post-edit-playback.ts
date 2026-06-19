@@ -4,6 +4,7 @@ import {
   editorRuntimeConfig,
   repeatPlaybackByDefault as configRepeatPlaybackByDefault,
 } from "./editor-runtime-config.js";
+import { requestGraph } from "./graph-actions.js";
 import { logger } from "./logger.js";
 import { readFieldState } from "./field-state-store.js";
 import { isEditorBusy } from "./editor-control-state.js";
@@ -13,11 +14,13 @@ import {
   AUDIO_CLOCK_READINESS_CHANGED_EVENT,
   HTML_METADATA_WAIT_TIMEOUT_MS,
   htmlAudioReadinessFor,
-  markHtmlAudioFailure,
   type AudioClockReadinessChangedDetail,
+  type HtmlAudioReadiness,
 } from "./audio-readiness.js";
 
 const metadataWaitTimers: Map<number, number> = new Map();
+const postEditGraphRequests: Set<string> = new Set();
+const postEditReadyDispatches: Set<string> = new Set();
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
   const visualizer = visualizerForOrd(ord);
@@ -46,6 +49,11 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     logger.warn("post-edit playback ready deferred: source mismatch", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
   }
+  const dispatchKey = postEditReadyDispatchKey(ord, pending, sourceFilename);
+  if (postEditReadyDispatches.has(dispatchKey)) {
+    logger.info("post-edit playback ready duplicate suppressed", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    return;
+  }
   if (isEditorBusy()) {
     logger.info("post-edit playback ready deferred: editor busy", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
@@ -57,6 +65,22 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
   const readiness = postEditHtmlReadiness(ord);
   if (!readiness) {
     logger.info("post-edit playback ready deferred: visualizer missing", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    return;
+  }
+  if (postEditShouldRequestRenderedGraph(ord, sourceFilename, readiness)) {
+    postEditGraphRequests.add(postEditGraphRequestKey(ord, sourceFilename));
+    requestGraph(ord, true, undefined, sourceFilename);
+    logger.info("post-edit playback requested rendered graph for generated source", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    return;
+  }
+  if (postEditRenderedGraphCanDriveHtmlPlayback(ord, sourceFilename, readiness)) {
+    clearMetadataWaitTimer(ord);
+    dispatchPostEditPlaybackReady({
+      command: "aqe:post-edit-playback-ready",
+      fieldOrd: ord,
+      generation: pending.generation,
+      sourceFilename,
+    }, ord, sourceFilename, dispatchKey);
     return;
   }
   if (readiness.transient) {
@@ -74,7 +98,7 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     fieldOrd: ord,
     generation: pending.generation,
     sourceFilename,
-  }, ord, sourceFilename);
+  }, ord, sourceFilename, dispatchKey);
 }
 
 function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolean {
@@ -114,7 +138,7 @@ export function clearPostEditPlaybackReadinessTimers(): void {
 
 function handlePostEditReadinessChanged(event: Event): void {
   const detail = (event as CustomEvent<AudioClockReadinessChangedDetail>).detail;
-  if (!detail || detail.readiness.transient) return;
+  if (!detail) return;
   const pending = editorRuntimeConfig().pendingPostEditPlayback;
   if (!pending || pending.fieldOrd !== detail.ord) return;
   notifyPostEditPlaybackReady(detail.ord, readFieldState(detail.ord).sourceFilename);
@@ -132,7 +156,7 @@ function ensureMetadataWaitTimer(ord: number, sourceFilename: string): void {
     const visualizer = visualizerForOrd(ord);
     if (!visualizer) return;
     logger.warn("post-edit playback metadata wait timed out", postEditPlaybackDiagnosticContext(ord, sourceFilename));
-    markHtmlAudioFailure(visualizer, "metadata_timeout");
+    notifyPostEditPlaybackReady(ord, sourceFilename);
   }, HTML_METADATA_WAIT_TIMEOUT_MS);
   metadataWaitTimers.set(ord, timer);
 }
@@ -149,6 +173,8 @@ function clearAllMetadataWaitTimers(): void {
     window.clearTimeout(timer);
   }
   metadataWaitTimers.clear();
+  postEditGraphRequests.clear();
+  postEditReadyDispatches.clear();
 }
 
 function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string): Record<string, unknown> {
@@ -170,12 +196,51 @@ function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string):
   };
 }
 
+export function postEditRenderedGraphCanDriveHtmlPlayback(
+  ord: number,
+  sourceFilename: string,
+  readiness: HtmlAudioReadiness,
+): boolean {
+  if (readiness.reason !== "audio_metadata_loading") return false;
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  const state = readFieldState(ord);
+  const sourceToMatch = sourceFilename || editorRuntimeConfig().pendingPostEditPlayback?.sourceFilename || "";
+  return state.graph.hasTrack
+    && state.graph.durationMs > 0
+    && !!state.sourceFilename
+    && (!sourceToMatch || state.sourceFilename === sourceToMatch);
+}
+
+function postEditShouldRequestRenderedGraph(
+  ord: number,
+  sourceFilename: string,
+  readiness: HtmlAudioReadiness,
+): boolean {
+  if (!sourceFilename || !readiness.transient) return false;
+  if (postEditGraphRequests.has(postEditGraphRequestKey(ord, sourceFilename))) return false;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
+  if (pending?.requireGraphRedraw !== true && !sourceFilename.includes("__aqe_")) return false;
+  const state = readFieldState(ord);
+  if (pending?.requireGraphRedraw !== true && !state.graph.active && !state.graph.hasTrack) return false;
+  if (state.graph.busy) return false;
+  return !(state.graph.hasTrack && state.sourceFilename === sourceFilename);
+}
+
+function postEditGraphRequestKey(ord: number, sourceFilename: string): string {
+  return `${ord}\u0000${sourceFilename}`;
+}
+
 function dispatchPostEditPlaybackReady(
   payload: EditorCommandPayload,
   ord: number,
   sourceFilename: string,
+  dispatchKey: string,
 ): void {
+  if (postEditReadyDispatches.has(dispatchKey)) return;
+  postEditReadyDispatches.add(dispatchKey);
   clearMetadataWaitTimer(ord);
+  postEditGraphRequests.delete(postEditGraphRequestKey(ord, sourceFilename));
   const testDispatcher = window.__aqeDispatchPostEditPlaybackReadyForTest;
   const dispatch = () => {
     sendCommandPayload(payload);
@@ -183,6 +248,14 @@ function dispatchPostEditPlaybackReady(
   };
   if (testDispatcher?.(payload, dispatch) === true) return;
   dispatch();
+}
+
+function postEditReadyDispatchKey(
+  ord: number,
+  pending: NonNullable<ReturnType<typeof editorRuntimeConfig>["pendingPostEditPlayback"]>,
+  sourceFilename: string,
+): string {
+  return `${ord}\u0000${pending.generation}\u0000${pending.sourceFilename || sourceFilename}`;
 }
 
 function postEditPlaybackIntents(): Record<number, PostEditPlaybackIntent> {

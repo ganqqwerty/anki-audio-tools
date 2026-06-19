@@ -2,6 +2,7 @@ import {
   controlsForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
+import { getController } from "./field-controller.js";
 import type { DefaultGraphTarget } from "./types.js";
 import { readFieldState } from "./field-state-store.js";
 
@@ -68,7 +69,7 @@ export function continueDefaultGraphQueue(dependencies: DefaultGraphQueueDepende
       retryDefaultGraph(next, dependencies);
       return;
     }
-    const mountedSource = readFieldState(next.ord).sourceFilename || next.sourceFilename;
+    const mountedSource = getController(next.ord)?.sourceFilename || readFieldState(next.ord).sourceFilename || next.sourceFilename;
     if (mountedSource !== next.sourceFilename) continue;
     if (
       readFieldState(next.ord).graph.hasTrack

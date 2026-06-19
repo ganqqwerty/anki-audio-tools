@@ -24,7 +24,7 @@ export interface SelectionControllerDependencies {
     ms: number,
     notifyPython: boolean,
     options?: {
-      engine?: "html" | "native" | "";
+      engine?: "html" | "";
       previousPlaybackState?: PlaybackState;
       restartPlayback?: boolean;
       updateAnchor?: boolean;

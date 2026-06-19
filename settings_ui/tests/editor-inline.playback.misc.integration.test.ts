@@ -27,7 +27,7 @@ describe("editor inline playback fallback and diagnostics", () => {
     vi.restoreAllMocks();
   });
 
-  it("keeps selected repeat playback on browser audio when HTML play rejects", async () => {
+  it("stops selected repeat playback when browser audio rejects", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -49,7 +49,7 @@ describe("editor inline playback fallback and diagnostics", () => {
 
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "Selected repeat playback needs browser audio.",
+      "Browser audio is unavailable.",
     );
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "stopped",

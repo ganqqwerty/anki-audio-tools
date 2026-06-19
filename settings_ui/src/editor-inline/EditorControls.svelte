@@ -284,6 +284,12 @@
           >{initialStatusMessage}</span>
         {/snippet}
       </AqeTooltip>
+      <span
+        class="aqe-playback-warning"
+        data-testid={`aqe-playback-warning-${target.ord}`}
+        hidden
+        role="status"
+      ></span>
     </div>
   </div>
 </AqeTooltipProvider>

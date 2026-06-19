@@ -2,6 +2,7 @@ import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import { setLearnerRecordingState as setLearnerRecordingStateImpl, setLearnerVisualizer as setLearnerVisualizerImpl, resetLearnerRecordingState as resetLearnerRecordingStateImpl, resolveFieldOrd } from "./recording-actions-state.js";
 import { syncRecordingControls } from "./recording-actions-sync.js";
+import { syncLearnerRecordingPlaybackState } from "./learner-recording-playback.js";
 
 export { dispatchLearnerRecordingPrimary, startLearnerRecordingCountdown, stopLearnerRecording } from "./recording-actions-lifecycle.js";
 export { syncRecordingControls, syncAllRecordingControls } from "./recording-actions-sync.js";
@@ -9,7 +10,9 @@ export { syncRecordingControls, syncAllRecordingControls } from "./recording-act
 export function setLearnerRecordingState(payload: LearnerRecordingStatePayload): void {
   const shouldSync = setLearnerRecordingStateImpl(payload);
   if (shouldSync) {
-    syncRecordingControls(resolveFieldOrd(payload.fieldOrd));
+    const ord = resolveFieldOrd(payload.fieldOrd);
+    syncLearnerRecordingPlaybackState(ord, payload);
+    syncRecordingControls(ord);
   }
 }
 

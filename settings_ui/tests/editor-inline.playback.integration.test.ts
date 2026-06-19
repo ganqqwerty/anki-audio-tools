@@ -348,7 +348,7 @@ afterEach(() => {
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 
-  it("falls back to native playback when HTML play rejects", async () => {
+  it("stops and warns without backend fallback when HTML play rejects", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -363,19 +363,15 @@ afterEach(() => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(window.__aqeGetPlaybackRequest?.()).toEqual({
-      action: "start",
-      cursorMs: 0,
-      endMs: 1000,
-      engine: "native",
-      loop: false,
-      ord: 0,
-      regionMode: "selection",
-    });
+    expect(bridgeCommands()).not.toContain("aqe:play");
+    expect(window.__aqeLastPlaybackRequest).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "Browser audio is unavailable.",
+    );
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
   });
 
-  it("falls back to native selected playback when HTML one-shot play rejects", async () => {
+  it("keeps selected playback state without backend fallback when HTML one-shot play rejects", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -394,16 +390,11 @@ afterEach(() => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(bridgeCommands()).toContain("aqe:play");
-    expect(window.__aqeGetPlaybackRequest?.()).toEqual({
-      action: "start",
-      cursorMs: 250,
-      endMs: 750,
-      engine: "native",
-      loop: false,
-      ord: 0,
-      regionMode: "selection",
-    });
+    expect(bridgeCommands()).not.toContain("aqe:play");
+    expect(window.__aqeLastPlaybackRequest).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "Browser audio is unavailable.",
+    );
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "stopped",
       selectionStartMs: 250,
@@ -412,7 +403,7 @@ afterEach(() => {
     });
   });
 
-  it("blocks selected repeat fallback when HTML play rejects", async () => {
+  it("warns without selected repeat fallback when HTML play rejects", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -434,7 +425,7 @@ afterEach(() => {
 
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "Selected repeat playback needs browser audio.",
+      "Browser audio is unavailable.",
     );
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "stopped",

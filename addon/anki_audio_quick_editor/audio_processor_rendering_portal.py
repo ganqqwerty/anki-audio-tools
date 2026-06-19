@@ -120,26 +120,6 @@ def render_audio_region_kept(
     ))
 
 
-def render_playback_segment(
-    source_path: Path,
-    start_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    end_ms: int | None = None,
-) -> AudioProcessingResult:
-    facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
-    return cast(AudioProcessingResult, _rendering(facade).render_playback_segment(
-        source_path,
-        start_ms,
-        config,
-        output_path,
-        on_command,
-        end_ms,
-    ))
-
-
 def make_output_filename(
     source_filename: str,
     now: datetime | None = None,
@@ -156,22 +136,6 @@ def temp_final_path(filename: str) -> Path:
     facade = _facade()
     _sync(facade, "_sync_rendering_dependencies")
     return cast(Path, _rendering(facade).temp_final_path(filename))
-
-
-def make_playback_segment_filename(source_filename: str, start_ms: int, token: str | None = None) -> str:
-    facade = _facade()
-    _rendering(facade).uuid = facade.uuid
-    original = cast(
-        Callable[[str, int, str | None], str],
-        _member(facade, "_ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME"),
-    )
-    return original(source_filename, start_ms, token)
-
-
-def temp_playback_path(source_filename: str, start_ms: int) -> Path:
-    facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
-    return cast(Path, _rendering(facade).temp_playback_path(source_filename, start_ms))
 
 
 def render_noise_reduced_audio(

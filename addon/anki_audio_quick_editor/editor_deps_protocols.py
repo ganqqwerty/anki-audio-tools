@@ -49,7 +49,6 @@ class BridgeDeps(Protocol):
     pitch_hum_async: Callable[..., None]
     play: Callable[..., None]
     play_ended: Callable[..., None]
-    play_learner_recording: Callable[..., None]
     probe_audio_metadata: Callable[..., Any]
     record_learner_voice: Callable[..., None]
     redo: Callable[..., None]
@@ -198,31 +197,22 @@ class SettingsActionDeps(Protocol):
 
 
 class PlaybackDeps(Protocol):
-    can_persistent_undo: Callable[..., bool]
     cleanup_temp_playback: Callable[..., None]
-    config: Callable[[Any], dict[str, Any]]
     current_field_audio_missing: str
     current_field_index: Callable[[Any], int]
     eval_learner_recording_state: Callable[..., None]
     eval_playback_state: Callable[..., None]
     eval_status: Callable[..., None]
     eval_with_callback: Callable[..., None]
-    format_ffmpeg_command: Callable[[tuple[str, ...]], str]
     is_busy: Callable[[Any], bool]
-    main: Callable[[Any, Callable[[], None]], None]
     play_with_request: Callable[..., None]
-    playback_segment_failed: Callable[..., None]
-    playback_segment_ready: Callable[..., None]
     referenced_audio_missing: str
-    render_playback_segment: Callable[..., Any]
     session_and_source: Callable[[Any], tuple[Any, Path]]
     sessions: dict[Any, Any]
     set_busy: Callable[..., None]
-    start_playback_from_cursor: Callable[..., None]
     still_processing_message: str
     stop_audio_playback: Callable[[], None]
     stop_session_playback: Callable[[Any], None]
-    threading: Any
     visualized_duration_for_field: Callable[..., int | None]
 
 

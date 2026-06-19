@@ -388,6 +388,7 @@
   "editor.status.delete_whole_clip": "不能刪除整個音訊片段。",
   "editor.status.keep_whole_clip": "選取範圍已覆蓋整個音訊片段。",
   "editor.status.deleting_region_plain": "刪除區域",
+  "editor.status.browser_audio_unavailable": "瀏覽器音訊無法使用。",
   "editor.status.selected_repeat_browser_audio": "選取區域的重複播放需要瀏覽器音訊。",
   "batch.action": "執行音訊批次操作...",
   "batch.undo_label": "音訊批次操作",

@@ -192,19 +192,19 @@ describe("playback model", () => {
     });
   });
 
-  it("preserves playback engine when restarting paused selected repeat", () => {
+  it("preserves HTML playback engine when restarting paused selected repeat", () => {
     expect(planPlaybackRequest({
       ...baseSnapshot,
       currentProgressMs: 650,
       cursorMs: 650,
-      engine: "native",
+      engine: "html",
       playbackState: "paused",
       region: { startMs: 400, endMs: 800, mode: "selection" },
       repeat: true,
     })).toMatchObject({
       action: "start",
       cursorMs: 400,
-      engine: "native",
+      engine: "html",
       loop: true,
     });
   });

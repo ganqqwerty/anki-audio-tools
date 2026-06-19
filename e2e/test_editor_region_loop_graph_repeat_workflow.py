@@ -139,7 +139,7 @@ def test_graph_default_repeat_can_be_turned_off_for_selected_region_playback(
         parent.close()
 
 
-def test_aac_full_repeat_falls_back_to_native_when_browser_audio_rejects_after_graph(
+def test_aac_full_repeat_stops_with_warning_when_browser_audio_rejects_after_graph(
     anki_mw,
     ffmpeg_config,
 ) -> None:
@@ -171,25 +171,30 @@ def test_aac_full_repeat_falls_back_to_native_when_browser_audio_rejects_after_g
             media_dir,
             {source.name: round(track["durationMs"])},
             ffmpeg_config=ffmpeg_config,
-            max_attempt_count=1,
+            max_attempt_count=0,
         ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
-            playing = _state(
+            failed = _state(
                 editor,
-                lambda state: state["playbackState"] == "playing"
-                and state["playbackEngine"] == "native",
+                lambda state: state["playbackState"] == "stopped"
+                and state["playbackEngine"] == "html",
                 timeout=6.0,
             )
-            wait_for_condition(
-                lambda: len(playback.attempts) == 1,
+            wait_for_js_condition(
+                editor.web,
+                "document.querySelector('[data-testid=\"aqe-status-0\"]')?.textContent || ''",
+                lambda text: text == "Browser audio is unavailable.",
                 timeout=5.0,
-                message="AAC full-repeat browser playback failure did not fall back to native playback",
+            )
+            wait_for_condition(
+                lambda: len(playback.attempts) == 0,
+                timeout=1.0,
+                message="AAC full-repeat browser playback failure unexpectedly used native playback",
             )
 
-        _assert_no_playback_leaks(playback, expected_attempt_count=1)
-        assert playback.attempts[0].filename == source.name
-        assert playing["selectionStartMs"] == 0
-        assert playing["selectionEndMs"] == round(track["durationMs"])
+        _assert_no_playback_leaks(playback, expected_attempt_count=0)
+        assert failed["selectionStartMs"] == 0
+        assert failed["selectionEndMs"] == round(track["durationMs"])
     finally:
         editor.set_note(None)
         parent.close()

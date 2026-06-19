@@ -29,7 +29,7 @@ import {
   startSelectionGesture as startSelectionGestureFlow,
   type SelectionGestureDependencies,
 } from "./selection-gestures.js";
-import { playbackStateFor, startEditorHtmlPlayback, stopProgressClock } from "./playback-actions.js";
+import { playbackStateFor, startSourcePlayback, stopProgressClock } from "./playback-actions.js";
 import { currentProgressMs } from "./playback-actions.js";
 import { readVisualizerTargetDurationMs, setVisualizerResumeRequiresRestart } from "./visualizer-state.js";
 import { audioClockReady } from "./actions-audio-clock.js";
@@ -132,9 +132,9 @@ export function shiftSelectionEdgeToMarker(
     setVisualizerResumeRequiresRestart(visualizer, true);
   }
   if (previousPlaybackState === "playing" && audioClockReady(visualizer)) {
-    startEditorHtmlPlayback(
+    startSourcePlayback(
       visualizer,
-      playbackRequestForStart(visualizer, ord, resolution.nextRange.startMs, "html"),
+      playbackRequestForStart(visualizer, ord, resolution.nextRange.startMs),
     );
   }
   return true;
@@ -174,7 +174,7 @@ function selectionGestureDependencies(): SelectionGestureDependencies {
     setCursor,
     setSelection,
     setSelectionDraft,
-    startEditorHtmlPlayback,
+    startSourcePlayback,
     stopProgressClock,
     visualizerForOrd,
   };

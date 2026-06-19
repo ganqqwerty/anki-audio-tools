@@ -16,7 +16,7 @@ import {
   setAudioClockLoop,
 } from "./audio-clock.js";
 import { logger } from "./logger.js";
-import { completePlayback, handlePlaybackBoundary, playbackStateFor, startManualProgressClock, stopProgressClock } from "./playback-actions.js";
+import { completePlayback, handlePlaybackBoundary, handleSourceAudioError, playbackStateFor, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
 import type { VisualizerElement } from "./types.js";
 import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
@@ -73,7 +73,7 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
     onErrorDuringPlayback(cursorMs) {
       const ord = fieldOrd(visualizer);
       logger.warn("audio clock failed during playback", { ord });
-      startManualProgressClock(visualizer, cursorMs);
+      handleSourceAudioError(visualizer, cursorMs);
     },
     onEndedDuringPlayback(durationMs) {
       handlePlaybackBoundary(visualizer, durationMs, { forceAudioPlay: true });

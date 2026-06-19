@@ -4,30 +4,20 @@ from __future__ import annotations
 
 import logging
 import shutil
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .audio_state import AudioProcessingConfig
-from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
-from .editor_playback_bounds import native_playback_end_ms, requested_end_ms
 from .editor_playback_request import (
     apply_html_playback_request,
     playback_request_values,
-    playback_started_from_message,
-    toggle_native_pause_resume,
 )
 from .editor_session import EditorSession
 from .error_codes import (
     AQE_AUDIO_PROCESSING_FAILED,
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
     AQE_MEDIA_REFERENCED_AUDIO_MISSING,
-    AQE_PLAYBACK_PREPARE_FAILED,
     coded_error,
 )
 from .errors import AudioQuickEditorError
-from .i18n import t
-from .media_paths import existing_media_file_path
-from .permission_guidance import message_with_permission_guidance
 from .prosody_types import clamp_cursor_ms
 
 if TYPE_CHECKING:
@@ -42,24 +32,15 @@ __all__ = [
     "play_ended",
     "play_with_request",
     "playback_request_values",
-    "playback_segment_failed",
-    "playback_segment_ready",
     "set_cursor_from_web",
-    "start_playback_from_cursor",
     "stop_audio_playback",
     "stop_playback",
     "stop_session_playback",
-    "toggle_native_pause_resume",
 ]
 
 
 def stop_audio_playback() -> None:
-    """Stop Anki audio playback on a best-effort basis."""
-    try:
-        from aqt.sound import av_player
-        av_player.stop_and_clear_queue()
-    except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
-        logger.info("audio stop failed: %s", exc)
+    """Compatibility hook retained for callers that clear playback state."""
 
 
 def stop_session_playback(session: EditorSession, deps: PlaybackDeps) -> None:
@@ -95,7 +76,7 @@ def play(editor: Any, deps: PlaybackDeps) -> None:
 
 
 def play_ended(editor: Any, deps: PlaybackDeps) -> None:
-    """Handle the frontend/native playback-ended callback."""
+    """Handle the frontend playback-ended callback."""
     preserve_status = stop_playback(editor, deps)
     if not preserve_status:
         deps.eval_status(editor, "")
@@ -124,7 +105,13 @@ def play_with_request(editor: Any, request: Any, deps: PlaybackDeps) -> None:
     if getattr(editor, "note", None) is None:
         return
     try:
-        session, source_path = deps.session_and_source(editor)
+        if _unsupported_playback_engine(request):
+            logger.info(
+                "ignoring unsupported playback engine request for field %s",
+                getattr(editor, "currentField", None),
+            )
+            return
+        session, _source_path = deps.session_and_source(editor)
         field_index = deps.current_field_index(editor)
         action, engine, cursor_ms, end_ms, region_mode, source = playback_request_values(
             session,
@@ -132,238 +119,19 @@ def play_with_request(editor: Any, request: Any, deps: PlaybackDeps) -> None:
             field_index,
             deps,
         )
+        del end_ms, region_mode
+        if engine not in {"", "html"}:
+            logger.info("ignoring unsupported playback engine request for field %s", field_index)
+            return
         if deps.is_busy(session):
             if source != "post_edit":
                 deps.eval_status(editor, deps.still_processing_message, kind="processing")
             return
         session.cursor_ms = cursor_ms
-        if engine == "html":
-            apply_html_playback_request(editor, session, field_index, action, cursor_ms, source, deps)
-            return
-        if toggle_native_pause_resume(editor, session, field_index, action, cursor_ms, deps):
-            return
-
-        selected_end_ms = end_ms if region_mode == "selection" else None
-        deps.start_playback_from_cursor(
-            editor,
-            session,
-            source_path,
-            field_index,
-            cursor_ms,
-            selected_end_ms,
-            source=source,
-        )
+        apply_html_playback_request(editor, session, field_index, action, cursor_ms, source, deps)
     except AudioQuickEditorError as exc:
         deps.set_busy(editor, False)
         deps.eval_status(editor, _coded_playback_error(str(exc), deps), kind="error")
-
-
-def start_playback_from_cursor(
-    editor: Any,
-    session: EditorSession,
-    source_path: Path,
-    field_index: int,
-    cursor_ms: int,
-    end_ms: int | None,
-    deps: PlaybackDeps,
-    source: str = "user",
-) -> None:
-    """Start native playback, rendering a temporary segment when seeking or trimming is needed."""
-    from anki.sound import SoundOrVideoTag
-    from aqt.sound import av_player
-    operation_id = new_operation_id("playback")
-    filename = session.current_filename or source_path.name
-    play_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename) or source_path
-    deps.stop_session_playback(session)
-    source_duration_ms = deps.visualized_duration_for_field(session, field_index, filename)
-    playback_end_ms = native_playback_end_ms(end_ms, source_duration_ms)
-    session.cursor_ms = clamp_cursor_ms(cursor_ms, playback_end_ms if playback_end_ms is not None else source_duration_ms)
-    offset_seconds = max(0.0, session.cursor_ms / 1000)
-    bounded_to_selection = playback_end_ms is not None and (
-        source_duration_ms is None or playback_end_ms < max(0, source_duration_ms - 20)
-    )
-    if offset_seconds <= 0 and not bounded_to_selection:
-        logger.debug(
-            "playback.native_direct_started | %s",
-            {
-                "cursor_ms": session.cursor_ms,
-                "end_ms": playback_end_ms,
-                "field_index": field_index,
-                "filename": str(play_path),
-                "source": source,
-            },
-        )
-        record_breadcrumb(
-            "editor.playback.native_started",
-            source="editor",
-            operation="editor.playback",
-            operation_id=operation_id,
-            context={"filename": str(play_path), "field_index": field_index, "cursor_ms": session.cursor_ms},
-        )
-        av_player.play_tags([SoundOrVideoTag(str(play_path))])
-        session.playback.active = True
-        session.playback.paused = False
-        session.playback.preserve_status = source == "post_edit"
-        deps.eval_playback_state(editor, field_index, "playing", session.cursor_ms)
-        if not session.playback.preserve_status:
-            deps.eval_status(editor, t("editor.playback.playing"))
-        return
-
-    config = AudioProcessingConfig.from_config(deps.config(editor))
-    session.playback.generation += 1
-    generation = session.playback.generation
-    session.playback.preparing = True
-    session.playback.active = True
-    session.playback.paused = False
-    session.playback.preserve_status = source == "post_edit"
-    playback_cursor_ms = session.cursor_ms
-    playback_end_context = playback_end_ms
-    if not session.playback.preserve_status:
-        deps.set_busy(editor, True, t("editor.playback.preparing"))
-    deps.eval_playback_state(editor, field_index, "stopped", session.cursor_ms)
-    logger.debug(
-        "playback.native_segment_prepare_started | %s",
-        {
-            "cursor_ms": playback_cursor_ms,
-            "end_ms": playback_end_context,
-            "field_index": field_index,
-            "filename": str(play_path),
-            "generation": generation,
-            "source": source,
-        },
-    )
-    record_breadcrumb(
-        "editor.playback.segment_render_started",
-        source="editor",
-        operation="editor.playback",
-        operation_id=operation_id,
-        context={
-            "filename": str(play_path),
-            "field_index": field_index,
-            "cursor_ms": playback_cursor_ms,
-            "end_ms": playback_end_context,
-        },
-        flush=True,
-    )
-
-    def _run() -> None:
-        try:
-            def _show_command(command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(command)
-                status_message = t("editor.playback.preparing_ffmpeg")
-                command_text = ""
-                if config.show_ffmpeg_commands:
-                    status_message = f"{status_message}: {rendered}"
-                    command_text = rendered
-                if not session.playback.preserve_status:
-                    deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
-
-            result = deps.render_playback_segment(
-                play_path,
-                playback_cursor_ms,
-                config,
-                on_command=_show_command,
-                end_ms=playback_end_context,
-            )
-            deps.main(
-                editor,
-                lambda: deps.playback_segment_ready(
-                    editor,
-                    generation,
-                    field_index,
-                    playback_cursor_ms,
-                    result.output_path,
-                    source=source,
-                ),
-            )
-        except Exception as exc:
-            message = message_with_permission_guidance(str(exc), exc)
-            capture_exception(
-                "editor.worker.playback_segment",
-                exc,
-                operation="editor.playback",
-                operation_id=operation_id,
-                user_message=message or t("editor.playback.prepare_failed"),
-                context={
-                    "filename": str(play_path),
-                    "field_index": field_index,
-                    "cursor_ms": playback_cursor_ms,
-                    "end_ms": playback_end_context,
-                },
-                log=logger,
-            )
-            deps.main(editor, lambda: deps.playback_segment_failed(editor, generation, message))
-    deps.threading.Thread(target=_run, daemon=True).start()
-
-
-def playback_segment_ready(
-    editor: Any,
-    generation: int,
-    field_index: int,
-    cursor_ms: int,
-    playback_path: Path,
-    deps: PlaybackDeps,
-    source: str = "user",
-) -> None:
-    """Start native playback once an offset playback segment has rendered."""
-    session = deps.sessions.get(editor)
-    if session is None or generation != session.playback.generation:
-        shutil.rmtree(playback_path.parent, ignore_errors=True)
-        return
-    from anki.sound import SoundOrVideoTag
-    from aqt.sound import av_player
-    session.playback.preparing = False
-    session.playback.temp_path = playback_path
-    session.playback.active = True
-    session.playback.paused = False
-    av_player.stop_and_clear_queue()
-    av_player.play_tags([SoundOrVideoTag(str(playback_path))])
-    logger.debug(
-        "playback.native_segment_ready | %s",
-        {
-            "cursor_ms": cursor_ms,
-            "field_index": field_index,
-            "generation": generation,
-            "source": source,
-            "temp_path": str(playback_path),
-        },
-    )
-    if not session.playback.preserve_status:
-        deps.set_busy(editor, False)
-    deps.eval_playback_state(editor, field_index, "playing", cursor_ms)
-    if session.playback.preserve_status:
-        return
-    if cursor_ms > 0:
-        deps.eval_status(editor, playback_started_from_message(cursor_ms, source))
-    else:
-        deps.eval_status(editor, t("editor.playback.playing"))
-
-
-def playback_segment_failed(editor: Any, generation: int, message: str, deps: PlaybackDeps) -> None:
-    """Report playback segment render failure if it belongs to the active generation."""
-    session = deps.sessions.get(editor)
-    if session is None or generation != session.playback.generation:
-        return
-    session.playback.preparing = False
-    session.playback.active = False
-    session.playback.paused = False
-    deps.set_busy(editor, False)
-    deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
-    logger.debug(
-        "playback.native_segment_failed | %s",
-        {
-            "cursor_ms": session.cursor_ms,
-            "field_index": session.field_index,
-            "generation": generation,
-            "message": message,
-        },
-    )
-    display_message = message or t("editor.playback.prepare_failed")
-    deps.eval_status(
-        editor,
-        coded_error(AQE_PLAYBACK_PREPARE_FAILED, display_message),
-        kind="error",
-    )
 
 
 def _coded_playback_error(message: str, deps: PlaybackDeps) -> dict[str, str]:
@@ -374,28 +142,27 @@ def _coded_playback_error(message: str, deps: PlaybackDeps) -> dict[str, str]:
     return coded_error(AQE_AUDIO_PROCESSING_FAILED, message)
 
 
+def _unsupported_playback_engine(request: Any) -> bool:
+    return isinstance(request, dict) and str(request.get("engine") or "html") not in {"", "html"}
+
+
 def set_cursor_from_web(editor: Any, deps: PlaybackDeps) -> None:
     """Update the session cursor from frontend state."""
 
     def _apply(value: Any) -> None:
         if getattr(editor, "note", None) is None:
             return
-        session, source_path = deps.session_and_source(editor)
+        session, _source_path = deps.session_and_source(editor)
         cursor_value = value.get("cursorMs") if isinstance(value, dict) else value
         field_index = deps.current_field_index(editor)
         duration_ms = deps.visualized_duration_for_field(session, field_index, session.current_filename)
         session.cursor_ms = clamp_cursor_ms(cursor_value, duration_ms)
         if isinstance(value, dict) and value.get("restartPlayback"):
-            if value.get("engine") == "html":
-                session.playback.active = True
-                session.playback.paused = False
+            if _unsupported_playback_engine(value):
+                logger.info("ignoring unsupported playback engine cursor restart for field %s", field_index)
                 return
-            end_ms = (
-                requested_end_ms(value.get("endMs"), duration_ms)
-                if value.get("regionMode") == "selection" and value.get("endMs") is not None
-                else None
-            )
-            deps.start_playback_from_cursor(editor, session, source_path, field_index, session.cursor_ms, end_ms)
+            session.playback.active = True
+            session.playback.paused = False
 
     deps.eval_with_callback(
         editor,

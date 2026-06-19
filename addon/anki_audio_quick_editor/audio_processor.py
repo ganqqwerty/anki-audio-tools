@@ -42,7 +42,6 @@ _ORIGINAL_EXPECTED_BUNDLED_RNNOISE_DIR = _audio_tools.expected_bundled_rnnoise_d
 _ORIGINAL_EXPECTED_BUNDLED_SILERO_VAD_MODEL_PATH = _audio_tools.expected_bundled_silero_vad_model_path
 _ORIGINAL_EXPECTED_BUNDLED_SPLEETER_MODEL_PATH = _audio_tools.expected_bundled_spleeter_model_path
 _ORIGINAL_EXPECTED_BUNDLED_TOOL_PATH = _audio_tools.expected_bundled_tool_path
-_ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = _audio_rendering.make_playback_segment_filename
 _safe_filename_stem = _audio_rendering._safe_filename_stem
 build_audio_filters = _audio_commands.build_audio_filters
 build_convert_audio_command = _audio_commands.build_convert_audio_command
@@ -55,7 +54,6 @@ format_ffmpeg_command = _audio_commands.format_ffmpeg_command
 probe_audio_metadata = _audio_output_policy.probe_audio_metadata
 resolve_output_policy = _audio_output_policy.resolve_output_policy
 make_output_filename = _render_portal.make_output_filename
-make_playback_segment_filename = _render_portal.make_playback_segment_filename
 render_audio = _render_portal.render_audio
 render_audio_region_deleted = _render_portal.render_audio_region_deleted
 render_audio_region_kept = _render_portal.render_audio_region_kept
@@ -65,12 +63,10 @@ render_dpdfnet_audio = _render_portal.render_dpdfnet_audio
 render_noise_reduced_audio = _render_portal.render_noise_reduced_audio
 render_pitch_hum_audio = _render_portal.render_pitch_hum_audio
 render_pitch_tier_hum_audio = _render_portal.render_pitch_tier_hum_audio
-render_playback_segment = _render_portal.render_playback_segment
 render_rnnoise_audio = _render_portal.render_rnnoise_audio
 render_voice_only_audio = _render_portal.render_voice_only_audio
 select_deep_filter_output = _audio_noise_reduction.select_deep_filter_output
 temp_final_path = _render_portal.temp_final_path
-temp_playback_path = _render_portal.temp_playback_path
 
 
 def _bundled_deep_filter_path() -> Path | None:
@@ -95,7 +91,6 @@ def _audio_module_deps() -> AudioModuleDeps:
         render_external_error_message=render_external_error_message,
         run_external_command=run_external_command,
         external_command_run_kwargs=external_command_run_kwargs,
-        make_playback_segment_filename=make_playback_segment_filename,
         render_pause_removal_pipeline_audio=render_pause_removal_pipeline_audio,
         bundled_deep_filter_path=_bundled_deep_filter_path,
     )

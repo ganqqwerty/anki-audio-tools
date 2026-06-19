@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_callbacks import _playback_segment_ready
 from anki_audio_quick_editor.editor_note_load_hooks import (
     reset_editor_session_for_note_load,
 )
@@ -113,21 +112,3 @@ def test_is_busy_includes_playback_preparation() -> None:
     assert _is_busy(EditorSession(playback=PlaybackState(preparing=True))) is True
     assert _is_busy(EditorSession(analysis=AnalysisState(busy_fields={0}))) is True
     assert _is_busy(EditorSession()) is False
-
-
-def test_stale_playback_segment_completion_is_ignored_and_cleaned(tmp_path: Path) -> None:
-    class Editor:
-        pass
-
-    editor = Editor()
-    session = EditorSession(playback=PlaybackState(generation=2))
-    SESSIONS[editor] = session
-    temp_dir = tmp_path / "aqe_playback_stale"
-    temp_dir.mkdir()
-    segment = temp_dir / "aqe_playback_clip__from_700ms_deadbeef.mp3"
-    segment.write_bytes(b"audio")
-
-    _playback_segment_ready(editor, 1, 0, 700, segment)
-
-    assert not temp_dir.exists()
-    assert session.playback.temp_path is None
