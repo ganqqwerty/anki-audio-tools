@@ -607,6 +607,7 @@
   "settings.toolbar_visibility.mode_locked_tooltip": "此显示设置已锁定，因为该按钮属于分组工具栏面板。",
   "tooltip.disabled.batch_running": "批处理运行时已禁用。",
   "tooltip.disabled.editor_busy": "请等待当前音频操作完成。",
+  "tooltip.disabled.audio_metadata_loading": "正在加载音频元数据...",
   "tooltip.disabled.recording_active": "使用此控件前，请先停止当前录音。",
   "editor.selection_shift.start_previous": "将选择起点移到上一个标记",
   "editor.selection_shift.start_next": "将选择起点移到下一个标记",

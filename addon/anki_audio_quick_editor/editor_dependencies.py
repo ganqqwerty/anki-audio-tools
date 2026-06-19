@@ -236,6 +236,7 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> ProcessingDeps:
         render_rnnoise_audio=render_rnnoise_audio,
         render_size_reduced_audio=render_size_reduced_audio,
         render_voice_only_audio=render_voice_only_audio,
+        replace_current_field_after_special_transform=callbacks.replace_current_field_after_special_transform,
         replace_current_field_after_noise_removal=callbacks.replace_current_field_after_noise_removal,
         replace_current_field_after_render=callbacks.replace_current_field_after_render,
         request_history_availability_after_edit=frontend_callbacks.request_history_availability_after_edit,

@@ -29,8 +29,10 @@ AUDIO_SPLIT_MODULES = {
 EDITOR_SPLIT_MODULES = {
     "editor_analysis",
     "editor_bridge",
+    "editor_bridge_hooks",
     "editor_callbacks",
     "editor_dependencies",
+    "editor_edit_history",
     "editor_frontend",
     "editor_frontend.bridge",
     "editor_frontend.busy",
@@ -41,23 +43,31 @@ EDITOR_SPLIT_MODULES = {
     "editor_frontend.types",
     "editor_history",
     "editor_media",
+    "editor_note_load_hooks",
     "editor_playback",
     "editor_playback_request",
+    "editor_processing_guard",
     "editor_processing",
     "editor_recording",
     "editor_recording_analysis",
     "editor_recording_requests",
     "editor_recording_frontend",
+    "editor_recording_state",
     "editor_region_delete",
     "editor_region_delete_worker",
     "editor_reload_status",
     "editor_runtime",
     "editor_session",
+    "editor_session_state",
+    "editor_session_types",
     "editor_special_transform_worker",
     "editor_special_transforms",
     "editor_settings_actions",
     "editor_status",
     "editor_split_defaults",
+    "editor_transform_failure_support",
+    "editor_transform_orchestration",
+    "editor_transform_post_processing",
 }
 
 BROWSER_SPLIT_MODULES = {
@@ -101,11 +111,24 @@ def test_split_modules_have_explicit_contract_layers() -> None:
         **{
             name: Layer.UI_ADAPTER
             for name in EDITOR_SPLIT_MODULES
-            - {"editor_media", "editor_session"}
+            - {
+                "editor_edit_history",
+                "editor_media",
+                "editor_processing_guard",
+                "editor_recording_state",
+                "editor_session",
+                "editor_session_state",
+                "editor_session_types",
+            }
         },
         **{name: Layer.IMPORT_SAFE_CORE for name in RUNTIME_SPLIT_MODULES},
+        "editor_edit_history": Layer.IMPORT_SAFE_CORE,
         "editor_media": Layer.IMPORT_SAFE_CORE,
+        "editor_processing_guard": Layer.IMPORT_SAFE_CORE,
+        "editor_recording_state": Layer.IMPORT_SAFE_CORE,
         "editor_session": Layer.IMPORT_SAFE_CORE,
+        "editor_session_state": Layer.IMPORT_SAFE_CORE,
+        "editor_session_types": Layer.IMPORT_SAFE_CORE,
     }
 
     actual_layers = {

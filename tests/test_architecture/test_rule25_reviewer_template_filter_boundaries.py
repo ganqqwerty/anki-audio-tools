@@ -85,7 +85,7 @@ def test_edit_view_and_tag_entrypoints_do_not_import_each_other() -> None:
     ]
 
     assert offenders == []
-    assert _imports_module(_source(EDITOR_INTEGRATION), "editor_webview_injection")
+    assert _imports_module(_source(EDITOR_INTEGRATION), "editor_note_load_hooks")
     assert _imports_module(_source(REVIEWER_INTEGRATION), "editor_webview_injection")
     assert "from .reviewer_audio_targets import" in _source(REVIEWER_INTEGRATION)
     assert "from .reviewer_audio_targets import" in _source(REVIEWER_TEMPLATE_FILTER)

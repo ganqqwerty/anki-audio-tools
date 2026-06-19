@@ -165,6 +165,7 @@ class ProcessingDeps(Protocol):
     render_rnnoise_audio: Callable[..., Any]
     render_size_reduced_audio: Callable[..., Any]
     render_voice_only_audio: Callable[..., Any]
+    replace_current_field_after_special_transform: Callable[..., None]
     replace_current_field_after_noise_removal: Callable[..., None]
     replace_current_field_after_render: Callable[..., None]
     request_graph_redraw: Callable[..., None]

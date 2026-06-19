@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from .diagnostics_runtime import capture_exception, new_operation_id
 from .editor_actions import EditorCommandPayload, decode_editor_command_payload
-from .editor_session import ready_learner_recording_media_path
+from .editor_recording_state import ready_learner_recording_media_path
 from .error_codes import (
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
     AQE_MEDIA_REFERENCED_AUDIO_MISSING,

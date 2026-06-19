@@ -139,6 +139,32 @@ def get_all_imports(path: Path) -> list[str]:
     return _collect_imports(ast.parse(path.read_text(encoding="utf-8")).body, recurse_into_defs=True)
 
 
+def collect_private_cross_module_imports() -> list[tuple[str, str, str]]:
+    """Find all cross-module imports of ``_``-prefixed symbols within the addon.
+
+    Returns a list of ``(source_module, target_module, symbol_name)`` tuples
+    for every ``from .target import _private`` that crosses a module boundary.
+    """
+    results: list[tuple[str, str, str]] = []
+    for module_name in list_production_modules():
+        path = module_to_path(module_name)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.level == 0:
+                continue
+            prefix = "." * node.level
+            module_part = node.module or ""
+            import_path = f"{prefix}{module_part}"
+            resolved = resolve_relative_import(import_path, path)
+            classified = _classify_module_name(resolved)
+            if classified is None or classified == module_name:
+                continue
+            for alias in node.names:
+                if alias.name.startswith("_"):
+                    results.append((module_name, classified, alias.name))
+    return results
+
+
 def resolve_relative_import(import_name: str, source_path: Path) -> str:
     if not import_name.startswith("."):
         return import_name

@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import Any, TypedDict
 
+from .editor_edit_history import UndoEntry
 from .editor_history_settings import normalize_editor_history_size
-from .editor_session import EditorSession, UndoEntry
+from .editor_session import EditorSession
 from .i18n import t
 
 

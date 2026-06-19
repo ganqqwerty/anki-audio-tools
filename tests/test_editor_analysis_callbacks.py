@@ -11,13 +11,13 @@ import pytest
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_callbacks import (
     _analysis_finished,
-    _handle_bridge_command,
+    handle_bridge_command,
 )
-from anki_audio_quick_editor.editor_integration import (
-    _reset_editor_session_for_note_load,
+from anki_audio_quick_editor.editor_note_load_hooks import (
+    reset_editor_session_for_note_load,
 )
 from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import AnalysisState, EditorSession
 from anki_audio_quick_editor.prosody_types import (
     FFMPEG_PCM_ANALYSIS_WARNING,
     FFMPEG_PCM_ANALYZER,
@@ -36,10 +36,7 @@ def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
     session = EditorSession(
         note_id=10,
         field_index=0,
-        analysis_busy=True,
-        analysis_busy_fields={0},
-        analysis_generation=2,
-        analysis_generations_by_field={0: 2},
+        analysis=AnalysisState(busy=True, busy_fields={0}, generation=2, generations_by_field={0: 2}),
     )
     SESSIONS[editor] = session
     track = ProsodyTrack(
@@ -51,11 +48,11 @@ def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
         analyzer_name="test",
     )
 
-    _reset_editor_session_for_note_load(editor, 11)
+    reset_editor_session_for_note_load(editor, 11)
     _analysis_finished(editor, 2, 0, track)
 
-    assert session.analysis_generation == 3
-    assert session.visualized_duration_ms is None
+    assert session.analysis.generation == 3
+    assert session.graph.visualized_duration_ms is None
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert len(evals) == 1
     assert "__aqeSetHistoryAvailability" in evals[0]
@@ -71,10 +68,7 @@ def test_analysis_completion_renders_requested_field_when_session_tracks_another
     session = EditorSession(
         field_index=0,
         current_filename="field-one.mp3",
-        analysis_busy=True,
-        analysis_busy_fields={1},
-        analysis_generation=2,
-        analysis_generations_by_field={1: 2},
+        analysis=AnalysisState(busy=True, busy_fields={1}, generation=2, generations_by_field={1: 2}),
     )
     SESSIONS[editor] = session
     track = ProsodyTrack(
@@ -88,10 +82,10 @@ def test_analysis_completion_renders_requested_field_when_session_tracks_another
 
     _analysis_finished(editor, 2, 1, track)
 
-    assert session.analysis_busy is False
-    assert session.analysis_busy_fields == set()
+    assert session.analysis.busy is False
+    assert session.analysis.busy_fields == set()
     assert session.field_index == 0
-    assert session.visualized_durations_by_field[1] == 900
+    assert session.graph.durations_by_field[1] == 900
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetVisualizer(1," in call for call in evals)
 
@@ -105,10 +99,7 @@ def test_analysis_completion_warns_when_graph_uses_ffmpeg_pcm_fallback() -> None
     editor.web = MagicMock()
     session = EditorSession(
         field_index=0,
-        analysis_busy=True,
-        analysis_busy_fields={0},
-        analysis_generation=2,
-        analysis_generations_by_field={0: 2},
+        analysis=AnalysisState(busy=True, busy_fields={0}, generation=2, generations_by_field={0: 2}),
     )
     SESSIONS[editor] = session
     track = ProsodyTrack(
@@ -198,7 +189,7 @@ def test_field_addressed_analysis_preserves_edit_session_history(
         lambda path, config: analyzed.append((path, config)) or track,
     )
 
-    _handle_bridge_command(editor, "aqe:analyze-field")
+    handle_bridge_command(editor, "aqe:analyze-field")
 
     assert [path for path, _config in analyzed] == [field_two]
     assert [config.graph_voice_range for _path, config in analyzed] == ["bass"]
@@ -211,7 +202,7 @@ def test_field_addressed_analysis_preserves_edit_session_history(
     assert session.current_filename == "field-one.mp3"
     assert [entry.filename for entry in session.undo_history.entries] == ["field-one.mp3"]
     assert [entry.filename for entry in session.redo_history.entries] == ["field-one__redo.mp3"]
-    assert session.visualized_durations_by_field[1] == 1200
+    assert session.graph.durations_by_field[1] == 1200
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetVisualizer(1," in call for call in evals)
 
@@ -267,14 +258,14 @@ def test_manual_analysis_uses_read_only_field_path(tmp_path: Path, monkeypatch) 
         lambda path, _config: analyzed.append(path) or track,
     )
 
-    _handle_bridge_command(editor, "aqe:analyze")
+    handle_bridge_command(editor, "aqe:analyze")
 
     assert analyzed == [field_two]
     assert session.state == AudioEditState("field-one.mp3", volume_db=3.0)
     assert session.field_index == 0
     assert session.current_filename == "field-one.mp3"
     assert [entry.filename for entry in session.undo_history.entries] == ["field-one.mp3"]
-    assert session.visualized_durations_by_field[1] == 900
+    assert session.graph.durations_by_field[1] == 900
 
 
 def test_manual_analysis_payload_applies_graph_settings(tmp_path: Path, monkeypatch) -> None:
@@ -328,7 +319,7 @@ def test_manual_analysis_payload_applies_graph_settings(tmp_path: Path, monkeypa
         lambda path, config: analyzed.append((path, config)) or track,
     )
 
-    _handle_bridge_command(
+    handle_bridge_command(
         editor,
         '{"command":"aqe:analyze","fieldOrd":1,'
         '"graphSettings":{"voiceRange":"child","recordingCondition":"studio",'
@@ -381,7 +372,7 @@ def test_stale_field_addressed_analysis_request_is_ignored(tmp_path: Path, monke
         lambda *_args, **_kwargs: pytest.fail("stale graph requests should not analyze audio"),
     )
 
-    _handle_bridge_command(editor, "aqe:analyze-field")
+    handle_bridge_command(editor, "aqe:analyze-field")
 
     assert session.state == AudioEditState("new.mp3")
     assert [entry.filename for entry in session.undo_history.entries] == ["new.mp3"]

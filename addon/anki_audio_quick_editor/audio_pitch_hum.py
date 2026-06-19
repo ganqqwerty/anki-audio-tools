@@ -13,7 +13,7 @@ from typing import Any, cast
 
 from .audio_commands import build_audio_encode_command
 from .audio_external import (
-    _external_command_run_kwargs,
+    external_command_run_kwargs,
     probe_duration_ms,
 )
 from .audio_output_policy import (
@@ -30,15 +30,21 @@ from .audio_pitch_hum_frames import (
 )
 from .audio_pitch_hum_synthesis import (
     HUM_SAMPLE_RATE,
-    _apply_nasal_onsets,
-    _nearest_intensity,
-    _sound_duration_s,
 )
 from .audio_pitch_hum_synthesis import (
-    _synthesize_pitch_hum_pcm as _synthesize_pitch_hum_pcm_impl,
+    apply_nasal_onsets as _apply_nasal_onsets,
 )
 from .audio_pitch_hum_synthesis import (
-    _synthesize_pitch_tier_pcm as _synthesize_pitch_tier_pcm_impl,
+    nearest_intensity as _nearest_intensity,
+)
+from .audio_pitch_hum_synthesis import (
+    sound_duration_s as _sound_duration_s,
+)
+from .audio_pitch_hum_synthesis import (
+    synthesize_pitch_hum_pcm as _synthesize_pitch_hum_pcm_impl,
+)
+from .audio_pitch_hum_synthesis import (
+    synthesize_pitch_tier_pcm as _synthesize_pitch_tier_pcm_impl,
 )
 from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg
@@ -154,7 +160,7 @@ def _encode_pitch_hum_wav(
             check=False,
             encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
             errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            **_external_command_run_kwargs(),
+            **external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
         raise AudioProcessingError(launch_error_message("Could not start pitch hum encoding.", exc)) from exc
@@ -283,7 +289,7 @@ def _synthesize_pitch_hum_pcm(
 ) -> Any:
     from . import audio_pitch_hum_synthesis as synthesis
 
-    synthesis._apply_nasal_onsets = _apply_nasal_onsets
+    synthesis.apply_nasal_onsets = _apply_nasal_onsets
     return cast(Any, _synthesize_pitch_hum_pcm_impl(frames, duration_s, sample_rate=sample_rate))
 
 
@@ -296,7 +302,7 @@ def _synthesize_pitch_tier_pcm(
 ) -> Any:
     from . import audio_pitch_hum_synthesis as synthesis
 
-    synthesis._apply_nasal_onsets = _apply_nasal_onsets
+    synthesis.apply_nasal_onsets = _apply_nasal_onsets
     return cast(Any, _synthesize_pitch_tier_pcm_impl(
         pitch_tier_sound,
         frames,

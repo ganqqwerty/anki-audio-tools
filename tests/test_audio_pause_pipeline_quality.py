@@ -61,7 +61,7 @@ def test_pause_pipeline_resolves_source_quality_for_final_and_working_audio(
 ) -> None:
     from anki_audio_quick_editor.audio_pause_pipeline import (
         _PauseDetectionRuntime,
-        _render_pause_removal_pipeline_audio,
+        render_pause_removal_pipeline_audio,
     )
 
     captured: dict[str, object] = {}
@@ -93,7 +93,7 @@ def test_pause_pipeline_resolves_source_quality_for_final_and_working_audio(
         or SimpleNamespace(output_path=output_path, command=("pause",), duration_ms=1500),
     )
 
-    result = _render_pause_removal_pipeline_audio(
+    result = render_pause_removal_pipeline_audio(
         source,
         AudioEditState("source.mp3", remove_internal_pauses_enabled=True),
         AudioProcessingConfig(),

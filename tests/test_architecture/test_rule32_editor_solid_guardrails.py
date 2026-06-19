@@ -9,7 +9,7 @@ from .conftest import ADDON_DIR
 EDITOR_RENDER_REPLACEMENT_WORKFLOWS = (
     "editor_processing.py",
     "editor_region_delete.py",
-    "editor_special_transforms.py",
+    "editor_transform_post_processing.py",
 )
 DIRECT_SOUND_REFERENCE_REPLACERS = {
     "replace_sound_reference",

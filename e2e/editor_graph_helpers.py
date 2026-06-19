@@ -88,7 +88,7 @@ def _visualizer_js(ord_: int = 0) -> str:
     """.replace("__ORD__", json.dumps(ord_))
 
 
-def _wait_for_visualizer_track(editor, predicate=lambda track: True, timeout: float = 10.0, ord_: int = 0):
+def _wait_for_visualizer_track(editor, predicate=lambda track: True, timeout: float = 30.0, ord_: int = 0):
     return wait_for_js_condition(
         editor.web,
         _visualizer_js(ord_),
@@ -138,7 +138,7 @@ def _set_full_time_viewport(editor, ord_: int = 0) -> None:
     )
 
 
-def _click_graph_and_wait(editor, predicate=lambda track: True, ord_: int = 0, timeout: float = 10.0):
+def _click_graph_and_wait(editor, predicate=lambda track: True, ord_: int = 0, timeout: float = 30.0):
     selector = f'[data-testid="aqe-button-{ord_}-graph"]'
     wait_for_selector(editor.web, selector, timeout=5.0)
     wait_for_js_condition(

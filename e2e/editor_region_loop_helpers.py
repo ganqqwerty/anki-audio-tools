@@ -33,7 +33,12 @@ def _open_tone_editor(anki_mw, ffmpeg_config, filename: str, duration_s: float, 
     overrides = {"repeat_playback_by_default": False, **config_overrides}
     _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides)
     editor, parent = _open_editor(anki_mw, note)
-    track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+    try:
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+    except Exception:
+        editor.set_note(None)
+        parent.close()
+        raise
     _set_full_time_viewport(editor)
     _install_html_audio_test_driver(editor)
     return media_dir, source, note, editor, parent, track

@@ -5,13 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .editor_edit_history import UndoEntry
 from .editor_history_settings import (
     DEFAULT_EDITOR_HISTORY_SIZE,
     normalize_editor_history_size,
 )
 from .editor_history_snapshot import HistorySnapshot, history_snapshot_for_field
 from .editor_reload_status import reload_editor_with_pending_status
-from .editor_session import EditorSession, UndoEntry
+from .editor_session import EditorSession
 from .editor_status import (
     redo_status_message,
     restored_status_summary,
@@ -189,7 +190,7 @@ def restore_history_entry(
 ) -> None:
     """Replace the current audio field with a history entry."""
     deps.stop_session_playback(session)
-    session.post_edit_playback_generation += 1
+    session.post_edit_playback.bump()
     field_index = deps.current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
@@ -214,16 +215,14 @@ def restore_history_entry(
     session.current_filename = entry.filename
     session.field_index = field_index
     session.status_summary = restored_status_summary(entry)
-    session.next_status_summary = ""
     session.cursor_ms = 0
-    session.playback_active = False
-    session.playback_paused = False
+    session.finish_processing_without_edit()
     restored_path = existing_media_file_path(Path(editor.mw.col.media.dir()), entry.filename)
     session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
     deps.request_playback_after_edit(
         editor,
         field_index,
-        require_graph_redraw=field_index in session.graph_active_fields,
+        require_graph_redraw=field_index in session.analysis.graph_active_fields,
     )
     reload_editor_with_pending_status(
         editor,
@@ -235,5 +234,5 @@ def restore_history_entry(
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
-    if field_index in session.graph_active_fields:
+    if field_index in session.analysis.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)

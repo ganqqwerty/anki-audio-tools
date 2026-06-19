@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 
 
 class Editor:
@@ -34,7 +34,7 @@ def test_bridge_opens_first_party_github_pages_url(url: str) -> None:
     editor = _editor()
     QDesktopServices.openUrl.return_value = True
 
-    _handle_bridge_command(editor, f'{{"command":"aqe:open-url","url":"{url}"}}')
+    handle_bridge_command(editor, f'{{"command":"aqe:open-url","url":"{url}"}}')
 
     QUrl.assert_called_once_with(url)
     QDesktopServices.openUrl.assert_called_once_with(QUrl.return_value)
@@ -55,7 +55,7 @@ def test_bridge_rejects_non_first_party_external_url(url: str) -> None:
 
     editor = _editor()
 
-    _handle_bridge_command(editor, f'{{"command":"aqe:open-url","url":"{url}"}}')
+    handle_bridge_command(editor, f'{{"command":"aqe:open-url","url":"{url}"}}')
 
     QDesktopServices.openUrl.assert_not_called()
     assert any("Could not open that link." in call.args[0] for call in editor.web.eval.call_args_list)

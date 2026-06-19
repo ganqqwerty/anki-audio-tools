@@ -28,7 +28,7 @@ def test_decode_pcm_forwards_window_visibility_kwargs(monkeypatch, tmp_path: Pat
     run_kwargs: list[dict[str, object]] = []
     monkeypatch.setattr("anki_audio_quick_editor.prosody_fallback.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
-        "anki_audio_quick_editor.prosody_fallback._external_command_run_kwargs",
+        "anki_audio_quick_editor.prosody_fallback.external_command_run_kwargs",
         lambda: {"creationflags": 0x08000000},
     )
 

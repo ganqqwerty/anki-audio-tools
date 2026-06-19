@@ -85,6 +85,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         "editor_history",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
+            "editor_edit_history",
             "editor_reload_status",
             "editor_session",
             "editor_status",
@@ -100,13 +101,14 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
     "editor_reload_status": contract(
         "editor_reload_status",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_session",),
+        allowed_addon_deps=("editor_session", "editor_session_types"),
     ),
     "editor_persistent_undo": contract(
         "editor_persistent_undo",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "audio_state",
+            "editor_edit_history",
             "editor_history_settings",
             "editor_reload_status",
             "editor_session",
@@ -127,6 +129,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
             "audio_state",
             "editor_media",
             "editor_playback",
+            "editor_recording_state",
             "editor_session",
             "editor_status",
             "errors",
@@ -139,6 +142,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         "editor_settings_actions",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
+            "editor_recording_state",
             "editor_runtime",
             "editor_reload_status",
             "editor_session",
@@ -157,7 +161,8 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
             "audio_state",
             "dpdfnet_settings",
             "editor_actions",
-            "editor_session",
+            "editor_edit_history",
+            "editor_region_delete_request",
             "i18n",
         ),
     ),

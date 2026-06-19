@@ -119,8 +119,8 @@ def visualized_duration_for_field(
     filename: str | None,
 ) -> int | None:
     """Return the known visualized duration for a field and filename."""
-    if filename and session.visualized_filenames_by_field.get(field_index) == filename:
-        return session.visualized_durations_by_field.get(field_index)
+    if filename and session.graph.filenames_by_field.get(field_index) == filename:
+        return session.graph.durations_by_field.get(field_index)
     if session.field_index == field_index:
-        return session.visualized_duration_ms
+        return session.graph.visualized_duration_ms
     return None

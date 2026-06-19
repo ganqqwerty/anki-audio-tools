@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 ACTION_LABEL = "Run Audio Batch Operation..."
 EXPORT_ACTION_LABEL = "Export Audio..."
+BROWSER_EDITOR_SAVE_READY_RETRY_MS = 50
+BROWSER_EDITOR_SAVE_READY_MAX_ATTEMPTS = 100
 
 
 def register_browser_hooks(gui_hooks: Any) -> None:
@@ -65,7 +67,7 @@ def _open_after_current_editor_saved(
     browser: Any,
     opener: Callable[[Any], None],
     *,
-    remaining_readiness_checks: int = 100,
+    remaining_readiness_checks: int = BROWSER_EDITOR_SAVE_READY_MAX_ATTEMPTS,
 ) -> None:
     editor = getattr(browser, "editor", None)
     save_current_note = getattr(editor, "call_after_note_saved", None)
@@ -82,6 +84,7 @@ def _open_after_current_editor_saved(
                 save_current_note(lambda: opener(browser))
                 return
             if remaining_readiness_checks <= 0:
+                logger.warning("browser editor save API did not become ready before opening add-on dialog")
                 opener(browser)
                 return
             _retry_after_editor_readiness_delay(
@@ -105,7 +108,7 @@ def _retry_after_editor_readiness_delay(
     from aqt.qt import QTimer
 
     QTimer.singleShot(
-        50,
+        BROWSER_EDITOR_SAVE_READY_RETRY_MS,
         lambda: _open_after_current_editor_saved(
             browser,
             opener,

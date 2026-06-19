@@ -3,6 +3,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 
+class FakeUndoStatus:
+    def __init__(self, last_step: int = 0) -> None:
+        self.last_step = last_step
+
+
 class FakeNote:
     def __init__(self, note_id: int) -> None:
         self.id = note_id
@@ -30,6 +35,9 @@ class FakeCol:
 
     def add_custom_undo_entry(self, _name: str) -> int:
         return 42
+
+    def undo_status(self) -> FakeUndoStatus:
+        return FakeUndoStatus(last_step=42)
 
     def update_note(self, note: FakeNote) -> object:
         self.updated.append(int(note.id))

@@ -7,7 +7,10 @@ from typing import Any, Callable
 from anki_audio_quick_editor.audio_recording import AudioRecordingError, RecordingResult
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.editor_runtime import is_busy
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import (
+    EditorSession,
+    GraphVisualizationState,
+)
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, build_prosody_track
 
 
@@ -116,10 +119,7 @@ def _editor_with_target(tmp_path: Path) -> tuple[Any, EditorSession, Path]:
     session = EditorSession(
         field_index=0,
         current_filename="target.wav",
-        visualized_filename="target.wav",
-        visualized_duration_ms=1000,
-        visualized_filenames_by_field={0: "target.wav"},
-        visualized_durations_by_field={0: 1000},
+        graph=GraphVisualizationState(visualized_filename="target.wav", visualized_duration_ms=1000, filenames_by_field={0: "target.wav"}, durations_by_field={0: 1000}),
     )
     return editor, session, target_path
 

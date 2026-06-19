@@ -9,7 +9,7 @@ from aqt import mw
 from aqt.qt import qconnect
 
 from .editor_actions import BRIDGE_COMMANDS, CMD_COMMAND_PAYLOAD
-from .editor_callbacks import _handle_bridge_command
+from .editor_callbacks import handle_bridge_command
 from .editor_media import audio_field_sources
 from .editor_runtime import SESSIONS
 from .editor_session import EditorSession, reset_for_note_load
@@ -220,7 +220,7 @@ def _handle_reviewer_bridge_command(reviewer: Any, command: str) -> None:
         _focus_adapter_field(adapter, command)
         return
     if command == CMD_COMMAND_PAYLOAD or command in BRIDGE_COMMANDS or command.lstrip().startswith("{"):
-        _handle_bridge_command(adapter, command)
+        handle_bridge_command(adapter, command)
 
 
 def _adapter_for_reviewer(reviewer: Any) -> ReviewerEditorAdapter:

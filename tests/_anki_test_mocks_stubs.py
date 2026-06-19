@@ -121,6 +121,11 @@ class _AnkiWebView:
         return self._page
 
 
+class _UndoStatus:
+    def __init__(self) -> None:
+        self.last_step = 1
+
+
 class _Collection:
     def get_note(self, id: object) -> object:
         del id
@@ -133,6 +138,9 @@ class _Collection:
     def add_custom_undo_entry(self, name: str) -> int:
         del name
         return 1
+
+    def undo_status(self) -> _UndoStatus:
+        return _UndoStatus()
 
     def merge_undo_entries(self, target: int) -> object:
         del target

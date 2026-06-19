@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from .audio_state import AudioProcessingConfig
@@ -161,21 +162,21 @@ def run_batch(
             artifact_root,
         )
         last_audio = note_result.audio_filename or last_audio
-        if note_result.written and undo_entry is None:
-            undo_entry = col.add_custom_undo_entry(format_message(messages, "batch.undo_label"))
         note_result = apply_result(
             col,
             report,
             note_result,
             request.target_field or request.source_field,
         )
+        if note_result.written and undo_entry is None:
+            undo_entry = col.undo_status().last_step
         report.processed += 1
         line = format_result_line(note_result, messages)
         report.add(line)
         on_log(line)
         on_progress(report.processed, report.total, last_audio, report.failures)
 
-    if undo_entry is not None:
+    if undo_entry is not None and undo_entry > 0:
         report.changes = col.merge_undo_entries(undo_entry)
 
     report.add(report.summary)
@@ -238,10 +239,7 @@ def publish_collection_changes(browser: Any, changes: Any) -> None:
     if changes is None:
         return
     try:
-        from aqt import gui_hooks
-
-        browser.mw.update_undo_actions()
-        gui_hooks.operation_did_execute(changes, browser)
+        _publish_operation_finished(browser.mw, changes, browser)
     except Exception as exc:  # pragma: no cover - UI refresh is best effort
         capture_exception(
             "browser.refresh_after_batch",
@@ -251,6 +249,12 @@ def publish_collection_changes(browser: Any, changes: Any) -> None:
             context={"has_changes": changes is not None},
             log=logger,
         )
+
+
+def _publish_operation_finished(mw: Any, changes: Any, initiator: Any) -> None:
+    from aqt.operations import on_op_finished
+
+    on_op_finished(mw, SimpleNamespace(changes=changes), initiator)
 
 
 def _format_parameters(request: BatchRunRequest) -> str:

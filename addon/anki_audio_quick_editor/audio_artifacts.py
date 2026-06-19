@@ -52,7 +52,7 @@ def _max_pause_pipeline_run_id_length(
     return min(PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH, run_id_budget)
 
 
-def _create_pause_pipeline_run_dir(source_path: Path, artifact_root: Path | None) -> Path:
+def create_pause_pipeline_run_dir(source_path: Path, artifact_root: Path | None) -> Path:
     root = artifact_root or (PACKAGE_DIR / "aqe_artifacts")
     root = Path(root).expanduser()
     run_dir = root / make_pause_pipeline_run_id(
@@ -63,7 +63,7 @@ def _create_pause_pipeline_run_dir(source_path: Path, artifact_root: Path | None
     return run_dir
 
 
-def _build_pause_pipeline_manifest(
+def build_pause_pipeline_manifest(
         run_dir: Path,
         source_path: Path,
         state: AudioEditState,
@@ -142,7 +142,7 @@ def _pause_pipeline_config_snapshot(config: AudioProcessingConfig) -> dict[str, 
     }
 
 
-def _artifact_record(artifact_id: str, path: Path, kind: str) -> dict[str, object]:
+def artifact_record(artifact_id: str, path: Path, kind: str) -> dict[str, object]:
     exists = path.exists()
     record: dict[str, object] = {
         "id": artifact_id,

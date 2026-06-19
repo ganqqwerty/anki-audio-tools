@@ -9,7 +9,7 @@ from array import array
 from pathlib import Path
 
 from .audio_processor import (
-    _external_command_run_kwargs,
+    external_command_run_kwargs,
     find_ffmpeg,
     probe_duration_ms,
 )
@@ -94,7 +94,7 @@ def _decode_pcm(source_path: Path, config: AudioProcessingConfig) -> list[float]
             command,
             capture_output=True,
             check=False,
-            **_external_command_run_kwargs(),
+            **external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
         raise AudioProcessingError(launch_error_message("Could not start audio decoding for visualization.", exc)) from exc

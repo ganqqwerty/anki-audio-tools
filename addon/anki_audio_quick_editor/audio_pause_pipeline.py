@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any
 
 from .audio_artifacts import (
-    _artifact_record,
-    _build_pause_pipeline_manifest,
-    _create_pause_pipeline_run_dir,
+    artifact_record,
+    build_pause_pipeline_manifest,
+    create_pause_pipeline_run_dir,
 )
 from .audio_commands import (
     WAV_MIME_TYPE,
@@ -21,7 +21,7 @@ from .audio_commands import (
 from .audio_external import probe_duration_ms
 from .audio_pause_pipeline_stage import run_pipeline_stage
 from .audio_pause_pipeline_steps import (
-    _render_pause_removal_audio,
+    render_pause_removal_audio,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_dpdfnet_bundle, find_silero_vad_bundle
@@ -56,7 +56,7 @@ def _missing_resolve_output_policy(*_args: Any, **_kwargs: Any) -> Any:
 resolve_output_policy = _missing_resolve_output_policy
 
 
-def _render_pause_removal_pipeline_audio(
+def render_pause_removal_pipeline_audio(
     source_path: Path,
     state: AudioEditState,
     config: AudioProcessingConfig,
@@ -68,7 +68,7 @@ def _render_pause_removal_pipeline_audio(
     source_duration_ms: int,
 ) -> AudioProcessingResult:
     runtime = _PauseDetectionRuntime()
-    run_dir = _create_pause_pipeline_run_dir(source_path, artifact_root)
+    run_dir = create_pause_pipeline_run_dir(source_path, artifact_root)
     manifest_path = run_dir / "manifest.json"
     attempted_commands: list[dict[str, object]] = []
     stages: list[dict[str, object]] = []
@@ -79,7 +79,7 @@ def _render_pause_removal_pipeline_audio(
     final_copy_path = run_dir / f"07_final_output{output_path.suffix or '.mp3'}"
     paths = _pause_pipeline_artifact_paths(run_dir)
 
-    manifest = _build_pause_pipeline_manifest(
+    manifest = build_pause_pipeline_manifest(
         run_dir,
         source_path,
         state,
@@ -101,7 +101,7 @@ def _render_pause_removal_pipeline_audio(
             encoding="utf-8",
         )
 
-    artifacts.append(_artifact_record("source", source_path, "input"))
+    artifacts.append(artifact_record("source", source_path, "input"))
     artifacts.append({"id": "manifest", "path": str(manifest_path), "kind": "manifest", "exists": True})
     try:
         runtime = _resolve_pause_detection_runtime(config, manifest)
@@ -241,7 +241,7 @@ def _render_working_original(
         attempted_commands,
         on_command,
     )
-    artifacts.append(_artifact_record("working_original", working_original, WAV_MIME_TYPE))
+    artifacts.append(artifact_record("working_original", working_original, WAV_MIME_TYPE))
     return probe_duration_ms(working_original, config)
 
 
@@ -272,7 +272,7 @@ def _render_selected_pause_detection_pipeline(
         codec_args: tuple[str, ...],
         output_mime_type: str,
 ) -> AudioProcessingResult:
-    return _render_pause_removal_audio(
+    return render_pause_removal_audio(
         state,
         config,
         ffmpeg_path,

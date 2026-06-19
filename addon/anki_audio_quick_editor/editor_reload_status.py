@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .editor_session import EditorSession, PendingEditorStatus
+from .editor_session import EditorSession
+from .editor_session_types import PendingEditorStatus
 
 if TYPE_CHECKING:
     from .editor_deps_protocols import EditorReloadDeps

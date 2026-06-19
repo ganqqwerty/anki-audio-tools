@@ -16,7 +16,7 @@ from anki_audio_quick_editor.editor_persistent_undo import (
     restore_persistent_undo,
 )
 from anki_audio_quick_editor.editor_processing import replace_current_field_after_render
-from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.editor_session import EditorSession, ProcessingState
 from anki_audio_quick_editor.error_codes import AQE_PERSISTENT_UNDO_UNAVAILABLE
 from anki_audio_quick_editor.persistent_history import (
     PersistentHistoryAppend,
@@ -281,7 +281,7 @@ def test_standard_render_commit_records_persistent_undo(tmp_path: Path, monkeypa
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
-        next_status_summary="Increased speed to x1.5.",
+        processing=ProcessingState(next_status_summary="Increased speed to x1.5."),
     )
     deps = SimpleNamespace(
         current_field_audio_missing="Missing audio",

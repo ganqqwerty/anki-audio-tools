@@ -7,10 +7,10 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
-from anki_audio_quick_editor.editor_special_transforms import (
+from anki_audio_quick_editor.editor_transform_post_processing import (
     replace_current_field_after_noise_removal,
 )
 
@@ -78,7 +78,7 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
-    _handle_bridge_command(editor, "aqe:denoise-standard")
+    handle_bridge_command(editor, "aqe:denoise-standard")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -88,16 +88,16 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
     assert session.redo_history.pop() is None
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
-    assert session.processing is False
+    assert session.processing.active is False
     assert session.pending_status == PendingEditorStatus(0, message="Cleaned audio with Standard.")
     editor.loadNote.assert_called_once_with(focusTo=0)
     assert any(
         "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list
     )
-    assert session.pending_post_edit_playback_field_index == 0
-    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
-    assert session.pending_post_edit_playback_source_filename == saved_name
+    assert session.post_edit_playback.pending_field_index == 0
+    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
+    assert session.post_edit_playback.pending_source_filename == saved_name
 
 
 def test_special_transform_graph_redraw_preserves_learner_overlay(tmp_path: Path) -> None:
@@ -120,7 +120,7 @@ def test_special_transform_graph_redraw_preserves_learner_overlay(tmp_path: Path
         field_index=0,
         current_filename="clip.mp3",
     )
-    session.graph_active_fields.add(0)
+    session.analysis.graph_active_fields.add(0)
 
     deps = SimpleNamespace(
         current_field_audio_missing="missing",
@@ -200,7 +200,7 @@ def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:rnnoise")
+    handle_bridge_command(editor, "aqe:rnnoise")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -209,7 +209,7 @@ def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     assert session.undo_history.pop().filename == "clip.mp3"
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
-    assert session.processing is False
+    assert session.processing.active is False
     editor.loadNote.assert_called_once_with(focusTo=0)
     assert any(
         "window.__aqeSetHistorySnapshot(0," in call.args[0]
@@ -274,7 +274,7 @@ def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monk
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _handle_bridge_command(editor, "aqe:voice-only")
+    handle_bridge_command(editor, "aqe:voice-only")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
@@ -283,7 +283,7 @@ def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monk
     assert session.undo_history.pop().filename == "clip.mp3"
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
-    assert session.processing is False
+    assert session.processing.active is False
     editor.loadNote.assert_called_once_with(focusTo=0)
     assert any(
         "window.__aqeSetHistorySnapshot(0," in call.args[0]

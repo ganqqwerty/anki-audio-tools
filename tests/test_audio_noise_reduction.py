@@ -7,7 +7,7 @@ import pytest
 
 from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_processor import (
-    _render_external_error_message,
+    render_external_error_message,
     render_noise_reduced_audio,
     select_deep_filter_output,
 )
@@ -358,12 +358,12 @@ def test_render_noise_reduced_audio_uses_default_temp_output_path(
         ),
     ],
 )
-def test_render_external_error_message_prefers_structured_and_plain_output(
+def testrender_external_error_message_prefers_structured_and_plain_output(
     result: SimpleNamespace,
     default_message: str,
     expected: str,
 ) -> None:
-    assert _render_external_error_message(result, default_message) == expected
+    assert render_external_error_message(result, default_message) == expected
 
 
 @pytest.mark.allow_managed_runtime

@@ -41,6 +41,9 @@ dist/
 .env.*
 !.env.example
 /addon/anki_audio_quick_editor/*.log
+/addon/anki_audio_quick_editor/*.log.*
+/.mimocode/
+/mimocode.jsonc
 /coverage.json
 /.scannerwork/
 node_modules

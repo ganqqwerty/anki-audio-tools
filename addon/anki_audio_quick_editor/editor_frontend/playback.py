@@ -43,10 +43,11 @@ def request_playback_after_edit(
             require_graph_redraw,
         )
         return
-    session.pending_post_edit_playback_field_index = int(field_index)
-    session.pending_post_edit_playback_generation = session.post_edit_playback_generation
-    session.pending_post_edit_playback_requires_graph_redraw = bool(require_graph_redraw)
-    session.pending_post_edit_playback_source_filename = session.current_filename
+    session.post_edit_playback.request(
+        field_index,
+        session.current_filename,
+        require_graph_redraw=require_graph_redraw,
+    )
     logger.info(
         "post-edit playback request recorded | %s",
         _post_edit_playback_session_context(session),
@@ -57,16 +58,16 @@ def pending_post_edit_playback_payload(session: Any | None) -> dict[str, object]
     """Return the pending post-edit playback payload for frontend injection."""
     if session is None:
         return None
-    field_index = session.pending_post_edit_playback_field_index
-    generation = session.pending_post_edit_playback_generation
+    field_index = session.post_edit_playback.pending_field_index
+    generation = session.post_edit_playback.pending_generation
     if field_index is None or generation is None:
         logger.debug("post-edit playback injection skipped: no pending request")
         return None
     payload = {
         "fieldOrd": int(field_index),
         "generation": int(generation),
-        "requireGraphRedraw": bool(session.pending_post_edit_playback_requires_graph_redraw),
-        "sourceFilename": session.pending_post_edit_playback_source_filename or "",
+        "requireGraphRedraw": bool(session.post_edit_playback.pending_requires_graph_redraw),
+        "sourceFilename": session.post_edit_playback.pending_source_filename or "",
     }
     logger.info("post-edit playback injection payload | %s", payload)
     return payload
@@ -104,10 +105,7 @@ def handle_post_edit_playback_ready(editor: Any, payload: Any, deps: FrontendDep
                 _post_edit_playback_session_context(current),
             )
             return
-        current.pending_post_edit_playback_field_index = None
-        current.pending_post_edit_playback_generation = None
-        current.pending_post_edit_playback_requires_graph_redraw = False
-        current.pending_post_edit_playback_source_filename = None
+        current.post_edit_playback.clear_pending()
         logger.info(
             "post-edit playback started; pending request cleared | payload=%s",
             _post_edit_playback_payload_context(payload),
@@ -128,11 +126,11 @@ def _post_edit_playback_ready_matches(session: Any | None, payload: Any) -> bool
     source_filename = getattr(payload, "source_filename", None)
     if field_ord is None or generation is None:
         return False
-    if session.pending_post_edit_playback_field_index != int(field_ord):
+    if session.post_edit_playback.pending_field_index != int(field_ord):
         return False
-    if session.pending_post_edit_playback_generation != int(generation):
+    if session.post_edit_playback.pending_generation != int(generation):
         return False
-    pending_source = session.pending_post_edit_playback_source_filename
+    pending_source = session.post_edit_playback.pending_source_filename
     return not pending_source or source_filename == pending_source
 
 
@@ -141,10 +139,10 @@ def _post_edit_playback_session_context(session: Any | None) -> dict[str, object
         return {"hasSession": False}
     return {
         "hasSession": True,
-        "fieldOrd": session.pending_post_edit_playback_field_index,
-        "generation": session.pending_post_edit_playback_generation,
-        "requireGraphRedraw": bool(session.pending_post_edit_playback_requires_graph_redraw),
-        "sourceFilename": session.pending_post_edit_playback_source_filename,
+        "fieldOrd": session.post_edit_playback.pending_field_index,
+        "generation": session.post_edit_playback.pending_generation,
+        "requireGraphRedraw": bool(session.post_edit_playback.pending_requires_graph_redraw),
+        "sourceFilename": session.post_edit_playback.pending_source_filename,
         "currentFilename": session.current_filename,
         "sessionFieldOrd": session.field_index,
     }

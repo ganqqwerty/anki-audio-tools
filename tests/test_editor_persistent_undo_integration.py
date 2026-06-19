@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_persistent_undo import collection_id_for_editor
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_webview_injection import editor_injection_script
@@ -51,7 +51,7 @@ def test_persistent_undo_restores_after_session_history_is_empty(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
-    _handle_bridge_command(editor, "aqe:undo")
+    handle_bridge_command(editor, "aqe:undo")
 
     session = SESSIONS[editor]
     assert editor.note.fields == [f"[sound:{old_media.name}]"]
@@ -88,7 +88,7 @@ def test_persistent_undo_refuses_when_old_media_is_missing(
         lambda _editor: db_path,
     )
 
-    _handle_bridge_command(editor, "aqe:undo")
+    handle_bridge_command(editor, "aqe:undo")
 
     assert editor.note.fields == [f"[sound:{new_media.name}]"]
     assert any("Nothing to undo" in call.args[0] for call in editor.web.eval.call_args_list)
@@ -124,7 +124,7 @@ def test_persistent_undo_refuses_when_field_changed_after_edit(
         lambda _editor: db_path,
     )
 
-    _handle_bridge_command(editor, "aqe:undo")
+    handle_bridge_command(editor, "aqe:undo")
 
     assert editor.note.fields == [f"[sound:{unrelated_media.name}]"]
 
@@ -272,7 +272,7 @@ def test_persistent_history_jump_restores_selected_depth_and_marks_rows(
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
-    _handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":2}')
+    handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":2}')
 
     rows = PersistentHistoryRepository(db_path).recent_undoable(collection_id_for_editor(editor), 1001, 0, limit=10)
     session = SESSIONS[editor]

@@ -9,11 +9,11 @@ import pytest
 
 from anki_audio_quick_editor import diagnostics_runtime
 from anki_audio_quick_editor.audio_external import (
-    _external_command_run_kwargs,
     _external_command_text_kwargs,
-    _render_external_error_message,
-    _run_external_command,
+    external_command_run_kwargs,
     probe_duration_ms,
+    render_external_error_message,
+    run_external_command,
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -30,7 +30,7 @@ def _jsonl(path):
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
 
-def test_external_command_run_kwargs_hide_windows_console_when_debug_disabled(monkeypatch) -> None:
+def testexternal_command_run_kwargs_hide_windows_console_when_debug_disabled(monkeypatch) -> None:
     diagnostics_runtime.set_debug_enabled(False)
     monkeypatch.setattr("anki_audio_quick_editor.audio_external._is_windows", lambda: True)
     monkeypatch.setattr(
@@ -39,10 +39,10 @@ def test_external_command_run_kwargs_hide_windows_console_when_debug_disabled(mo
         raising=False,
     )
 
-    assert _external_command_run_kwargs() == {"creationflags": 0x08000000}
+    assert external_command_run_kwargs() == {"creationflags": 0x08000000}
 
 
-def test_external_command_run_kwargs_keep_default_windows_behavior_in_debug(monkeypatch) -> None:
+def testexternal_command_run_kwargs_keep_default_windows_behavior_in_debug(monkeypatch) -> None:
     diagnostics_runtime.set_debug_enabled(True)
     monkeypatch.setattr("anki_audio_quick_editor.audio_external._is_windows", lambda: True)
     monkeypatch.setattr(
@@ -51,14 +51,14 @@ def test_external_command_run_kwargs_keep_default_windows_behavior_in_debug(monk
         raising=False,
     )
 
-    assert _external_command_run_kwargs() == {}
+    assert external_command_run_kwargs() == {}
 
 
-def test_external_command_run_kwargs_omit_flags_on_non_windows(monkeypatch) -> None:
+def testexternal_command_run_kwargs_omit_flags_on_non_windows(monkeypatch) -> None:
     diagnostics_runtime.set_debug_enabled(False)
     monkeypatch.setattr("anki_audio_quick_editor.audio_external._is_windows", lambda: False)
 
-    assert _external_command_run_kwargs() == {}
+    assert external_command_run_kwargs() == {}
 
 
 def test_external_command_text_kwargs_use_stable_utf8_decoding() -> None:
@@ -73,7 +73,7 @@ def test_external_command_success_records_duration_and_returncode(tmp_path, monk
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
 
-    result = _run_external_command(("ffmpeg", "-version"), "launch failed")
+    result = run_external_command(("ffmpeg", "-version"), "launch failed")
 
     assert result.returncode == 0
     events = _jsonl(tmp_path / "anki_audio_quick_editor_events.jsonl")
@@ -86,7 +86,7 @@ def test_external_command_forwards_window_visibility_kwargs(tmp_path, monkeypatc
     diagnostics_runtime.configure_runtime(tmp_path, debug_enabled=False)
     run_kwargs: list[dict[str, object]] = []
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_external._external_command_run_kwargs",
+        "anki_audio_quick_editor.audio_external.external_command_run_kwargs",
         lambda: {"creationflags": 0x08000000},
     )
 
@@ -106,7 +106,7 @@ def test_external_command_forwards_window_visibility_kwargs(tmp_path, monkeypatc
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
 
-    _run_external_command(("ffmpeg", "-version"), "launch failed")
+    run_external_command(("ffmpeg", "-version"), "launch failed")
 
     assert run_kwargs == [{"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000}]
 
@@ -131,7 +131,7 @@ def test_external_command_merges_environment_overrides(tmp_path, monkeypatch) ->
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
 
-    _run_external_command(("dpdfnet", "--version"), "launch failed", env={"DPDFNET_FFMPEG": "/bin/ffmpeg"})
+    run_external_command(("dpdfnet", "--version"), "launch failed", env={"DPDFNET_FFMPEG": "/bin/ffmpeg"})
 
     assert run_kwargs
     assert run_kwargs[0]["encoding"] == "utf-8"
@@ -147,7 +147,7 @@ def test_probe_duration_forwards_window_visibility_kwargs(tmp_path, monkeypatch)
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.find_ffmpeg", lambda _path: tmp_path / "ffmpeg")
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.find_ffprobe", lambda _path: tmp_path / "ffprobe")
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_external._external_command_run_kwargs",
+        "anki_audio_quick_editor.audio_external.external_command_run_kwargs",
         lambda: {"creationflags": 0x08000000},
     )
 
@@ -184,7 +184,7 @@ def test_external_command_nonzero_records_stderr_tail(tmp_path, monkeypatch) -> 
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
 
-    result = _run_external_command(("ffmpeg", "-i", "clip.mp3"), "launch failed")
+    result = run_external_command(("ffmpeg", "-i", "clip.mp3"), "launch failed")
 
     assert result.returncode == 2
     events = _jsonl(tmp_path / "anki_audio_quick_editor_events.jsonl")
@@ -201,14 +201,14 @@ def test_external_command_launch_error_records_exception(tmp_path, monkeypatch) 
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
 
     with pytest.raises(AudioProcessingError, match="permission denied"):
-        _run_external_command(("ffmpeg", "-version"), "Could not start ffmpeg.")
+        run_external_command(("ffmpeg", "-version"), "Could not start ffmpeg.")
 
     events = _jsonl(tmp_path / "anki_audio_quick_editor_events.jsonl")
     assert events[-1]["event"] == "external.command.launch_failed"
     assert events[-1]["context"]["launch_error"] == "permission denied"
 
 
-def test_render_external_error_message_appends_ffmpeg_feature_guidance() -> None:
+def testrender_external_error_message_appends_ffmpeg_feature_guidance() -> None:
     result = subprocess.CompletedProcess(
         ["/tools/ffmpeg", "-i", "clip.wav"],
         1,
@@ -216,7 +216,7 @@ def test_render_external_error_message_appends_ffmpeg_feature_guidance() -> None
         stderr="Unknown encoder 'libmp3lame'",
     )
 
-    message = _render_external_error_message(result, "Audio processing failed.")
+    message = render_external_error_message(result, "Audio processing failed.")
 
     assert "Unknown encoder 'libmp3lame'" in message
     assert "does not include the codec, encoder, decoder" in message

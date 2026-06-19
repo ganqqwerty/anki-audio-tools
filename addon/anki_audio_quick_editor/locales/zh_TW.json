@@ -607,6 +607,7 @@
   "settings.toolbar_visibility.mode_locked_tooltip": "此顯示設定已鎖定，因為該按鈕屬於分組工具列面板。",
   "tooltip.disabled.batch_running": "批次處理執行時已停用。",
   "tooltip.disabled.editor_busy": "請等待目前音訊操作完成。",
+  "tooltip.disabled.audio_metadata_loading": "正在載入音訊中繼資料...",
   "tooltip.disabled.recording_active": "使用此控制項前，請先停止目前錄音。",
   "editor.selection_shift.start_previous": "將選取起點移到上一個標記",
   "editor.selection_shift.start_next": "將選取起點移到下一個標記",

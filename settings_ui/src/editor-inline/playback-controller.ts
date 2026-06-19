@@ -2,8 +2,11 @@ import {
   audioClockFor,
   audioClockReady,
   pauseAudioClock,
+  reloadAudioClockSource,
   seekAudioClock,
+  setAudioClockLoop,
 } from "./audio-clock.js";
+import { markHtmlAudioFailure } from "./audio-readiness.js";
 import { startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
 import { logger } from "./logger.js";
 import {
@@ -52,6 +55,8 @@ export {
   pauseProgressClock,
   stopProgressClock,
 } from "./playback-controller-state.js";
+
+const HTML_FULL_SOURCE_REPEAT_PREEMPT_MS = 40;
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
@@ -126,7 +131,15 @@ export function paintProgressFromClock(visualizer: VisualizerElement, deps: Play
       startManualProgressClock(visualizer, s.cursor.ms, deps);
       return;
     }
-    if (handlePlaybackBoundary(visualizer, nextMs, deps)) {
+    const pass = activePlaybackPass(visualizer, deps);
+    const boundaryMs = htmlFullSourceRepeatBoundaryMs(
+      nextMs,
+      pass,
+      s.graph.durationMs,
+      s.playback.clockMode,
+      deps.repeatEnabledFor(visualizer),
+    );
+    if (handlePlaybackBoundary(visualizer, boundaryMs, deps)) {
       return;
     }
     ensurePlaybackCursorVisible(visualizer, nextMs);
@@ -190,6 +203,7 @@ export function startAudioProgressClock(
     startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
     return;
   }
+  setAudioClockLoop(visualizer, false);
   writeFieldState(s.ord, {
     ...s,
     playback: { ...s.playback, clockMode: "audio" },
@@ -223,6 +237,7 @@ export function startAudioProgressClock(
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
       if (fieldState(visualizer).playback.state !== "playing") return;
       logger.warn("html audio play rejected; using manual clock", { ord: visualizer.dataset.aqeFieldOrd });
+      markHtmlAudioFailure(visualizer, "audio_play_rejected");
       handlePlaybackFailure();
     });
 }
@@ -337,6 +352,11 @@ function restartLoopPlaybackNow(
       playback: { ...fresh.playback, clockMode: "audio" },
     });
   }
+  setAudioClockLoop(visualizer, false);
+  if (fullSourcePass(pass, s.graph.durationMs) && loopStartMs <= 0) {
+    restartFullSourceAudioLoop(visualizer, deps, pass);
+    return;
+  }
   if (!seekAudioClock(visualizer, loopStartMs, s.graph.durationMs)) {
     startManualPlaybackPass(visualizer, pass, deps);
     return;
@@ -349,6 +369,7 @@ function restartLoopPlaybackNow(
   }
   const audio = audioClockFor(visualizer);
   if (!audio || typeof audio.play !== "function") return;
+  setAudioClockLoop(visualizer, false);
   clearPlaybackFrame(visualizer);
   const playGeneration = visualizer.__aqePlaybackGeneration ?? 0;
   void Promise.resolve(audio.play())
@@ -367,7 +388,69 @@ function restartLoopPlaybackNow(
     .catch(() => {
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
       if (fieldState(visualizer).playback.state === "playing") {
+        markHtmlAudioFailure(visualizer, "audio_play_rejected");
         startManualPlaybackPass(visualizer, pass, deps);
       }
     });
+}
+
+function restartFullSourceAudioLoop(
+  visualizer: VisualizerElement,
+  deps: PlaybackControllerDependencies,
+  pass: PlaybackPass,
+): void {
+  const audio = audioClockFor(visualizer);
+  if (!audio || typeof audio.play !== "function") {
+    startManualPlaybackPass(visualizer, pass, deps);
+    return;
+  }
+  if (!reloadAudioClockSource(visualizer)) {
+    startManualPlaybackPass(visualizer, pass, deps);
+    return;
+  }
+  clearPlaybackFrame(visualizer);
+  const playGeneration = visualizer.__aqePlaybackGeneration ?? 0;
+  void Promise.resolve(audio.play())
+    .then(() => {
+      if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
+      const s = fieldState(visualizer);
+      if (s.playback.state !== "playing") return;
+      writeFieldState(s.ord, {
+        ...s,
+        playback: { ...s.playback, clockMode: "audio" },
+      });
+      startPlaybackPlan(visualizer, pass.startMs, pass.endMs);
+      paintProgressFromClock(visualizer, deps);
+    })
+    .catch(() => {
+      if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
+      if (fieldState(visualizer).playback.state === "playing") {
+        markHtmlAudioFailure(visualizer, "audio_play_rejected");
+        startManualPlaybackPass(visualizer, pass, deps);
+      }
+    });
+}
+
+function htmlFullSourceRepeatBoundaryMs(
+  nextMs: number,
+  pass: PlaybackPass,
+  durationMs: number,
+  clockMode: string,
+  repeat: boolean,
+): number {
+  if (
+    clockMode === "audio"
+    && repeat
+    && fullSourcePass(pass, durationMs)
+    && nextMs >= pass.endMs - HTML_FULL_SOURCE_REPEAT_PREEMPT_MS
+  ) {
+    return pass.endMs;
+  }
+  return nextMs;
+}
+
+function fullSourcePass(pass: PlaybackPass, durationMs: number): boolean {
+  return durationMs > 0
+    && pass.resetCursorMs <= 0
+    && pass.endMs >= Math.max(0, durationMs - 20);
 }
