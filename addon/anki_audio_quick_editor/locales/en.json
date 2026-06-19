@@ -272,6 +272,7 @@
   "tooltip.disabled.batch_source_field": "Choose the source field that contains audio.",
   "tooltip.disabled.batch_required_fields": "Fill in the required fields before starting.",
   "tooltip.disabled.editor_busy": "Wait for the current audio operation to finish.",
+  "tooltip.disabled.audio_metadata_loading": "Loading audio metadata...",
   "tooltip.disabled.recording_active": "Stop the current recording before using this control.",
   "editor.selection_shift.start_previous": "Move selection start to previous marker",
   "editor.selection_shift.start_next": "Move selection start to next marker",

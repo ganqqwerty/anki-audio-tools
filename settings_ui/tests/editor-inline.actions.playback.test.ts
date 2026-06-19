@@ -184,7 +184,8 @@ describe("editor inline audio-clock workflows", () => {
   });
 
   it("logs selected playback engine and native reason for playback requests", async () => {
-    await mountTrack(100);
+    const visualizer = await mountTrack(100);
+    visualizer.__aqeHtmlAudioFailureReason = "audio_error";
     warnSpy.mockClear();
 
     const request = playbackRequest(0);
@@ -197,7 +198,9 @@ describe("editor inline audio-clock workflows", () => {
         audioClockReady: false,
         engine: "native",
         graphHasTrack: true,
-        reason: "audio_clock_not_ready",
+        htmlAudioReadinessReason: "audio_error",
+        htmlAudioReadinessState: "failed",
+        reason: "audio_readiness_failed",
         trigger: "playback_request",
       }),
     );

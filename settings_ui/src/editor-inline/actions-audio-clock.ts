@@ -13,6 +13,7 @@ import {
   installAudioClockHandlers as installAudioClockElementHandlers,
   pauseAudioClock as pauseAudioClockElement,
   resetAudioClockState as resetAudioClockElementState,
+  setAudioClockLoop,
 } from "./audio-clock.js";
 import { logger } from "./logger.js";
 import { completePlayback, handlePlaybackBoundary, playbackStateFor, startManualProgressClock, stopProgressClock } from "./playback-actions.js";
@@ -91,10 +92,13 @@ export function clampProgressMs(visualizer: VisualizerElement, ms: number): numb
 
 export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean): void {
   const ord = fieldOrd(visualizer);
-  writeFieldState(ord, {
-    ...readFieldState(ord),
-    playback: { ...readFieldState(ord).playback, repeat: enabled },
-  });
+  const current = readFieldState(ord);
+  const next = {
+    ...current,
+    playback: { ...current.playback, repeat: enabled },
+  };
+  writeFieldState(ord, next);
+  setAudioClockLoop(visualizer, false);
   for (const button of repeatButtonsForOrd(ord)) {
     button.ariaPressed = enabled ? "true" : "false";
     button.dataset.aqeButtonState = enabled ? "active" : "default";

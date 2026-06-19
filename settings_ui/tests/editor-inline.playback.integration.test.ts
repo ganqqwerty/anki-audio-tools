@@ -6,6 +6,7 @@ import {
   bridgeCommands,
   dragGraphSelection,
   muteConsole,
+  prepareHtmlAudio,
   peekPendingCommandPayload,
   renderFields,
   setFullGraphViewport,
@@ -30,12 +31,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-  it("disables controls during processing commands and resets note state", () => {
+  it("disables controls during processing commands and resets note state", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
 
     const playButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!;
-    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play\nPlay or pause the current audio");
+    expect(playButton.getAttribute("data-aqe-tooltip-content")).toContain("Loading audio metadata...");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
@@ -53,7 +55,7 @@ afterEach(() => {
 
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(false);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(false);
-    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play\nPlay or pause the current audio");
+    expect(playButton.getAttribute("data-aqe-tooltip-content")).toContain("Loading audio metadata...");
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("");
   });
 
@@ -133,6 +135,7 @@ afterEach(() => {
 
     await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 400);
+    prepareHtmlAudio(0);
 
     expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
 
@@ -219,6 +222,7 @@ afterEach(() => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
 
+    expect(audio.loop).toBe(false);
     expect(window.__aqeGetPlaybackRequest?.()).toEqual({
       action: "start",
       cursorMs: 0,
@@ -235,39 +239,53 @@ afterEach(() => {
       playbackState: "playing",
       repeatEnabled: true,
     });
+
+    await setRepeatMode(false);
+
+    expect(audio.loop).toBe(false);
   });
 
-  it("shows pause for native playback before the hidden audio duration is known", async () => {
+  it("blocks hidden playback until audio metadata is ready", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
 
     const playButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!;
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      durationMs: 0,
+      hidden: true,
+      htmlAudioReadinessState: "loading_metadata",
+    });
+    expect(playButton.disabled).toBe(true);
+    expect(playButton.getAttribute("data-aqe-tooltip-content")).toContain("Loading audio metadata...");
+
     playButton.click();
+
+    expect(bridgeCommands()).not.toContain("aqe:play");
+
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
+    audio.pause = vi.fn<() => void>(() => undefined);
+    audio.dispatchEvent(new Event("loadedmetadata"));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      durationMs: 1000,
+      hidden: true,
+      htmlAudioReadinessState: "ready",
+    });
+    expect(playButton.disabled).toBe(false);
+
+    playButton.click();
+    await Promise.resolve();
 
     expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
       action: "start",
       cursorMs: 0,
-      engine: "native",
+      engine: "html",
       ord: 0,
       regionMode: "full",
-    });
-
-    window.__aqeSetPlaybackState?.(0, "playing", 0);
-
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      durationMs: 0,
-      hidden: true,
-      playbackEngine: "native",
-      playbackState: "playing",
-      playButtonLabel: "Pause",
-    });
-
-    window.__aqeSetPlaybackState?.(0, "stopped", 0);
-
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      playbackState: "stopped",
-      playButtonLabel: "Play",
     });
   });
 
@@ -391,6 +409,36 @@ afterEach(() => {
       selectionStartMs: 250,
       selectionEndMs: 750,
       playbackRegionMode: "selection",
+    });
+  });
+
+  it("blocks selected repeat fallback when HTML play rejects", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 700);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    setFullGraphViewport();
+    dragGraphSelection(svg, 0.25, 0.75);
+    await setRepeatMode(true);
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
+    audio.pause = vi.fn<() => void>(() => undefined);
+    audio.dispatchEvent(new Event("loadedmetadata"));
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(bridgeCommands()).not.toContain("aqe:play");
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "Selected repeat playback needs browser audio.",
+    );
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "stopped",
+      repeatEnabled: true,
     });
   });
 

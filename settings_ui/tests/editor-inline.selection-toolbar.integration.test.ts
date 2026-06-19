@@ -128,8 +128,8 @@ describe("editor inline selection toolbar integration", () => {
     const deleteRegion = selectionToolbarButton("delete-region");
     const deleteRest = selectionToolbarButton("delete-rest");
 
-    expect(play.getAttribute("data-aqe-tooltip-content")).toBe("Play\nPlay selection");
-    expect(play.getAttribute("aria-label")).toBe("Play\nPlay selection");
+    expect(play.getAttribute("data-aqe-tooltip-content")).toBe("Play\nPlay selection\n\nLoading audio metadata...");
+    expect(play.getAttribute("aria-label")).toBe("Play\nPlay selection\n\nLoading audio metadata...");
     expect(deleteRegion.getAttribute("data-aqe-tooltip-content")).toBe(
       "Delete Region\nCreate a new file without the selected region",
     );

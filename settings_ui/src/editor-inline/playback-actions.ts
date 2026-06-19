@@ -2,6 +2,7 @@ import { focusAndSendCommand, popPendingPlaybackRequest, setPendingPlaybackReque
 import { visualizerForOrd } from "./dom-selectors.js";
 import { logger } from "./logger.js";
 import { audioClockTelemetryFor, audioClockUnavailableReason } from "./playback-audio-telemetry.js";
+import { htmlAudioReadinessFor } from "./audio-readiness.js";
 import type { PlaybackEngineDecision } from "./playback-engine-decision.js";
 import { repeatFallbackRequiresBrowserAudio } from "./playback-html-fallback.js";
 import { logPlaybackEngineDecision, playbackEngineDecisionFor, playbackTelemetryContext, postEditPlaybackStartContext } from "./playback-telemetry.js";
@@ -47,17 +48,11 @@ export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: str
   syncSelectionToolbar(visualizer);
 }
 
-export function manualProgressMs(visualizer: VisualizerElement): number {
-  return manualProgressMsFromController(visualizer);
-}
+export function manualProgressMs(visualizer: VisualizerElement): number { return manualProgressMsFromController(visualizer); }
 
-export function audioProgressMs(visualizer: VisualizerElement): number | null {
-  return audioProgressMsFromController(visualizer);
-}
+export function audioProgressMs(visualizer: VisualizerElement): number | null { return audioProgressMsFromController(visualizer); }
 
-export function currentProgressMs(visualizer: VisualizerElement): number | null {
-  return currentProgressMsFromController(visualizer);
-}
+export function currentProgressMs(visualizer: VisualizerElement): number | null { return currentProgressMsFromController(visualizer); }
 
 export function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number, options: { forceAudioPlay?: boolean } = {}): boolean {
   return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackControllerDependencies(), options);
@@ -148,6 +143,15 @@ export function playAfterEdit(ord: number): boolean {
   }
   if (anyBusy()) {
     logger.info("post-edit playback start rejected: editor busy", postEditPlaybackStartContext(ord, visualizer));
+    return false;
+  }
+  const readiness = htmlAudioReadinessFor(visualizer);
+  if (readiness.transient) {
+    logger.info("post-edit playback start rejected: browser audio loading", {
+      ...postEditPlaybackStartContext(ord, visualizer),
+      htmlAudioReadinessReason: readiness.reason,
+      htmlAudioReadinessState: readiness.state,
+    });
     return false;
   }
   const intent = consumePostEditPlaybackIntent(ord);

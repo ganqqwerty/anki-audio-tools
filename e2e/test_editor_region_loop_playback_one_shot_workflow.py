@@ -115,7 +115,7 @@ def test_native_selected_one_shot_playback_renders_only_selected_region(
         expected_start = round(track["durationMs"] * 0.25)
         expected_end = round(track["durationMs"] * 0.625)
         _shift_drag_region(editor, 0.25, 0.625)
-        _force_native_playback(editor)
+        _force_hard_failure_native_playback(editor)
 
         with _record_fake_playback(
             media_dir,
@@ -147,7 +147,7 @@ def test_native_selected_one_shot_playback_renders_only_selected_region(
         parent.close()
 
 
-def _force_native_playback(editor, ord_: int = 0) -> None:
+def _force_hard_failure_native_playback(editor, ord_: int = 0) -> None:
     run_js(
         editor.web,
         f"""
@@ -156,6 +156,7 @@ def _force_native_playback(editor, ord_: int = 0) -> None:
           if (!visualizer) return false;
           visualizer.__aqeAudioClockAvailable = false;
           visualizer.__aqeAudioClockFallback = true;
+          visualizer.__aqeHtmlAudioFailureReason = "audio_error";
           window.__aqeSetFieldStateForTest?.({ord_}, {{ playback: {{ engine: "" }} }});
           return true;
         }})()

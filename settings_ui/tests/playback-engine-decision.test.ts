@@ -10,6 +10,10 @@ const baseInput: PlaybackEngineDecisionInput = {
   audioClockReady: true,
   graphDurationMs: 1000,
   graphHasTrack: true,
+  htmlAudioReadinessFailed: false,
+  htmlAudioReadinessReason: "audio_ready",
+  htmlAudioReadinessState: "ready",
+  htmlAudioReadinessTransient: false,
   playbackState: "stopped",
   regionMode: "full",
   repeat: false,
@@ -39,31 +43,32 @@ describe("playback engine decision", () => {
     })).toEqual({ engine: "html", reason: "selected_repeat_requires_html" });
   });
 
-  it("records why native is selected when graph-backed browser audio is not ready", () => {
+  it("keeps transient loading on the HTML path instead of selecting native", () => {
     expect(choosePlaybackEngine({
       ...baseInput,
       audioClockReady: false,
       graphHasTrack: true,
-    })).toEqual({ engine: "native", reason: "audio_clock_not_ready" });
+      htmlAudioReadinessReason: "audio_metadata_loading",
+      htmlAudioReadinessState: "loading_metadata",
+      htmlAudioReadinessTransient: true,
+    })).toEqual({ engine: "html", reason: "audio_metadata_loading" });
   });
 
-  it("records native reasons before graph playback can use browser audio", () => {
+  it("records native reasons for hard browser audio failures", () => {
+    expect(choosePlaybackEngine({
+      ...baseInput,
+      audioClockReady: false,
+      htmlAudioReadinessFailed: true,
+      htmlAudioReadinessReason: "audio_error",
+      htmlAudioReadinessState: "failed",
+    })).toEqual({ engine: "native", reason: "audio_readiness_failed" });
+  });
+
+  it("uses HTML for hidden no-graph playback once metadata is ready", () => {
     expect(choosePlaybackEngine({
       ...baseInput,
       graphHasTrack: false,
       repeat: false,
-    })).toEqual({ engine: "native", reason: "no_graph_track_repeat_disabled" });
-    expect(choosePlaybackEngine({
-      ...baseInput,
-      graphDurationMs: 0,
-      graphHasTrack: false,
-      repeat: true,
-    })).toEqual({ engine: "native", reason: "no_graph_track_duration_unknown" });
-    expect(choosePlaybackEngine({
-      ...baseInput,
-      audioClockReady: false,
-      graphHasTrack: false,
-      repeat: true,
-    })).toEqual({ engine: "native", reason: "no_graph_track_audio_clock_not_ready" });
+    })).toEqual({ engine: "html", reason: "no_graph_track_audio_ready" });
   });
 });

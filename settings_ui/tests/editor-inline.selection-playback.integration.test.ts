@@ -148,6 +148,7 @@ afterEach(() => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
+    expect(audio.loop).toBe(false);
     audio.currentTime = 0.76;
     frames.shift()?.(performance.now() + 800);
 
@@ -159,6 +160,48 @@ afterEach(() => {
       playbackEndMs: 750,
       playbackRegionMode: "selection",
       repeatPauseWaiting: false,
+    });
+    expect(audio.loop).toBe(false);
+    expect(bridgeCommands()).not.toContain("aqe:play-ended");
+  });
+
+  it("preempts full-source HTML repeat before browser EOF", async () => {
+    const frames = mockAnimationFrames();
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 0);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    setFullGraphViewport();
+    await setRepeatMode(true);
+    clearQueuedAnimationFrames(frames);
+    const audio = prepareHtmlAudio();
+    const load = vi.fn<() => void>(() => {
+      audio.currentTime = 0;
+      audio.dispatchEvent(new Event("loadedmetadata"));
+    });
+    Object.defineProperty(audio, "load", {
+      configurable: true,
+      value: load,
+    });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    audio.currentTime = 0.97;
+    frames.shift()?.(performance.now() + 970);
+
+    expect(audio.loop).toBe(false);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(audio.play).toHaveBeenCalledTimes(2);
+    expect(audio.currentTime).toBe(0);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "playing",
+      cursorMs: 0,
+      playbackStartMs: 0,
+      playbackEndMs: 1000,
+      repeatEnabled: true,
     });
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });

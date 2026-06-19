@@ -27,6 +27,12 @@ import {installEditorWindowContract} from "./window-contract.js";
 import {isEditorBusy, resetEditorControlState} from "./editor-control-state.js";
 import {clearLearnerRecordingStateStore} from "./recording-state-store.js";
 import {clearVisualizerRuntimeStates} from "./visualizer-runtime-state.js";
+import {AUDIO_CLOCK_READINESS_CHANGED_EVENT} from "./audio-readiness.js";
+import {projectEditorBusyState} from "./control-actions.js";
+import {
+    disposePostEditPlaybackReadiness,
+    installPostEditPlaybackReadinessListener,
+} from "./post-edit-playback.js";
 
 let scheduledScanTimers: number[] = [];
 let mutationScanTimer: number | null = null;
@@ -43,6 +49,8 @@ export function initializeEditorRuntime(config: EditorRuntimeConfig = editorRunt
     configureI18n(config.locale, config.direction, config.messages);
     installGlobalErrorHandlers();
     installEditorWindowContract();
+    installAudioReadinessProjection();
+    installPostEditPlaybackReadinessListener();
     prepareForNewNote();
     clearDefaultGraphQueue();
     window.__aqeEditorDispose = disposeEditorRuntime;
@@ -86,10 +94,21 @@ export function disposeEditorRuntime(): void {
     }
     editorDomObserver?.disconnect();
     editorDomObserver = null;
+    window.removeEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handleAudioReadinessChanged);
+    disposePostEditPlaybackReadiness();
     disposeAllControllers();
     resetEditorControlState();
     clearLearnerRecordingStateStore();
     clearVisualizerRuntimeStates();
+}
+
+function installAudioReadinessProjection(): void {
+    window.removeEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handleAudioReadinessChanged);
+    window.addEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handleAudioReadinessChanged);
+}
+
+function handleAudioReadinessChanged(): void {
+    projectEditorBusyState();
 }
 
 export function scan(config: EditorRuntimeConfig = editorRuntimeConfig()): void {
