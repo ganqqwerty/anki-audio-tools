@@ -8,6 +8,10 @@ import {
 import { markHtmlAudioFailure } from "./audio-readiness.js";
 import { logger } from "./logger.js";
 import {
+  clearRepeatPauseCountdownOverlay,
+  startRepeatPauseCountdownOverlay,
+} from "./graph-countdown-overlay.js";
+import {
   clampProgressMs,
   liveProgressMs,
   repeatPauseDelayMs,
@@ -38,6 +42,7 @@ import { readFieldState, writeFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
 import {
   setPlaybackClockRuntime,
+  setRepeatPauseWaitingRuntime,
 } from "./visualizer-runtime-state.js";
 
 export { clearPlaybackFrame };
@@ -71,12 +76,6 @@ export interface PlaybackControllerDependencies {
   effectivePlaybackRegion: (visualizer: VisualizerElement) => PlaybackRegion;
   focusAndSendCommand: (ord: number, command: string) => void;
   handleLoopBoundary?: (visualizer: VisualizerElement, pass: PlaybackPass) => boolean;
-  handleSourceLoopBoundary: (
-    visualizer: VisualizerElement,
-    pass: PlaybackPass,
-    repeatPauseMs: number,
-    options?: { forceAudioPlay?: boolean },
-  ) => boolean;
   playbackEngineFor: (visualizer: VisualizerElement | null) => "html";
   repeatEnabledFor: (visualizer: VisualizerElement) => boolean;
   restoreStatus: (ord: number) => void;
@@ -99,7 +98,6 @@ export function handlePlaybackBoundary(
   visualizer: VisualizerElement,
   nextMs: number,
   deps: PlaybackControllerDependencies,
-  options: { forceAudioPlay?: boolean } = {},
 ): boolean {
   const boundary = planPlaybackBoundary({
     nextMs,
@@ -112,7 +110,12 @@ export function handlePlaybackBoundary(
     if (deps.handleLoopBoundary?.(visualizer, boundary.pass) === true) {
       return true;
     }
-    return deps.handleSourceLoopBoundary(visualizer, boundary.pass, boundary.repeatPauseMs, options);
+    if (boundary.repeatPauseMs > 0) {
+      startManualRepeatPause(visualizer, boundary.pass, deps, boundary.repeatPauseMs);
+      return true;
+    }
+    startManualPlaybackPass(visualizer, boundary.pass, deps, boundary.pass.startMs);
+    return true;
   }
   completePlayback(visualizer, deps);
   return true;
@@ -183,6 +186,35 @@ function startManualPlaybackPass(
   deps.setPlaybackButtonLabel(visualizer, "Pause");
   startPlaybackPlan(visualizer, clockStartMs, pass.endMs);
   paintProgressFromClock(visualizer, deps);
+}
+
+function startManualRepeatPause(
+  visualizer: VisualizerElement,
+  pass: PlaybackPass,
+  deps: PlaybackControllerDependencies,
+  pauseMs: number,
+): void {
+  clearPlaybackFrame(visualizer);
+  pauseAudioClock(visualizer);
+  const s = fieldState(visualizer);
+  if (!s.graph.durationMs) return;
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, state: "playing", clockMode: "stopped" },
+  });
+  writePlaybackPass(visualizer, pass);
+  deps.setPlaybackButtonLabel(visualizer, "Pause");
+  deps.setCursor(visualizer, pass.startMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, pass.startMs);
+  setRepeatPauseWaitingRuntime(visualizer, true);
+  startRepeatPauseCountdownOverlay(visualizer, pauseMs);
+  visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
+    visualizer.__aqeRepeatPauseTimer = null;
+    clearRepeatPauseCountdownOverlay(visualizer);
+    setRepeatPauseWaitingRuntime(visualizer, false);
+    if (fieldState(visualizer).playback.state !== "playing") return;
+    startManualPlaybackPass(visualizer, pass, deps, pass.startMs);
+  }, Math.max(0, pauseMs));
 }
 
 export function startAudioProgressClock(
