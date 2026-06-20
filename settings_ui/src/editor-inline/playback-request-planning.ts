@@ -1,7 +1,8 @@
-import { effectivePlaybackRegion, repeatEnabledFor } from "./actions.js";
+import { repeatEnabledFor } from "./actions-audio-clock.js";
 import { currentProgressMs } from "./playback-controller.js";
 import type { PlaybackReadinessDecision } from "./playback-engine-decision.js";
 import { planPlaybackRequest, type PlaybackSnapshot } from "./playback-model.js";
+import { effectivePlaybackRegion } from "./selection-controller.js";
 import type { PlaybackRequest, VisualizerElement } from "./types.js";
 import { readFieldState } from "./field-state-store.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
