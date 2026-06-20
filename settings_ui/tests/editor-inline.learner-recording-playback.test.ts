@@ -16,6 +16,8 @@ import {
   setupAudioTrack,
 } from "./editor-inline.recording.integration.helpers.js";
 
+const nativeDispatchEvent = EventTarget.prototype.dispatchEvent;
+
 describe("editor inline learner recording HTML playback", () => {
   let restoreConsole: () => void;
 
@@ -126,6 +128,20 @@ describe("editor inline learner recording HTML playback", () => {
       learnerPlaybackStatus: "stopped",
     });
     expect(playRecordingButton().dataset.aqeButtonState).toBe("default");
+  });
+
+  it("does not patch EventTarget dispatch globally for learner playback", async () => {
+    mockMediaPlayback();
+    initAndScan(recordingConfig());
+    await setupAudioTrack();
+    publishReadyRecording({ recordingDurationMs: 600, startCursorMs: 200 });
+
+    playRecordingButton().click();
+    await flushMicrotasks();
+
+    expect(EventTarget.prototype.dispatchEvent).toBe(nativeDispatchEvent);
+    learnerAudio().dispatchEvent(new Event("ended"));
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPlaybackStatus).toBe("stopped");
   });
 
   it("stops without bridge fallback when browser play rejects", async () => {
