@@ -77,7 +77,7 @@ export function logPlaybackReadinessDecision(
   decision: PlaybackReadinessDecision,
   extra: Record<string, unknown> = {},
 ): void {
-  logger.debug("playback.engine_selected", playbackTelemetryContext(visualizer, decision, { trigger, ...extra }));
+  logger.debug("playback.readiness_described", playbackTelemetryContext(visualizer, decision, { trigger, ...extra }));
 }
 
 export function postEditPlaybackStartContext(ord: number, visualizer: VisualizerElement): Record<string, unknown> {
