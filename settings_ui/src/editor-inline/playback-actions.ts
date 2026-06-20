@@ -27,6 +27,7 @@ import {
   consumePostEditPlaybackIntent,
   postEditRenderedGraphCanDriveHtmlPlayback,
 } from "./post-edit-playback.js";
+import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import {
   effectivePlaybackRegion,
@@ -243,12 +244,16 @@ export function handleHtmlPlaybackCommand(ord: number): boolean {
     pauseProgressClock(visualizer);
     const s = fieldState(visualizer);
     request.cursorMs = s.cursor.ms || request.cursorMs || 0;
+    dispatchHtmlAudioSessionEvent(ord, { cursorMs: request.cursorMs, type: "PauseRequested" });
     sendPlaybackRequest(request);
     return true;
   }
   if (request.action === "resume") {
     const s = fieldState(visualizer);
     request.cursorMs = s.cursor.ms || request.cursorMs || 0;
+    dispatchHtmlAudioSessionEvent(ord, { type: "ResumeRequested" });
+    sendPlaybackRequest(request);
+    return true;
   }
   return startSourcePlayback(visualizer, request);
 }

@@ -253,7 +253,7 @@ describe("editor inline learner recording integration", () => {
     await Promise.resolve();
     expect(bridgeCommands()).not.toContain("aqe:play-recording");
     expect(playSpy).toHaveBeenCalledTimes(1);
-    expect(document.querySelector<HTMLAudioElement>('[data-testid="aqe-learner-audio-0"]')).not.toBeNull();
+    expect(document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')).not.toBeNull();
     expect(playYoursButton.dataset.aqeButtonState).toBe("pause");
     expect(playYoursButton.textContent).toContain("Pause yours");
 

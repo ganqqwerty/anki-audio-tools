@@ -87,7 +87,10 @@ export function installAudioPlaybackTestDriver(ord: number): boolean {
   };
   audio.__aqeTestDriverInstalled = true;
   markReady();
-  audio.addEventListener("error", markReady);
+  audio.addEventListener("error", (event) => {
+    markReady();
+    event.stopImmediatePropagation();
+  }, true);
   audio.dispatchEvent(new Event("loadedmetadata"));
   audio.pause = function pause(): void {
     audio.__aqeTestPlaying = false;

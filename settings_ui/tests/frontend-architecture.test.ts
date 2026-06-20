@@ -39,10 +39,14 @@ const querySelectorAllowlist = new Set([
   "src/editor-inline/dom-selectors.ts",
   "src/editor-inline/field-controller.ts",
   "src/editor-inline/graph-actions.ts",
+  "src/editor-inline/html-audio-session-audio-element.ts",
+  "src/editor-inline/html-audio-session-controller.ts",
+  "src/editor-inline/learner-recording-playback.ts",
   "src/editor-inline/runtime.ts",
 ]);
 
 const requestAnimationFrameAllowlist = new Set([
+  "src/editor-inline/html-audio-session-controller.ts",
   "src/editor-inline/playback-controller.ts",
   "src/editor-inline/playback-controller-frame.ts",
   "src/editor-inline/learner-recording-playback.ts",
@@ -53,10 +57,10 @@ const requestAnimationFrameAllowlist = new Set([
 
 const audioElementAllowlist = new Set([
   "src/editor-inline/audio-clock.ts",
+  "src/editor-inline/html-audio-session-audio-element.ts",
   "src/editor-inline/learner-recording-playback.ts",
   "src/editor-inline/playback-controller.ts",
   "src/editor-inline/playback-controller-audio.ts",
-  "src/editor-inline/source-playback-repeat-loop.ts",
   "src/editor-inline/test-contract.ts",
 ]);
 

@@ -1,17 +1,14 @@
 import { t } from "../lib/i18n.js";
-import { mediaUrlForFilename } from "./audio-clock.js";
+import { audioClockFor } from "./audio-clock.js";
 import { setStatusForOrd } from "./control-actions.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { logger } from "./logger.js";
 import {
-  initialLearnerRecordingPlaybackState,
-  transitionLearnerRecordingPlayback,
-  type LearnerRecordingPlaybackEffect,
-  type LearnerRecordingPlaybackEvent,
-  type LearnerRecordingPlaybackState,
-  type LearnerRecordingPlaybackTransition,
-} from "./learner-recording-playback-machine.js";
-import { setRecordingCursor } from "./recording-actions-state.js";
+  clearHtmlAudioSession,
+  dispatchHtmlAudioSessionEvent,
+  readHtmlAudioSessionState,
+} from "./html-audio-session-controller.js";
+import type { HtmlAudioStartRequest } from "./html-audio-session-machine.js";
+import { logger } from "./logger.js";
 import { syncRecordingControls } from "./recording-actions-sync.js";
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import {
@@ -19,311 +16,139 @@ import {
   writeLearnerRecordingState,
 } from "./recording-state-store.js";
 
-const playbackStates = new Map<number, LearnerRecordingPlaybackState>();
-const audioByOrd = new Map<number, HTMLAudioElement>();
-const frameByOrd = new Map<number, number>();
-const pendingPlayModeByOrd = new Map<number, "started" | "resumed">();
-
 export function toggleLearnerRecordingHtmlPlayback(ord: number): boolean {
-  const current = ensurePlaybackState(ord);
-  if (current.kind === "playing") {
-    dispatchLearnerRecordingPlaybackEvent(ord, {
-      cursorMs: learnerAudioCurrentTimeMs(audioByOrd.get(ord), current.durationMs),
+  const session = readHtmlAudioSessionState(ord);
+  if (session.kind === "playing" && session.source.kind === "learner_recording") {
+    dispatchHtmlAudioSessionEvent(ord, {
+      cursorMs: learnerAudioCurrentTimeMs(ord, session.durationMs),
       type: "PauseRequested",
     });
+    logger.info("recording.playback.html_paused", { ord });
     return true;
   }
-  if (current.kind === "paused") {
-    dispatchLearnerRecordingPlaybackEvent(ord, { type: "ResumeRequested" });
+  if (session.kind === "paused" && session.source.kind === "learner_recording") {
+    dispatchHtmlAudioSessionEvent(ord, { type: "ResumeRequested" });
+    logger.info("recording.playback.html_resumed", { ord });
     return true;
   }
-  dispatchLearnerRecordingPlaybackEvent(ord, { type: "PlayButtonClicked" });
+  const recording = readLearnerRecordingState(ord);
+  if (!readyLearnerRecording(recording)) {
+    setStatusForOrd(ord, t("editor.status.referenced_audio_missing"), "warning", "", "playback");
+    logger.info("recording.playback.ignored_missing", { ord });
+    return true;
+  }
+  configureLearnerSession(ord, recording);
+  dispatchHtmlAudioSessionEvent(ord, {
+    request: learnerStartRequest(ord, recording),
+    type: "StartRequested",
+  });
+  logger.info("recording.playback.html_started", { ord });
   return true;
 }
 
 export function stopLearnerRecordingHtmlPlayback(ord: number): void {
-  dispatchLearnerRecordingPlaybackEvent(ord, { type: "StopRequested" });
+  const session = readHtmlAudioSessionState(ord);
+  if (session.kind === "empty" || session.kind === "failed" || session.source.kind !== "learner_recording") return;
+  dispatchHtmlAudioSessionEvent(ord, { cursorMs: 0, type: "StopRequested" });
 }
 
 export function stopAllLearnerRecordingHtmlPlayback(): void {
-  for (const ord of knownLearnerPlaybackOrds()) {
-    dispatchLearnerRecordingPlaybackEvent(ord, { type: "RuntimeDisposed" });
+  for (const ord of learnerSessionOrds()) {
+    dispatchHtmlAudioSessionEvent(ord, { type: "RuntimeDisposed" });
   }
-  for (const [ord, audio] of audioByOrd) {
-    removeLearnerAudio(ord, audio);
-  }
-  audioByOrd.clear();
-  playbackStates.clear();
-  pendingPlayModeByOrd.clear();
 }
 
 export function syncLearnerRecordingPlaybackState(
   ord: number,
   payload?: LearnerRecordingStatePayload,
 ): void {
-  const state = readLearnerRecordingState(ord);
-  dispatchLearnerRecordingPlaybackEvent(ord, {
-    generation: payload?.generation ?? state.generation,
-    mediaFilename: payload?.mediaFilename ?? state.mediaFilename,
-    recordingDurationMs: payload?.recordingDurationMs ?? state.recordingDurationMs,
-    startCursorMs: payload?.startCursorMs ?? state.startCursorMs,
-    status: payload?.status ?? state.recordingStatus,
-    targetDurationMs: payload?.targetDurationMs ?? state.targetDurationMs,
-    type: "RecordingStatePublished",
-  });
-}
-
-function ensurePlaybackState(ord: number): LearnerRecordingPlaybackState {
-  if (!playbackStates.has(ord)) {
-    syncLearnerRecordingPlaybackState(ord);
-  }
-  return playbackStates.get(ord) ?? initialLearnerRecordingPlaybackState();
-}
-
-function dispatchLearnerRecordingPlaybackEvent(
-  ord: number,
-  event: LearnerRecordingPlaybackEvent,
-): void {
-  const previous = playbackStates.get(ord) ?? initialLearnerRecordingPlaybackState();
-  trackPendingPlayMode(ord, previous, event);
-  const transition = transitionLearnerRecordingPlayback(previous, event);
-  playbackStates.set(ord, transition.state);
-  executeLearnerRecordingPlaybackTransition(ord, transition);
-}
-
-function executeLearnerRecordingPlaybackTransition(
-  ord: number,
-  transition: LearnerRecordingPlaybackTransition,
-): void {
-  for (const effect of transition.effects) {
-    executeLearnerRecordingPlaybackEffect(ord, effect, transition.state);
-  }
-}
-
-function executeLearnerRecordingPlaybackEffect(
-  ord: number,
-  effect: LearnerRecordingPlaybackEffect,
-  state: LearnerRecordingPlaybackState,
-): void {
-  switch (effect.type) {
-    case "ConfigureLearnerAudioSource":
-      configureLearnerAudioSource(audioForOrd(ord), effect.mediaFilename);
-      return;
-    case "SeekLearnerAudio":
-      seekLearnerAudio(audioForOrd(ord), effect.cursorMs);
-      return;
-    case "PlayLearnerAudio":
-      playLearnerAudio(ord, audioForOrd(ord));
-      return;
-    case "PauseLearnerAudio":
-      pauseLearnerAudio(ord, audioByOrd.get(ord), state);
-      return;
-    case "StopLearnerAudio":
-      stopLearnerAudio(ord, audioByOrd.get(ord));
-      return;
-    case "StartLearnerProgressFrame":
-      startLearnerProgressFrame(ord, state);
-      return;
-    case "ClearLearnerProgressFrame":
-      clearLearnerProgressFrame(ord);
-      return;
-    case "PublishLearnerPlaybackState":
-      publishLearnerPlaybackState(ord, effect);
-      return;
-    case "RenderLearnerPlaybackCursor":
-      renderLearnerPlaybackCursor(ord, effect.cursorMs);
-      return;
-    case "ShowPlaybackStatus":
-      setStatusForOrd(ord, t(effect.statusKey), effect.kind ?? "warning", "", "playback");
-      return;
-    case "LogPlaybackTelemetry":
-      logger.info(effect.event, { ...effect.data, ord });
-      return;
-    default:
-      return exhaustive(effect);
-  }
-}
-
-function audioForOrd(ord: number): HTMLAudioElement {
-  const existing = audioByOrd.get(ord);
-  if (existing) return existing;
-  const audio = document.createElement("audio");
-  audio.dataset.testid = `aqe-learner-audio-${ord}`;
-  audio.hidden = true;
-  audio.preload = "auto";
-  audio.addEventListener("ended", () => {
-    logger.info("recording.playback.html_ended", { ord });
-    dispatchLearnerRecordingPlaybackEvent(ord, { type: "AudioEnded" });
-  });
-  audio.addEventListener("error", () => {
-    dispatchLearnerRecordingPlaybackEvent(ord, { reason: "audio_error", type: "AudioError" });
-  });
-  document.body.append(audio);
-  audioByOrd.set(ord, audio);
-  return audio;
-}
-
-function removeLearnerAudio(ord: number, audio: HTMLAudioElement): void {
-  stopLearnerAudio(ord, audio);
-  audio.remove();
-}
-
-function configureLearnerAudioSource(audio: HTMLAudioElement, mediaFilename: string): void {
-  audio.setAttribute("src", mediaUrlForFilename(mediaFilename));
-  try {
-    audio.load();
-  } catch {
-    // Browser loading failures surface through the audio error/play rejection events.
-  }
-}
-
-function seekLearnerAudio(audio: HTMLAudioElement, cursorMs: number): void {
-  try {
-    audio.currentTime = Math.max(0, Number(cursorMs) || 0) / 1000;
-  } catch {
-    // The reducer has no seek-failed learner event; playback rejection/error will stop the state.
-  }
-}
-
-function playLearnerAudio(ord: number, audio: HTMLAudioElement): void {
-  Promise.resolve(audio.play())
-    .then(() => {
-      const mode = pendingPlayModeByOrd.get(ord) ?? "started";
-      pendingPlayModeByOrd.delete(ord);
-      logger.info(
-        mode === "resumed" ? "recording.playback.html_resumed" : "recording.playback.html_started",
-        { ord },
-      );
-      dispatchLearnerRecordingPlaybackEvent(ord, {
-        nowMs: performance.now(),
-        type: "PlayResolved",
-      });
-    })
-    .catch(() => {
-      pendingPlayModeByOrd.delete(ord);
-      dispatchLearnerRecordingPlaybackEvent(ord, {
-        reason: "audio_play_rejected",
-        type: "PlayRejected",
-      });
-    });
-}
-
-function pauseLearnerAudio(
-  ord: number,
-  audio: HTMLAudioElement | undefined,
-  state: LearnerRecordingPlaybackState,
-): void {
-  if (audio) {
-    try {
-      audio.pause();
-    } catch {
-      // Pause failure should not leave the frontend state machine stuck.
+  const recording = payload
+    ? writeLearnerRecordingState(ord, payload)
+    : readLearnerRecordingState(ord);
+  if (!readyLearnerRecording(recording)) {
+    const session = readHtmlAudioSessionState(ord);
+    if (session.kind !== "empty" && session.kind !== "failed" && session.source.kind === "learner_recording") {
+      clearHtmlAudioSession(ord);
     }
+    syncRecordingControls(ord);
+    return;
   }
-  logger.info("recording.playback.html_paused", { ord });
-  if (state.kind === "paused") {
-    renderLearnerPlaybackCursor(ord, state.startCursorMs + state.cursorMs);
-  }
-}
-
-function stopLearnerAudio(ord: number, audio: HTMLAudioElement | undefined): void {
-  clearLearnerProgressFrame(ord);
-  if (!audio) return;
-  try {
-    audio.pause();
-  } catch {
-    // Stop is best-effort during teardown.
-  }
-  try {
-    audio.currentTime = 0;
-  } catch {
-    // Some media elements reject currentTime changes before metadata is available.
-  }
-}
-
-function startLearnerProgressFrame(ord: number, state: LearnerRecordingPlaybackState): void {
-  clearLearnerProgressFrame(ord);
-  if (state.kind !== "playing") return;
-  const tick = (): void => {
-    const current = playbackStates.get(ord);
-    if (!current || current.kind !== "playing") return;
-    const audio = audioByOrd.get(ord);
-    renderLearnerPlaybackCursor(
-      ord,
-      current.startCursorMs + learnerAudioCurrentTimeMs(audio, current.durationMs),
-    );
-    frameByOrd.set(ord, window.requestAnimationFrame(tick));
-  };
-  tick();
-}
-
-function clearLearnerProgressFrame(ord: number): void {
-  const frame = frameByOrd.get(ord);
-  if (frame !== undefined) {
-    window.cancelAnimationFrame(frame);
-  }
-  frameByOrd.delete(ord);
-}
-
-function publishLearnerPlaybackState(
-  ord: number,
-  effect: Extract<LearnerRecordingPlaybackEffect, { type: "PublishLearnerPlaybackState" }>,
-): void {
-  const current = readLearnerRecordingState(ord);
-  writeLearnerRecordingState(ord, {
-    fieldOrd: ord,
-    generation: current.generation,
-    mediaFilename: current.mediaFilename,
-    playbackStatus: effect.status,
-    recordingDurationMs: current.recordingDurationMs,
-    startCursorMs: current.startCursorMs,
-    status: current.recordingStatus,
-    targetDurationMs: current.targetDurationMs,
-  });
+  configureLearnerSession(ord, recording);
   syncRecordingControls(ord);
 }
 
-function renderLearnerPlaybackCursor(ord: number, cursorMs: number): void {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return;
-  const recording = readLearnerRecordingState(ord);
-  const targetDurationMs = Math.max(
-    recording.targetDurationMs,
-    recording.startCursorMs + recording.recordingDurationMs,
-    cursorMs,
-  );
-  setRecordingCursor(visualizer, cursorMs, targetDurationMs);
-}
-
-function trackPendingPlayMode(
+function configureLearnerSession(
   ord: number,
-  previous: LearnerRecordingPlaybackState,
-  event: LearnerRecordingPlaybackEvent,
+  recording: ReturnType<typeof readLearnerRecordingState>,
 ): void {
-  if (event.type === "ResumeRequested" || (event.type === "PlayButtonClicked" && previous.kind === "paused")) {
-    pendingPlayModeByOrd.set(ord, "resumed");
-    return;
+  const session = readHtmlAudioSessionState(ord);
+  const source = {
+    kind: "learner_recording" as const,
+    generation: recording.generation ?? 0,
+    sourceFilename: recording.mediaFilename,
+    startCursorMs: recording.startCursorMs,
+  };
+  if (
+    session.kind === "empty" ||
+    session.kind === "failed" ||
+    session.source.kind !== "learner_recording" ||
+    session.source.sourceFilename !== source.sourceFilename ||
+    session.source.generation !== source.generation
+  ) {
+    dispatchHtmlAudioSessionEvent(ord, {
+      cursorMs: 0,
+      source,
+      type: "SourceConfigured",
+    });
   }
-  if (event.type === "PlayButtonClicked" && previous.kind === "ready") {
-    pendingPlayModeByOrd.set(ord, "started");
+  const current = readHtmlAudioSessionState(ord);
+  if (current.kind === "loading") {
+    dispatchHtmlAudioSessionEvent(ord, {
+      durationMs: learnerDurationMs(recording),
+      type: "MetadataLoaded",
+    });
   }
 }
 
-function learnerAudioCurrentTimeMs(
-  audio: HTMLAudioElement | undefined,
-  durationMs: number,
-): number {
+function learnerStartRequest(
+  ord: number,
+  recording: ReturnType<typeof readLearnerRecordingState>,
+): HtmlAudioStartRequest {
+  return {
+    cursorMs: 0,
+    endMs: learnerDurationMs(recording),
+    loop: false,
+    ord,
+    regionMode: "full",
+    resetCursorMs: 0,
+    source: "learner_recording",
+  };
+}
+
+function readyLearnerRecording(recording: ReturnType<typeof readLearnerRecordingState>): boolean {
+  return recording.recordingStatus === "ready"
+    && recording.mediaFilename.length > 0
+    && recording.generation !== null;
+}
+
+function learnerDurationMs(recording: ReturnType<typeof readLearnerRecordingState>): number {
+  return Math.max(0, recording.recordingDurationMs || recording.targetDurationMs || 0);
+}
+
+function learnerAudioCurrentTimeMs(ord: number, durationMs: number): number {
+  const audio = audioClockFor(visualizerForOrd(ord));
   const currentMs = Math.round(Math.max(0, Number(audio?.currentTime) || 0) * 1000);
   return Math.max(0, Math.min(currentMs, Math.max(0, durationMs)));
 }
 
-function knownLearnerPlaybackOrds(): number[] {
-  return Array.from(new Set([
-    ...playbackStates.keys(),
-    ...audioByOrd.keys(),
-  ]));
-}
-
-function exhaustive(value: never): never {
-  throw new Error(`Unhandled learner recording playback effect: ${JSON.stringify(value)}`);
+function learnerSessionOrds(): number[] {
+  const ords: number[] = [];
+  document.querySelectorAll<HTMLElement>("[data-aqe-field-ord]").forEach((element) => {
+    const ord = Number(element.dataset.aqeFieldOrd || "0");
+    const session = readHtmlAudioSessionState(ord);
+    if (session.kind !== "empty" && session.kind !== "failed" && session.source.kind === "learner_recording") {
+      ords.push(ord);
+    }
+  });
+  return Array.from(new Set(ords));
 }

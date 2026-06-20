@@ -1,4 +1,3 @@
-import { sendCommandPayload } from "./bridge.js";
 import { allControls, visualizerForOrd } from "./dom-selectors.js";
 import {
   editorRuntimeConfig,
@@ -9,7 +8,15 @@ import { logger } from "./logger.js";
 import { readFieldState } from "./field-state-store.js";
 import { isEditorBusy } from "./editor-control-state.js";
 import { readRepeatPauseSecondsRuntime } from "./visualizer-runtime-state.js";
-import type { EditorCommandPayload, PostEditPlaybackIntent } from "./types.js";
+import type { PostEditPlaybackIntent } from "./types.js";
+import {
+  dispatchHtmlAudioSessionEvent,
+  readHtmlAudioSessionState,
+} from "./html-audio-session-controller.js";
+import type {
+  HtmlAudioStartRequest,
+  PostEditAutoplayIntent,
+} from "./html-audio-session-machine.js";
 import {
   AUDIO_CLOCK_READINESS_CHANGED_EVENT,
   HTML_METADATA_WAIT_TIMEOUT_MS,
@@ -20,7 +27,6 @@ import {
 
 const metadataWaitTimers: Map<number, number> = new Map();
 const postEditGraphRequests: Set<string> = new Set();
-const postEditReadyDispatches: Set<string> = new Set();
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
   const visualizer = visualizerForOrd(ord);
@@ -49,11 +55,6 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     logger.warn("post-edit playback ready deferred: source mismatch", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
   }
-  const dispatchKey = postEditReadyDispatchKey(ord, pending, sourceFilename);
-  if (postEditReadyDispatches.has(dispatchKey)) {
-    logger.info("post-edit playback ready duplicate suppressed", postEditPlaybackDiagnosticContext(ord, sourceFilename));
-    return;
-  }
   if (isEditorBusy()) {
     logger.info("post-edit playback ready deferred: editor busy", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
@@ -75,12 +76,7 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
   }
   if (postEditRenderedGraphCanDriveHtmlPlayback(ord, sourceFilename, readiness)) {
     clearMetadataWaitTimer(ord);
-    dispatchPostEditPlaybackReady({
-      command: "aqe:post-edit-playback-ready",
-      fieldOrd: ord,
-      generation: pending.generation,
-      sourceFilename,
-    }, ord, sourceFilename, dispatchKey);
+    dispatchPostEditPlaybackReadyThroughSession(ord, sourceFilename);
     return;
   }
   if (readiness.transient) {
@@ -93,12 +89,7 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     return;
   }
   clearMetadataWaitTimer(ord);
-  dispatchPostEditPlaybackReady({
-    command: "aqe:post-edit-playback-ready",
-    fieldOrd: ord,
-    generation: pending.generation,
-    sourceFilename,
-  }, ord, sourceFilename, dispatchKey);
+  dispatchPostEditPlaybackReadyThroughSession(ord, sourceFilename);
 }
 
 function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolean {
@@ -174,7 +165,6 @@ function clearAllMetadataWaitTimers(): void {
   }
   metadataWaitTimers.clear();
   postEditGraphRequests.clear();
-  postEditReadyDispatches.clear();
 }
 
 function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string): Record<string, unknown> {
@@ -192,6 +182,7 @@ function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string):
     pendingGeneration: pending?.generation,
     pendingRequireGraphRedraw: pending?.requireGraphRedraw === true,
     pendingSourceFilename: pending?.sourceFilename || "",
+    pendingSourceKind: pending?.sourceKind || "",
     visualizerSourceFilename: s?.sourceFilename || "",
   };
 }
@@ -220,7 +211,7 @@ function postEditShouldRequestRenderedGraph(
   if (!sourceFilename || !readiness.transient) return false;
   if (postEditGraphRequests.has(postEditGraphRequestKey(ord, sourceFilename))) return false;
   const pending = editorRuntimeConfig().pendingPostEditPlayback;
-  if (pending?.requireGraphRedraw !== true && !sourceFilename.includes("__aqe_")) return false;
+  if (pending?.requireGraphRedraw !== true && pending?.sourceKind !== "generated_edit") return false;
   const state = readFieldState(ord);
   if (pending?.requireGraphRedraw !== true && !state.graph.active && !state.graph.hasTrack) return false;
   if (state.graph.busy) return false;
@@ -231,31 +222,74 @@ function postEditGraphRequestKey(ord: number, sourceFilename: string): string {
   return `${ord}\u0000${sourceFilename}`;
 }
 
-function dispatchPostEditPlaybackReady(
-  payload: EditorCommandPayload,
+function dispatchPostEditPlaybackReadyThroughSession(
   ord: number,
   sourceFilename: string,
-  dispatchKey: string,
 ): void {
-  if (postEditReadyDispatches.has(dispatchKey)) return;
-  postEditReadyDispatches.add(dispatchKey);
   clearMetadataWaitTimer(ord);
   postEditGraphRequests.delete(postEditGraphRequestKey(ord, sourceFilename));
-  const testDispatcher = window.__aqeDispatchPostEditPlaybackReadyForTest;
-  const dispatch = () => {
-    sendCommandPayload(payload);
-    logger.info("post-edit playback ready dispatched", postEditPlaybackDiagnosticContext(ord, sourceFilename));
-  };
-  if (testDispatcher?.(payload, dispatch) === true) return;
-  dispatch();
+  dispatchPostEditSessionWaiting(ord, sourceFilename);
+  const durationMs = postEditReadyDurationMs(ord);
+  dispatchHtmlAudioSessionEvent(ord, {
+    durationMs,
+    sourceFilename,
+    type: "PostEditReadyConfirmed",
+  });
 }
 
-function postEditReadyDispatchKey(
-  ord: number,
-  pending: NonNullable<ReturnType<typeof editorRuntimeConfig>["pendingPostEditPlayback"]>,
-  sourceFilename: string,
-): string {
-  return `${ord}\u0000${pending.generation}\u0000${pending.sourceFilename || sourceFilename}`;
+function dispatchPostEditSessionWaiting(ord: number, sourceFilename: string): void {
+  const source = { kind: "source" as const, sourceFilename };
+  const state = readHtmlAudioSessionState(ord);
+  if (
+    state.kind === "empty" ||
+    state.kind === "failed" ||
+    ("source" in state && state.source.sourceFilename !== sourceFilename)
+  ) {
+    dispatchHtmlAudioSessionEvent(ord, {
+      cursorMs: 0,
+      source,
+      type: "SourceConfigured",
+    });
+  }
+  const request = postEditStartRequest(ord);
+  dispatchHtmlAudioSessionEvent(ord, {
+    intent: postEditAutoplayIntent(ord, sourceFilename),
+    request,
+    type: "PostEditAutoplayRequested",
+  });
+}
+
+function postEditStartRequest(ord: number): HtmlAudioStartRequest {
+  const field = readFieldState(ord);
+  return {
+    cursorMs: field.playback.startMs,
+    endMs: field.playback.endMs || field.graph.durationMs,
+    loop: field.playback.repeat === true,
+    ord,
+    regionMode: field.playback.regionMode,
+    resetCursorMs: field.playback.regionMode === "selection" && field.selection.startMs !== null
+      ? Math.round(field.selection.startMs)
+      : Math.round(field.cursor.anchorMs),
+    source: "post_edit",
+  };
+}
+
+function postEditAutoplayIntent(ord: number, sourceFilename: string): PostEditAutoplayIntent {
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
+  const expectedDurationMs = pending?.expectedDurationMs || postEditReadyDurationMs(ord);
+  return {
+    fieldOrd: ord,
+    generation: pending?.generation ?? 0,
+    requireGraphRedraw: pending?.requireGraphRedraw === true,
+    sourceFilename,
+    sourceKind: pending?.sourceKind ?? "generated_edit",
+    expectedDurationMs,
+  };
+}
+
+function postEditReadyDurationMs(ord: number): number {
+  const state = readFieldState(ord);
+  return state.graph.durationMs || state.playback.endMs || 0;
 }
 
 function postEditPlaybackIntents(): Record<number, PostEditPlaybackIntent> {

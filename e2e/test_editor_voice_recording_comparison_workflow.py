@@ -337,7 +337,7 @@ def _install_learner_audio_test_driver(editor: Any, expected_filename: str) -> d
         editor.web,
         f"""
         (() => {{
-          const audio = document.querySelector('[data-testid="aqe-learner-audio-0"]');
+          const audio = document.querySelector('[data-testid="aqe-audio-clock-0"]');
           if (!audio) return null;
           window.__aqeLearnerAudioTestDriver = {{ playCalls: 0, pauseCalls: 0 }};
           audio.play = () => {{
@@ -363,7 +363,7 @@ def _learner_playback_state_js(play_yours_selector: str) -> str:
     (() => {{
       const state = window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0) : null;
       const play = document.querySelector({play_yours_selector!r});
-      const audio = document.querySelector('[data-testid="aqe-learner-audio-0"]');
+      const audio = document.querySelector('[data-testid="aqe-audio-clock-0"]');
       const driver = window.__aqeLearnerAudioTestDriver || {{ playCalls: 0, pauseCalls: 0 }};
       return state && play && audio ? {{
         ...state,

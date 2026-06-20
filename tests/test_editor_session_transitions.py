@@ -61,6 +61,7 @@ def test_post_edit_playback_request_and_clear_pending() -> None:
     assert state.pending_generation == 3
     assert state.pending_requires_graph_redraw is True
     assert state.pending_source_filename == "clip__aqe.mp3"
+    assert state.pending_source_kind == "generated_edit"
 
     state.clear_pending()
 
@@ -68,3 +69,5 @@ def test_post_edit_playback_request_and_clear_pending() -> None:
     assert state.pending_generation is None
     assert state.pending_requires_graph_redraw is False
     assert state.pending_source_filename is None
+    assert state.pending_source_kind == "generated_edit"
+    assert state.pending_expected_duration_ms is None

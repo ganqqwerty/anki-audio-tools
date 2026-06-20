@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { completePlayback } from "../src/editor-inline/actions.js";
+import { completePlayback, startSourcePlayback } from "../src/editor-inline/actions.js";
+import { dispatchHtmlAudioSessionEvent } from "../src/editor-inline/html-audio-session-controller.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
@@ -369,6 +370,54 @@ afterEach(() => {
       "Browser audio is unavailable.",
     );
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
+  });
+
+  it("starts a same-source loading HTML session once graph duration is known", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 0);
+    const visualizer = document.querySelector('[data-testid="aqe-graph-0"]') as Parameters<typeof startSourcePlayback>[0];
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 0 });
+    let resolvePlay!: () => void;
+    audio.play = vi.fn<() => Promise<void>>(() => new Promise((resolve) => {
+      resolvePlay = resolve;
+    }));
+    audio.pause = vi.fn<() => void>(() => undefined);
+    dispatchHtmlAudioSessionEvent(0, {
+      cursorMs: 0,
+      source: { kind: "source", sourceFilename: "clip one.mp3" },
+      type: "SourceConfigured",
+    });
+
+    expect(startSourcePlayback(visualizer, {
+      action: "start",
+      cursorMs: 0,
+      endMs: 1000,
+      engine: "html",
+      loop: false,
+      ord: 0,
+      regionMode: "full",
+    })).toBe(true);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    resolvePlay();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(window.__aqeGetPlaybackRequest?.()).toEqual({
+      action: "start",
+      cursorMs: 0,
+      endMs: 1000,
+      engine: "html",
+      loop: false,
+      ord: 0,
+      regionMode: "full",
+    });
   });
 
   it("keeps selected playback state without backend fallback when HTML one-shot play rejects", async () => {
