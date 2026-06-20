@@ -184,7 +184,7 @@ describe("editor inline audio-clock workflows", () => {
     expect(stopEditorPlayback(9)).toBe(false);
   });
 
-  it("logs selected playback engine and browser failure reason for playback requests", async () => {
+  it("logs playback readiness and browser failure reason for playback requests", async () => {
     const visualizer = await mountTrack(100);
     visualizer.__aqeHtmlAudioFailureReason = "audio_error";
     warnSpy.mockClear();
@@ -193,7 +193,7 @@ describe("editor inline audio-clock workflows", () => {
 
     expect(request.engine).toBe("html");
     expect(warnSpy).toHaveBeenCalledWith(
-      "[editor] playback.engine_selected",
+      "[editor] playback.readiness_described",
       expect.objectContaining({
         action: "start",
         audioClockReady: false,
