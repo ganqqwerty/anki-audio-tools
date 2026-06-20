@@ -1,18 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  choosePlaybackEngine,
-  type PlaybackEngineDecisionInput,
+  describeHtmlPlaybackReadiness,
+  type PlaybackReadinessDecisionInput,
 } from "../src/editor-inline/playback-engine-decision.js";
 
-const baseInput: PlaybackEngineDecisionInput = {
-  activeEngine: "",
+const baseInput: PlaybackReadinessDecisionInput = {
   audioClockReady: true,
-  graphDurationMs: 1000,
   graphHasTrack: true,
   htmlAudioReadinessFailed: false,
-  htmlAudioReadinessReason: "audio_ready",
-  htmlAudioReadinessState: "ready",
   htmlAudioReadinessTransient: false,
   playbackState: "stopped",
   regionMode: "full",
@@ -20,22 +16,20 @@ const baseInput: PlaybackEngineDecisionInput = {
   visualizerPresent: true,
 };
 
-describe("playback engine decision", () => {
+describe("playback readiness decision", () => {
   it("keeps active playback on the HTML path while playback is not stopped", () => {
-    expect(choosePlaybackEngine({
+    expect(describeHtmlPlaybackReadiness({
       ...baseInput,
-      activeEngine: "html",
       playbackState: "playing",
     })).toEqual({ engine: "html", reason: "active_engine_html" });
-    expect(choosePlaybackEngine({
+    expect(describeHtmlPlaybackReadiness({
       ...baseInput,
-      activeEngine: "html",
       playbackState: "paused",
     })).toEqual({ engine: "html", reason: "active_engine_html" });
   });
 
   it("requires HTML playback for selected repeat", () => {
-    expect(choosePlaybackEngine({
+    expect(describeHtmlPlaybackReadiness({
       ...baseInput,
       audioClockReady: false,
       regionMode: "selection",
@@ -44,28 +38,24 @@ describe("playback engine decision", () => {
   });
 
   it("keeps transient loading on the HTML path", () => {
-    expect(choosePlaybackEngine({
+    expect(describeHtmlPlaybackReadiness({
       ...baseInput,
       audioClockReady: false,
       graphHasTrack: true,
-      htmlAudioReadinessReason: "audio_metadata_loading",
-      htmlAudioReadinessState: "loading_metadata",
       htmlAudioReadinessTransient: true,
     })).toEqual({ engine: "html", reason: "audio_metadata_loading" });
   });
 
   it("records hard browser audio failures as HTML-path failures", () => {
-    expect(choosePlaybackEngine({
+    expect(describeHtmlPlaybackReadiness({
       ...baseInput,
       audioClockReady: false,
       htmlAudioReadinessFailed: true,
-      htmlAudioReadinessReason: "audio_error",
-      htmlAudioReadinessState: "failed",
     })).toEqual({ engine: "html", reason: "audio_readiness_failed" });
   });
 
   it("uses HTML for hidden no-graph playback once metadata is ready", () => {
-    expect(choosePlaybackEngine({
+    expect(describeHtmlPlaybackReadiness({
       ...baseInput,
       graphHasTrack: false,
       repeat: false,
