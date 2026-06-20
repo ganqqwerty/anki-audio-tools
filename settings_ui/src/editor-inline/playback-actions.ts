@@ -2,8 +2,12 @@ import { focusAndSendCommand, popPendingPlaybackRequest, setPendingPlaybackReque
 import { visualizerForOrd } from "./dom-selectors.js";
 import { logger } from "./logger.js";
 import { htmlAudioReadinessFor } from "./audio-readiness.js";
-import type { PlaybackEngineDecision } from "./playback-engine-decision.js";
-import { logPlaybackEngineDecision, playbackEngineDecisionFor, postEditPlaybackStartContext } from "./playback-telemetry.js";
+import type { PlaybackReadinessDecision } from "./playback-engine-decision.js";
+import {
+  logPlaybackReadinessDecision,
+  playbackReadinessDecisionFor,
+  postEditPlaybackStartContext,
+} from "./playback-telemetry.js";
 import { startSourceHtmlPlayback } from "./source-playback-controller.js";
 import {
   audioProgressMs as audioProgressMsFromController,
@@ -102,13 +106,13 @@ export function stopProgressClock(
 export function playbackRequest(ord: number): PlaybackRequest {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) {
-    const decision = playbackEngineDecisionFor(null);
-    logPlaybackEngineDecision("playback_request", null, decision, { action: "start", ord });
+    const decision = playbackReadinessDecisionFor(null);
+    logPlaybackReadinessDecision("playback_request", null, decision, { action: "start", ord });
     return { ord, action: "start", cursorMs: 0 };
   }
-  const decision = playbackEngineDecisionFor(visualizer);
+  const decision = playbackReadinessDecisionFor(visualizer);
   const request = planPlaybackRequest(playbackSnapshotFor(visualizer, ord, decision));
-  logPlaybackEngineDecision("playback_request", visualizer, decision, {
+  logPlaybackReadinessDecision("playback_request", visualizer, decision, {
     action: request.action,
     endMs: request.endMs ?? null,
     requestRegionMode: request.regionMode ?? "",
@@ -120,7 +124,7 @@ export function playbackRequest(ord: number): PlaybackRequest {
 function playbackSnapshotFor(
   visualizer: VisualizerElement,
   ord: number,
-  decision: PlaybackEngineDecision = playbackEngineDecisionFor(visualizer),
+  decision: PlaybackReadinessDecision = playbackReadinessDecisionFor(visualizer),
 ): PlaybackSnapshot {
   const s = fieldState(visualizer);
   return {
@@ -167,7 +171,7 @@ export function playAfterEdit(ord: number): boolean {
   }
   window.__aqeActiveField = ord;
   const region = effectivePlaybackRegion(visualizer);
-  const decision = playbackEngineDecisionFor(visualizer);
+  const decision = playbackReadinessDecisionFor(visualizer);
   const request: PlaybackRequest = {
     action: "start",
     cursorMs: Math.round(region.startMs),
@@ -178,7 +182,7 @@ export function playAfterEdit(ord: number): boolean {
     regionMode: region.mode,
     source: "post_edit",
   };
-  logPlaybackEngineDecision("post_edit", visualizer, decision, {
+  logPlaybackReadinessDecision("post_edit", visualizer, decision, {
     action: request.action,
     endMs: request.endMs ?? null,
     source: "post_edit",
@@ -199,7 +203,7 @@ export function playAfterEdit(ord: number): boolean {
 }
 
 export function playbackEngineFor(visualizer: VisualizerElement | null): "html" {
-  return playbackEngineDecisionFor(visualizer).engine;
+  return playbackReadinessDecisionFor(visualizer).engine;
 }
 
 export function sendPlaybackRequest(request: PlaybackRequest): void {

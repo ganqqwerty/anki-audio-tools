@@ -2,8 +2,8 @@ import { readFieldState } from "./field-state-store.js";
 import { logger } from "./logger.js";
 import { audioClockTelemetryFor } from "./playback-audio-telemetry.js";
 import {
-  choosePlaybackEngine,
-  type PlaybackEngineDecision,
+  describeHtmlPlaybackReadiness,
+  type PlaybackReadinessDecision,
 } from "./playback-engine-decision.js";
 import { effectivePlaybackRegion } from "./selection-controller.js";
 import type { VisualizerElement } from "./types.js";
@@ -12,16 +12,12 @@ function fieldOrd(visualizer: VisualizerElement): number {
   return Number(visualizer.dataset.aqeFieldOrd || "0");
 }
 
-export function playbackEngineDecisionFor(visualizer: VisualizerElement | null): PlaybackEngineDecision {
+export function playbackReadinessDecisionFor(visualizer: VisualizerElement | null): PlaybackReadinessDecision {
   if (!visualizer) {
-    return choosePlaybackEngine({
-      activeEngine: "",
+    return describeHtmlPlaybackReadiness({
       audioClockReady: false,
-      graphDurationMs: 0,
       graphHasTrack: false,
       htmlAudioReadinessFailed: true,
-      htmlAudioReadinessReason: "audio_element_missing",
-      htmlAudioReadinessState: "missing",
       htmlAudioReadinessTransient: false,
       playbackState: "stopped",
       regionMode: "full",
@@ -32,14 +28,10 @@ export function playbackEngineDecisionFor(visualizer: VisualizerElement | null):
   const state = readFieldState(fieldOrd(visualizer));
   const region = effectivePlaybackRegion(visualizer);
   const telemetry = audioClockTelemetryFor(visualizer);
-  return choosePlaybackEngine({
-    activeEngine: state.playback.engine,
+  return describeHtmlPlaybackReadiness({
     audioClockReady: telemetry.audioClockReady,
-    graphDurationMs: state.graph.durationMs,
     graphHasTrack: state.graph.hasTrack,
     htmlAudioReadinessFailed: telemetry.htmlAudioReadinessFailed,
-    htmlAudioReadinessReason: telemetry.htmlAudioReadinessReason,
-    htmlAudioReadinessState: telemetry.htmlAudioReadinessState,
     htmlAudioReadinessTransient: telemetry.htmlAudioReadinessTransient,
     playbackState: state.playback.state,
     regionMode: region.mode,
@@ -50,7 +42,7 @@ export function playbackEngineDecisionFor(visualizer: VisualizerElement | null):
 
 export function playbackTelemetryContext(
   visualizer: VisualizerElement | null,
-  decision: PlaybackEngineDecision,
+  decision: PlaybackReadinessDecision,
   extra: Record<string, unknown> = {},
 ): Record<string, unknown> {
   if (!visualizer) {
@@ -80,10 +72,10 @@ export function playbackTelemetryContext(
   };
 }
 
-export function logPlaybackEngineDecision(
+export function logPlaybackReadinessDecision(
   trigger: string,
   visualizer: VisualizerElement | null,
-  decision: PlaybackEngineDecision,
+  decision: PlaybackReadinessDecision,
   extra: Record<string, unknown> = {},
 ): void {
   logger.debug("playback.engine_selected", playbackTelemetryContext(visualizer, decision, { trigger, ...extra }));
@@ -93,7 +85,7 @@ export function postEditPlaybackStartContext(ord: number, visualizer: Visualizer
   const state = readFieldState(fieldOrd(visualizer));
   return {
     audioClockReady: audioClockTelemetryFor(visualizer).audioClockReady,
-    engine: playbackEngineDecisionFor(visualizer).engine,
+    engine: playbackReadinessDecisionFor(visualizer).engine,
     graphBusy: state.graph.busy ? "true" : "",
     hasTrack: state.graph.hasTrack ? "true" : "",
     ord,

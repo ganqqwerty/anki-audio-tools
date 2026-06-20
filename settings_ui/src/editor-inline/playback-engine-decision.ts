@@ -1,8 +1,7 @@
-import type { PlaybackEngine, PlaybackRegionMode } from "./playback-state.js";
+import type { PlaybackRegionMode } from "./playback-state.js";
 import type { PlaybackState } from "./types.js";
-import type { HtmlAudioReadinessReason, HtmlAudioReadinessState } from "./audio-readiness.js";
 
-export type PlaybackEngineSelectionReason =
+export type PlaybackReadinessReason =
   | "active_engine_html"
   | "audio_clock_not_ready"
   | "audio_clock_ready"
@@ -11,20 +10,13 @@ export type PlaybackEngineSelectionReason =
   | "no_graph_track_audio_clock_not_ready"
   | "no_graph_track_audio_loading"
   | "no_graph_track_audio_ready"
-  | "no_graph_track_duration_unknown"
-  | "no_graph_track_repeat_audio_ready"
-  | "no_graph_track_repeat_disabled"
   | "selected_repeat_requires_html"
   | "visualizer_missing";
 
-export interface PlaybackEngineDecisionInput {
-  activeEngine: PlaybackEngine;
+export interface PlaybackReadinessDecisionInput {
   audioClockReady: boolean;
-  graphDurationMs: number;
   graphHasTrack: boolean;
   htmlAudioReadinessFailed: boolean;
-  htmlAudioReadinessReason: HtmlAudioReadinessReason;
-  htmlAudioReadinessState: HtmlAudioReadinessState;
   htmlAudioReadinessTransient: boolean;
   playbackState: PlaybackState;
   regionMode: PlaybackRegionMode;
@@ -32,12 +24,12 @@ export interface PlaybackEngineDecisionInput {
   visualizerPresent: boolean;
 }
 
-export interface PlaybackEngineDecision {
+export interface PlaybackReadinessDecision {
   engine: "html";
-  reason: PlaybackEngineSelectionReason;
+  reason: PlaybackReadinessReason;
 }
 
-export function choosePlaybackEngine(input: PlaybackEngineDecisionInput): PlaybackEngineDecision {
+export function describeHtmlPlaybackReadiness(input: PlaybackReadinessDecisionInput): PlaybackReadinessDecision {
   if (!input.visualizerPresent) {
     return { engine: "html", reason: "visualizer_missing" };
   }
