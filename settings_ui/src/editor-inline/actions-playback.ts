@@ -2,7 +2,6 @@ import { visualizerForOrd } from "./dom-selectors.js";
 import { focusAndSendCommand, setCursorIntent } from "./bridge.js";
 import { seekAudioClock as seekAudioClockElement } from "./audio-clock.js";
 import { logger } from "./logger.js";
-import { handleSourcePlaybackBoundary } from "./source-playback-controller.js";
 import type {
   CursorIntent,
   PlaybackRequest,
@@ -16,14 +15,6 @@ import {
   restoreStatusForOrd,
 } from "./control-actions.js";
 import { playbackEngineFor, playbackStateFor, setPlaybackButtonLabel } from "./playback-actions.js";
-import {
-  completePlayback,
-  paintProgressFromClock,
-  sendPlaybackRequest,
-  startManualProgressClock,
-  startProgressClock,
-  stopProgressClock,
-} from "./playback-actions.js";
 import { clearPlaybackFrame as clearPlaybackFrameFromController } from "./playback-controller-frame.js";
 import type { PlaybackControllerDependencies } from "./playback-controller.js";
 import {
@@ -78,24 +69,6 @@ export function playbackControllerDependencies(): PlaybackControllerDependencies
     effectivePlaybackRegion: effectivePlaybackRegionFromController,
     focusAndSendCommand,
     handleLoopBoundary: handleChorusingLoopBoundary,
-    handleSourceLoopBoundary: (target, pass, repeatPauseMs, options) => handleSourcePlaybackBoundary(
-      target,
-      pass,
-      repeatPauseMs,
-      {
-        completePlayback,
-        paintProgressFromClock,
-        repeatEnabledFor,
-        sendPlaybackRequest,
-        setPlaybackButtonLabel,
-        startManualProgressClock,
-        startProgressClock: (runtimeTarget, startMs, runtimeOptions) => {
-          startProgressClock(runtimeTarget, startMs, runtimeOptions);
-        },
-        stopProgressClock,
-      },
-      options,
-    ),
     playbackEngineFor,
     repeatEnabledFor,
     restoreStatus: restoreStatusForOrd,

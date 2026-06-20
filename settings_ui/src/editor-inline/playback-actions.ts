@@ -4,10 +4,7 @@ import { logger } from "./logger.js";
 import { htmlAudioReadinessFor } from "./audio-readiness.js";
 import type { PlaybackEngineDecision } from "./playback-engine-decision.js";
 import { logPlaybackEngineDecision, playbackEngineDecisionFor, postEditPlaybackStartContext } from "./playback-telemetry.js";
-import {
-  dispatchSourcePlaybackEvent,
-  startSourceHtmlPlayback,
-} from "./source-playback-controller.js";
+import { startSourceHtmlPlayback } from "./source-playback-controller.js";
 import {
   audioProgressMs as audioProgressMsFromController,
   completePlayback as completePlaybackFromController,
@@ -59,8 +56,8 @@ export function audioProgressMs(visualizer: VisualizerElement): number | null { 
 
 export function currentProgressMs(visualizer: VisualizerElement): number | null { return currentProgressMsFromController(visualizer); }
 
-export function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number, options: { forceAudioPlay?: boolean } = {}): boolean {
-  return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackControllerDependencies(), options);
+export function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number): boolean {
+  return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackControllerDependencies());
 }
 
 export function completePlayback(visualizer: VisualizerElement): void {
@@ -222,15 +219,7 @@ export function sendPlaybackRequest(request: PlaybackRequest): void {
 
 export function startSourcePlayback(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
   setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
-  return startSourceHtmlPlayback(visualizer, { ...request, engine: "html" }, sourcePlaybackRuntime());
-}
-
-export function handleSourceAudioError(visualizer: VisualizerElement, cursorMs: number): void {
-  dispatchSourcePlaybackEvent(
-    visualizer,
-    { cursorMs, reason: "audio_error", type: "AudioError" },
-    sourcePlaybackRuntime(),
-  );
+  return startSourceHtmlPlayback(visualizer, { ...request, engine: "html" });
 }
 
 export function handleHtmlPlaybackCommand(ord: number): boolean {
@@ -256,21 +245,6 @@ export function handleHtmlPlaybackCommand(ord: number): boolean {
     return true;
   }
   return startSourcePlayback(visualizer, request);
-}
-
-function sourcePlaybackRuntime() {
-  return {
-    completePlayback,
-    paintProgressFromClock,
-    repeatEnabledFor,
-    sendPlaybackRequest,
-    setPlaybackButtonLabel,
-    startManualProgressClock,
-    startProgressClock: (target: VisualizerElement, startMs: number, options?: ProgressClockOptions) => {
-      startProgressClock(target, startMs, options);
-    },
-    stopProgressClock,
-  };
 }
 
 export function setPlaybackState(ord: number, state: PlaybackState, cursorMs: number): void {

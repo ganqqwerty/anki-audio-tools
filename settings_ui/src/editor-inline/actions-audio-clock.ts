@@ -16,8 +16,15 @@ import {
   setAudioClockLoop,
 } from "./audio-clock.js";
 import { logger } from "./logger.js";
-import { completePlayback, handlePlaybackBoundary, handleSourceAudioError, playbackStateFor, stopProgressClock } from "./playback-actions.js";
+import {
+  dispatchHtmlAudioSessionEvent,
+  readHtmlAudioSessionState,
+} from "./html-audio-session-controller.js";
+import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
+import { completePlayback, playbackStateFor, startProgressClock, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
+import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
+import type { PlaybackPass } from "./playback-model.js";
 import type { VisualizerElement } from "./types.js";
 import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
 import {
@@ -73,12 +80,104 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
     onErrorDuringPlayback(cursorMs) {
       const ord = fieldOrd(visualizer);
       logger.warn("audio clock failed during playback", { ord });
-      handleSourceAudioError(visualizer, cursorMs);
+      dispatchHtmlAudioSessionEvent(ord, {
+        cursorMs,
+        reason: "audio_error",
+        type: "AudioError",
+      });
+      stopLegacyAudioPlaybackAfterEmptySessionError(visualizer, ord, cursorMs);
     },
     onEndedDuringPlayback(durationMs) {
-      handlePlaybackBoundary(visualizer, durationMs, { forceAudioPlay: true });
+      const ord = fieldOrd(visualizer);
+      const session = readHtmlAudioSessionState(ord);
+      if (session.kind !== "starting" && session.kind !== "playing") {
+        handleLegacyAudioPlaybackEnded(visualizer, durationMs);
+        return;
+      }
+      if (session.source.kind !== "source") {
+        handleLegacyAudioPlaybackEnded(visualizer, durationMs);
+        return;
+      }
+      if (
+        session.request.source === "chorusing" &&
+        handleChorusingLoopBoundary(visualizer, playbackPassForSessionRequest(session.request))
+      ) {
+        return;
+      }
+      dispatchHtmlAudioSessionEvent(ord, {
+        cursorMs: durationMs,
+        repeatEnabled: repeatEnabledFor(visualizer),
+        repeatPauseMs: readRepeatPauseSecondsRuntime(visualizer) * 1000,
+        resetCursorMs: session.request.resetCursorMs ?? session.request.cursorMs,
+        restartAudio: true,
+        type: "BoundaryReached",
+      });
+      repaintCompletedSourceBoundaryCursor(visualizer, ord);
     },
   });
+}
+
+function stopLegacyAudioPlaybackAfterEmptySessionError(
+  visualizer: VisualizerElement,
+  ord: number,
+  cursorMs: number,
+): void {
+  if (readHtmlAudioSessionState(ord).kind !== "empty") return;
+  stopProgressClock(visualizer, { clearEngine: false });
+  updateFieldState(ord, (field) => ({
+    ...field,
+    cursor: {
+      ...field.cursor,
+      ms: cursorMs,
+      progressMs: cursorMs,
+    },
+  }));
+}
+
+function handleLegacyAudioPlaybackEnded(visualizer: VisualizerElement, durationMs: number): void {
+  if (repeatEnabledFor(visualizer)) {
+    const field = readFieldState(fieldOrd(visualizer));
+    if (field.graph.durationMs <= 0 && durationMs > 0) {
+      updateFieldState(field.ord, (state) => ({
+        ...state,
+        graph: { ...state.graph, durationMs },
+        playback: { ...state.playback, endMs: durationMs },
+      }));
+      setTargetDurationMsForVisualizer(visualizer, durationMs);
+    }
+    startProgressClock(visualizer, field.playback.startMs || 0, {
+      allowLoadingAudio: true,
+      engine: "html",
+      manualFallback: false,
+    });
+    return;
+  }
+  completePlayback(visualizer);
+  const field = readFieldState(fieldOrd(visualizer));
+  renderCursor(visualizer, field.cursor.ms, field.graph.durationMs);
+}
+
+function repaintCompletedSourceBoundaryCursor(visualizer: VisualizerElement, ord: number): void {
+  const field = readFieldState(ord);
+  if (field.playback.state !== "stopped") return;
+  ensurePlaybackCursorVisible(visualizer, field.cursor.ms);
+  renderCursor(visualizer, field.cursor.ms, field.graph.durationMs);
+}
+
+function playbackPassForSessionRequest(request: {
+  cursorMs: number;
+  endMs: number;
+  loop: boolean;
+  regionMode: "full" | "selection";
+  resetCursorMs?: number;
+}): PlaybackPass {
+  return {
+    endMs: request.endMs,
+    loop: request.loop,
+    regionMode: request.regionMode,
+    resetCursorMs: request.resetCursorMs ?? request.cursorMs,
+    startMs: request.cursorMs,
+  };
 }
 
 export function audioClockReady(visualizer: VisualizerElement | null): boolean {

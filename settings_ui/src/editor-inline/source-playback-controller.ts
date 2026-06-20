@@ -1,42 +1,18 @@
-import { readFieldState, updateFieldState } from "./field-state-store.js";
+import { readFieldState } from "./field-state-store.js";
 import {
   dispatchHtmlAudioSessionEvent,
   readHtmlAudioSessionState,
   stopOtherHtmlAudioSessions,
 } from "./html-audio-session-controller.js";
 import type {
-  HtmlAudioSessionEvent,
   HtmlAudioSessionState,
   HtmlAudioStartRequest,
 } from "./html-audio-session-machine.js";
-import type { ProgressClockOptions } from "./playback-controller.js";
-import type { PlaybackPass } from "./playback-model.js";
 import type { PlaybackRequest, VisualizerElement } from "./types.js";
 import {
-  preserveStatusOnPlaybackEndRuntime,
   readRepeatPauseSecondsRuntime,
   readTargetDurationMsForVisualizer,
 } from "./visualizer-runtime-state.js";
-
-export interface SourcePlaybackRuntime {
-  completePlayback: (visualizer: VisualizerElement) => void;
-  paintProgressFromClock: (visualizer: VisualizerElement) => void;
-  repeatEnabledFor: (visualizer: VisualizerElement) => boolean;
-  sendPlaybackRequest: (request: PlaybackRequest) => void;
-  setPlaybackButtonLabel: (visualizer: VisualizerElement, label: string) => void;
-  startManualProgressClock: (visualizer: VisualizerElement, startMs: number) => void;
-  startProgressClock: (
-    visualizer: VisualizerElement,
-    startMs: number,
-    options?: ProgressClockOptions,
-  ) => void;
-  stopProgressClock: (
-    visualizer: VisualizerElement,
-    options?: { clearAudio?: boolean; clearEngine?: boolean },
-  ) => void;
-}
-
-export type SourcePlaybackEvent = { type: "AudioError"; reason: "audio_error"; cursorMs: number };
 
 interface SourcePlaybackRequest {
   cursorMs: number;
@@ -52,7 +28,6 @@ interface SourcePlaybackRequest {
 export function startSourceHtmlPlayback(
   visualizer: VisualizerElement,
   request: PlaybackRequest,
-  _runtime: SourcePlaybackRuntime,
 ): boolean {
   clearPostEditPlaybackWarning(visualizer);
   const sourceRequest = sourcePlaybackRequestFor(visualizer, request);
@@ -67,89 +42,6 @@ export function startSourceHtmlPlayback(
 
   dispatchHtmlAudioStartRequest(htmlRequest, sourceFilename, durationMs);
   return true;
-}
-
-export function dispatchSourcePlaybackEvent(
-  visualizer: VisualizerElement,
-  event: SourcePlaybackEvent,
-  _runtime: SourcePlaybackRuntime,
-): void {
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  switch (event.type) {
-    case "AudioError":
-      dispatchHtmlAudioSessionEvent(ord, event);
-      if (readHtmlAudioSessionState(ord).kind === "empty") {
-        updateFieldState(ord, (field) => ({
-          ...field,
-          cursor: {
-            ...field.cursor,
-            ms: event.cursorMs,
-            progressMs: event.cursorMs,
-          },
-          playback: {
-            ...field.playback,
-            clockMode: "stopped",
-            state: "stopped",
-          },
-        }));
-      }
-      return;
-  }
-}
-
-export function handleSourcePlaybackBoundary(
-  visualizer: VisualizerElement,
-  pass: PlaybackPass,
-  repeatPauseMs: number,
-  _runtime: SourcePlaybackRuntime,
-  options: { forceAudioPlay?: boolean } = {},
-): boolean {
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const request = ensureHtmlAudioSessionForBoundary(ord, pass, visualizer);
-  const event: HtmlAudioSessionEvent = {
-    cursorMs: pass.endMs,
-    repeatEnabled: readFieldState(ord).playback.repeat,
-    repeatPauseMs,
-    restartAudio: options.forceAudioPlay === true || request !== undefined,
-    resetCursorMs: pass.resetCursorMs,
-    type: "BoundaryReached",
-  };
-  if (request) event.request = request;
-  dispatchHtmlAudioSessionEvent(ord, event);
-  return true;
-}
-
-function ensureHtmlAudioSessionForBoundary(
-  ord: number,
-  pass: PlaybackPass,
-  visualizer: VisualizerElement,
-): HtmlAudioStartRequest | undefined {
-  const field = readFieldState(ord);
-  const sourceFilename = field.sourceFilename;
-  if (!sourceFilename) return undefined;
-  const state = readHtmlAudioSessionState(ord);
-  if (
-    state.kind === "starting" ||
-    state.kind === "playing" ||
-    state.kind === "repeat_waiting"
-  ) {
-    return undefined;
-  }
-  const request: HtmlAudioStartRequest = {
-    cursorMs: pass.startMs,
-    endMs: pass.endMs,
-    loop: pass.loop,
-    ord,
-    regionMode: pass.regionMode,
-    resetCursorMs: pass.resetCursorMs,
-    source: preserveStatusOnPlaybackEndRuntime(visualizer) ? "post_edit" : "user",
-  };
-  ensureHtmlAudioSessionSource(ord, sourceFilename, pass.startMs);
-  dispatchHtmlAudioSessionEvent(ord, {
-    durationMs: field.graph.durationMs || pass.endMs,
-    type: "MetadataLoaded",
-  });
-  return request;
 }
 
 function sourcePlaybackRequestFor(
