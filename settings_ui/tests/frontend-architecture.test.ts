@@ -222,6 +222,16 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps source audio element mutation in the HTML audio session operations", () => {
+    const source = withoutComments(readFileSync(join(projectRoot, "src/editor-inline/audio-clock.ts"), "utf-8"));
+    const forbiddenExports = Array.from(
+      source.matchAll(/export function (pauseAudioClock|clearAudioClockSource|reloadAudioClockSource|configureAudioClock|setAudioClockLoop)\b/g),
+      (match) => match[1],
+    );
+
+    expect(forbiddenExports).toEqual([]);
+  });
+
   it("keeps reviewer panel trigger as a runtime-mounted selector client", () => {
     const triggerSource = readFileSync(join(projectRoot, "src/editor-inline/reviewer-panel-trigger.ts"), "utf-8");
     const runtimeSource = readFileSync(join(projectRoot, "src/editor-inline/runtime.ts"), "utf-8");

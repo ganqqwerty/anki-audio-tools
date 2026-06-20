@@ -1,6 +1,6 @@
 import { visualizerForOrd } from "./dom-selectors.js";
 import { focusAndSendCommand, setCursorIntent } from "./bridge.js";
-import { seekAudioClock as seekAudioClockElement } from "./audio-clock.js";
+import { seekAudioElementForCursorPreview as seekAudioElementForCursorPreviewElement } from "./audio-clock.js";
 import { logger } from "./logger.js";
 import type {
   CursorIntent,
@@ -95,8 +95,8 @@ export function playbackRequestForStart(
   };
 }
 
-export function seekAudioClock(visualizer: VisualizerElement, ms: number): boolean {
-  return seekAudioClockElement(visualizer, ms, readVisualizerTargetDurationMs(visualizer));
+export function seekAudioElementForCursorPreview(visualizer: VisualizerElement, ms: number): boolean {
+  return seekAudioElementForCursorPreviewElement(visualizer, ms, readVisualizerTargetDurationMs(visualizer));
 }
 
 export function setCursor(

@@ -1,4 +1,5 @@
-import { audioClockFor, mediaUrlForFilename } from "./audio-clock.js";
+import { audioClockFor, mediaUrlForFilename, resetAudioClockState } from "./audio-clock.js";
+import { markHtmlAudioFailure, publishAudioReadinessChange } from "./audio-readiness.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { installLearnerAudioHandlers } from "./html-audio-session-learner-effects.js";
 import { logger } from "./logger.js";
@@ -46,15 +47,27 @@ function configureAudioSource(
   readState: ReadHtmlAudioSessionState,
   dispatch: DispatchHtmlAudioSessionEvent,
 ): void {
+  const visualizer = visualizerForOrd(ord);
+  if (visualizer) resetAudioClockState(visualizer);
   const audio = audioForOrd(ord);
-  if (!audio) return;
+  if (!audio) {
+    if (visualizer) {
+      visualizer.__aqeAudioClockFallback = true;
+      publishAudioReadinessChange(visualizer);
+    }
+    return;
+  }
   installLearnerAudioHandlers(ord, audio, readState, dispatch);
+  pauseAudio(ord);
+  audio.loop = false;
   audio.setAttribute("src", mediaUrlForFilename(sourceFilename));
   try {
     audio.load();
   } catch {
+    if (visualizer) markHtmlAudioFailure(visualizer, "audio_load_failed");
     logger.debug("html audio session source load failed", { ord, sourceFilename });
   }
+  if (visualizer) publishAudioReadinessChange(visualizer);
 }
 
 function seekAudio(ord: number, cursorMs: number, dispatch: DispatchHtmlAudioSessionEvent): void {
@@ -72,13 +85,17 @@ function seekAudio(ord: number, cursorMs: number, dispatch: DispatchHtmlAudioSes
 }
 
 function reloadAudioSource(ord: number): void {
+  const visualizer = visualizerForOrd(ord);
   const audio = audioForOrd(ord);
   if (!audio) return;
+  audio.loop = false;
   try {
     audio.load();
   } catch {
+    if (visualizer) markHtmlAudioFailure(visualizer, "audio_load_failed");
     logger.debug("html audio session source reload failed", { ord });
   }
+  if (visualizer) publishAudioReadinessChange(visualizer);
 }
 
 function playAudio(
@@ -106,21 +123,26 @@ function playAudio(
 }
 
 function pauseAudio(ord: number): void {
+  const visualizer = visualizerForOrd(ord);
   const audio = audioForOrd(ord);
   if (!audio) return;
   try {
     audio.pause();
   } catch {
+    if (visualizer) markHtmlAudioFailure(visualizer, "audio_pause_failed");
     logger.debug("html audio session pause failed", { ord });
   }
 }
 
 function clearAudioSource(ord: number): void {
+  const visualizer = visualizerForOrd(ord);
+  if (visualizer) resetAudioClockState(visualizer);
   const audio = audioForOrd(ord);
   if (!audio) return;
   try {
     audio.pause();
   } catch {
+    if (visualizer) markHtmlAudioFailure(visualizer, "audio_pause_failed");
     logger.debug("html audio session pause during clear failed", { ord });
   }
   audio.src = "";
@@ -128,8 +150,10 @@ function clearAudioSource(ord: number): void {
   try {
     audio.load();
   } catch {
+    if (visualizer) markHtmlAudioFailure(visualizer, "audio_load_failed");
     logger.debug("html audio session source clear load failed", { ord });
   }
+  if (visualizer) publishAudioReadinessChange(visualizer);
 }
 
 function sourceFilenameForCurrentSession(ord: number, readState: ReadHtmlAudioSessionState): string {

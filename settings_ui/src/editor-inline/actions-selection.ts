@@ -33,7 +33,7 @@ import { playbackStateFor, startSourcePlayback, stopProgressClock } from "./play
 import { currentProgressMs } from "./playback-actions.js";
 import { readVisualizerTargetDurationMs, setVisualizerResumeRequiresRestart } from "./visualizer-state.js";
 import { audioClockReady } from "./actions-audio-clock.js";
-import { seekAudioClock } from "./actions-playback.js";
+import { seekAudioElementForCursorPreview } from "./actions-playback.js";
 import { playbackRequestForStart, setCursor } from "./actions-playback.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import type { VisualizerElement } from "./types.js";
@@ -169,7 +169,7 @@ function selectionGestureDependencies(): SelectionGestureDependencies {
     draftSelectionForVisualizer,
     playbackRequestForStart,
     playbackStateFor,
-    seekAudioClock,
+    seekAudioElementForCursorPreview,
     selectionForVisualizer,
     setCursor,
     setSelection,

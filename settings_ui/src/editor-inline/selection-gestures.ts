@@ -35,7 +35,7 @@ export interface SelectionGestureDependencies {
     startMs: number,
   ) => PlaybackRequest;
   playbackStateFor: (visualizer: VisualizerElement) => PlaybackState;
-  seekAudioClock: (visualizer: VisualizerElement, ms: number) => boolean;
+  seekAudioElementForCursorPreview: (visualizer: VisualizerElement, ms: number) => boolean;
   selectionForVisualizer: (visualizer: VisualizerElement | null) => PlaybackRegion | null;
   setCursor: (visualizer: VisualizerElement, ms: number, notifyPython: boolean, options?: CursorOptions) => void;
   setSelection: (
@@ -105,7 +105,7 @@ export function startCursorDrag(
       engine: restartEngine,
     });
     if (deps.audioClockReady(visualizer)) {
-      deps.seekAudioClock(visualizer, releasedMs);
+      deps.seekAudioElementForCursorPreview(visualizer, releasedMs);
     }
     if (restartPlayback && restartEngine === "html") {
       deps.startSourcePlayback(visualizer, deps.playbackRequestForStart(visualizer, ord, releasedMs));

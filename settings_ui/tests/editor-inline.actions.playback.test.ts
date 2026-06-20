@@ -8,7 +8,7 @@ import {
   handleHtmlPlaybackCommand,
   pauseAudioClock,
   playbackRequest,
-  seekAudioClock,
+  seekAudioElementForCursorPreview,
   setRepeatEnabled,
   setPlaybackState,
   startManualProgressClock,
@@ -40,7 +40,7 @@ describe("editor inline audio-clock workflows", () => {
     audio.dispatchEvent(new Event("loadedmetadata"));
 
     expect(audioClockReady(visualizer)).toBe(true);
-    expect(seekAudioClock(visualizer, 500)).toBe(true);
+    expect(seekAudioElementForCursorPreview(visualizer, 500)).toBe(true);
     expect(Math.round(audio.currentTime * 1000)).toBe(500);
 
     audio.pause = vi.fn<() => void>(() => {
@@ -55,7 +55,7 @@ describe("editor inline audio-clock workflows", () => {
     configureAudioClock(visualizer, "");
     expect(visualizer.__aqeAudioClockFallback).toBe(true);
     clearAudioClockSource(visualizer);
-    expect(audio.getAttribute("src")).toBe("");
+    expect(audio.getAttribute("src") ?? "").toBe("");
   });
 
   it("stops and warns when audio errors during playback and completes on ended", async () => {
