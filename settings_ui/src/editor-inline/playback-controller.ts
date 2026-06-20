@@ -1,10 +1,9 @@
 import {
   audioClockFor,
   audioClockReady,
-  pauseAudioClock,
-  seekAudioClock,
-  setAudioClockLoop,
+  seekAudioElementForCursorPreview,
 } from "./audio-clock.js";
+import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import { markHtmlAudioFailure } from "./audio-readiness.js";
 import { logger } from "./logger.js";
 import {
@@ -61,6 +60,13 @@ const HTML_FULL_SOURCE_REPEAT_PREEMPT_MS = 40;
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+}
+
+function stopSessionAudioForManualClock(visualizer: VisualizerElement, cursorMs: number): void {
+  dispatchHtmlAudioSessionEvent(Number(visualizer.dataset.aqeFieldOrd || "0"), {
+    cursorMs,
+    type: "StopRequested",
+  });
 }
 
 export interface ProgressClockOptions {
@@ -174,7 +180,7 @@ function startManualPlaybackPass(
   clockStartMs: number = pass.startMs,
 ): void {
   clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
+  stopSessionAudioForManualClock(visualizer, clockStartMs);
   const s = fieldState(visualizer);
   if (!s.graph.durationMs) return;
   visualizer.__aqeAudioClockFallback = true;
@@ -195,7 +201,7 @@ function startManualRepeatPause(
   pauseMs: number,
 ): void {
   clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
+  stopSessionAudioForManualClock(visualizer, pass.startMs);
   const s = fieldState(visualizer);
   if (!s.graph.durationMs) return;
   writeFieldState(s.ord, {
@@ -236,7 +242,7 @@ export function startAudioProgressClock(
   const canSeekImmediately = audioClockReady(visualizer);
   const canStartWithoutMetadata = options.allowLoadingAudio === true && Math.round(startMs) <= 0;
   if (canSeekImmediately) {
-    if (!seekAudioClock(visualizer, startMs, s.graph.durationMs)) {
+    if (!seekAudioElementForCursorPreview(visualizer, startMs, s.graph.durationMs)) {
       if (options.manualFallback === false) {
         options.onAudioPlayFailed?.("audio_seek_failed");
         return;
@@ -254,7 +260,6 @@ export function startAudioProgressClock(
     startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
     return;
   }
-  setAudioClockLoop(visualizer, false);
   writeFieldState(s.ord, {
     ...s,
     playback: { ...s.playback, clockMode: "audio" },

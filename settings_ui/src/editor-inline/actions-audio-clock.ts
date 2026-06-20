@@ -8,12 +8,8 @@ import { t } from "../lib/i18n.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import {
   audioClockReady as isAudioClockReady,
-  clearAudioClockSource as clearAudioClockElementSource,
-  configureAudioClock as configureAudioClockElement,
   installAudioClockHandlers as installAudioClockElementHandlers,
-  pauseAudioClock as pauseAudioClockElement,
   resetAudioClockState as resetAudioClockElementState,
-  setAudioClockLoop,
 } from "./audio-clock.js";
 import { logger } from "./logger.js";
 import {
@@ -51,15 +47,28 @@ export function resetAudioClockState(visualizer: VisualizerElement): void {
 }
 
 export function pauseAudioClock(visualizer: VisualizerElement): void {
-  pauseAudioClockElement(visualizer);
+  const ord = fieldOrd(visualizer);
+  dispatchHtmlAudioSessionEvent(ord, {
+    cursorMs: readFieldState(ord).cursor.ms,
+    type: "StopRequested",
+  });
 }
 
 export function clearAudioClockSource(visualizer: VisualizerElement): void {
-  clearAudioClockElementSource(visualizer);
+  dispatchHtmlAudioSessionEvent(fieldOrd(visualizer), { type: "SourceCleared" });
 }
 
-export function configureAudioClock(visualizer: VisualizerElement, filename: string): void {
-  configureAudioClockElement(visualizer, filename);
+export function configureAudioClock(visualizer: VisualizerElement, filename: string, cursorMs?: number): void {
+  const ord = fieldOrd(visualizer);
+  if (!filename) {
+    clearAudioClockSource(visualizer);
+    return;
+  }
+  dispatchHtmlAudioSessionEvent(ord, {
+    cursorMs: cursorMs ?? readFieldState(ord).cursor.ms,
+    source: { kind: "source", sourceFilename: filename },
+    type: "SourceConfigured",
+  });
 }
 
 export function installAudioClockHandlers(visualizer: VisualizerElement): void {
@@ -197,7 +206,6 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
     playback: { ...current.playback, repeat: enabled },
   };
   writeFieldState(ord, next);
-  setAudioClockLoop(visualizer, false);
   for (const button of repeatButtonsForOrd(ord)) {
     button.ariaPressed = enabled ? "true" : "false";
     button.dataset.aqeButtonState = enabled ? "active" : "default";

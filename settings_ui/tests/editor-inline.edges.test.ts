@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   audioClockReady,
   clearStatus,
-  seekAudioClock,
+  seekAudioElementForCursorPreview,
   setControlsBusy,
   setStatus,
   setVisualizer,
@@ -149,7 +149,7 @@ describe("editor inline defensive edges", () => {
     document.body.innerHTML = "";
 
     expect(audioClockReady(null)).toBe(false);
-    expect(seekAudioClock(document.createElement("div"), 10)).toBe(false);
+    expect(seekAudioElementForCursorPreview(document.createElement("div"), 10)).toBe(false);
     expect(() => setControlsBusy(9, true, "Busy")).not.toThrow();
     expect(() => setStatus("No active field")).not.toThrow();
     expect(() => clearStatus(9)).not.toThrow();

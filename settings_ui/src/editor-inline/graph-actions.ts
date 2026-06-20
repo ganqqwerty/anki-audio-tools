@@ -31,7 +31,7 @@ import {
   clearPlaybackFrame,
   clearSelection,
   configureAudioClock,
-  seekAudioClock,
+  seekAudioElementForCursorPreview,
   setCursor,
   setRepeatEnabled,
   setSelection,
@@ -186,11 +186,11 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
     clearPendingGraphRedraw();
   }
   setSelection(visualizer, 0, track.durationMs || 0, { origin: "system", updateCursor: false });
-  configureAudioClock(visualizer, track.sourceFilename || "");
+  configureAudioClock(visualizer, track.sourceFilename || "", cursorMs || 0);
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setCursor(visualizer, cursorMs || 0, false, { updateAnchor: false });
   if (audioClockReady(visualizer)) {
-    seekAudioClock(visualizer, cursorMs || 0);
+    seekAudioElementForCursorPreview(visualizer, cursorMs || 0);
   }
   renderVisualizerStatus(visualizer, "", "info");
   setControlsBusy(ord, false, "", "");

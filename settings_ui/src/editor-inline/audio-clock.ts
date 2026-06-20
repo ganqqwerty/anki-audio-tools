@@ -20,13 +20,7 @@ export function audioClockFor(visualizer: VisualizerElement | null): AudioClockE
   return visualizer?.querySelector<AudioClockElement>(".aqe-audio-clock") ?? null;
 }
 
-export function setAudioClockLoop(visualizer: VisualizerElement, enabled: boolean): void {
-  const audio = audioClockFor(visualizer);
-  if (audio) audio.loop = enabled;
-}
-
 export function resetAudioClockState(visualizer: VisualizerElement): void {
-  setAudioClockLoop(visualizer, false);
   visualizer.__aqeAudioClockAvailable = false;
   visualizer.__aqeAudioClockFallback = false;
   visualizer.__aqeAudioClockLastSeekedMs = 0;
@@ -35,67 +29,6 @@ export function resetAudioClockState(visualizer: VisualizerElement): void {
     ...state,
     playback: { ...state.playback, clockMode: "stopped" },
   }));
-  publishAudioReadinessChange(visualizer);
-}
-
-export function pauseAudioClock(visualizer: VisualizerElement): void {
-  const audio = audioClockFor(visualizer);
-  if (!audio || typeof audio.pause !== "function") return;
-  try {
-    audio.pause();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_pause_failed");
-  }
-}
-
-export function clearAudioClockSource(visualizer: VisualizerElement): void {
-  const audio = audioClockFor(visualizer);
-  resetAudioClockState(visualizer);
-  if (!audio) return;
-  pauseAudioClock(visualizer);
-  audio.removeAttribute("src");
-  audio.src = "";
-  try {
-    audio.load();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_load_failed");
-  }
-  publishAudioReadinessChange(visualizer);
-}
-
-export function reloadAudioClockSource(visualizer: VisualizerElement): boolean {
-  const audio = audioClockFor(visualizer);
-  if (!audio) return false;
-  setAudioClockLoop(visualizer, false);
-  try {
-    audio.load();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_load_failed");
-    return false;
-  }
-  publishAudioReadinessChange(visualizer);
-  return true;
-}
-
-export function configureAudioClock(visualizer: VisualizerElement, filename: string): void {
-  const audio = audioClockFor(visualizer);
-  resetAudioClockState(visualizer);
-  if (!audio) {
-    visualizer.__aqeAudioClockFallback = true;
-    return;
-  }
-  pauseAudioClock(visualizer);
-  if (!filename) {
-    clearAudioClockSource(visualizer);
-    return;
-  }
-  audio.setAttribute("src", mediaUrlForFilename(filename));
-  try {
-    audio.load();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_load_failed");
-    return;
-  }
   publishAudioReadinessChange(visualizer);
 }
 
@@ -157,7 +90,7 @@ export function audioClockReady(visualizer: VisualizerElement | null): boolean {
   return audio.readyState >= 1 || (audio.readyState === undefined && !!visualizer?.__aqeAudioClockAvailable);
 }
 
-export function seekAudioClock(visualizer: VisualizerElement, ms: number, durationMs: number): boolean {
+export function seekAudioElementForCursorPreview(visualizer: VisualizerElement, ms: number, durationMs: number): boolean {
   const audio = audioClockFor(visualizer);
   if (!audio) return false;
   const clamped = Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
