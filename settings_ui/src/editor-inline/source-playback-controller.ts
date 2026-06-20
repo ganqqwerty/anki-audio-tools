@@ -9,10 +9,7 @@ import type {
   HtmlAudioStartRequest,
 } from "./html-audio-session-machine.js";
 import type { PlaybackRequest, VisualizerElement } from "./types.js";
-import {
-  readRepeatPauseSecondsRuntime,
-  readTargetDurationMsForVisualizer,
-} from "./visualizer-runtime-state.js";
+import { readTargetDurationMsForVisualizer } from "./visualizer-runtime-state.js";
 
 interface SourcePlaybackRequest {
   cursorMs: number;
@@ -20,7 +17,6 @@ interface SourcePlaybackRequest {
   loop: boolean;
   ord: number;
   regionMode: "full" | "selection";
-  repeatPauseMs: number;
   resetCursorMs: number;
   source: "user" | "post_edit" | "chorusing";
 }
@@ -55,7 +51,6 @@ function sourcePlaybackRequestFor(
     loop: request.loop === true,
     ord: request.ord,
     regionMode,
-    repeatPauseMs: readRepeatPauseSecondsRuntime(visualizer) * 1000,
     resetCursorMs: resetCursorMsForPlaybackRequest(request.ord, regionMode, request.cursorMs),
     source: request.source ?? "user",
   };
