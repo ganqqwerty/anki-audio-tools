@@ -197,6 +197,31 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps source playback boundaries out of the legacy progress controller", () => {
+    const forbiddenPatterns = [
+      {
+        relPath: "src/editor-inline/actions-playback.ts",
+        patterns: [/handleSourcePlaybackBoundary/, /source-playback-controller/],
+      },
+      {
+        relPath: "src/editor-inline/playback-controller.ts",
+        patterns: [/handleSourceLoopBoundary/],
+      },
+      {
+        relPath: "src/editor-inline/actions-audio-clock.ts",
+        patterns: [/handlePlaybackBoundary/, /handleSourceAudioError/],
+      },
+    ];
+    const offenders = forbiddenPatterns.flatMap(({ relPath, patterns }) => {
+      const source = withoutComments(readFileSync(join(projectRoot, relPath), "utf-8"));
+      return patterns
+        .filter((pattern) => pattern.test(source))
+        .map((pattern) => `${relPath}: ${pattern.source}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps reviewer panel trigger as a runtime-mounted selector client", () => {
     const triggerSource = readFileSync(join(projectRoot, "src/editor-inline/reviewer-panel-trigger.ts"), "utf-8");
     const runtimeSource = readFileSync(join(projectRoot, "src/editor-inline/runtime.ts"), "utf-8");
