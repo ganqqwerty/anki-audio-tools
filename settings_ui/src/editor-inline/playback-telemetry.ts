@@ -56,7 +56,6 @@ export function playbackTelemetryContext(
   const state = readFieldState(fieldOrd(visualizer));
   const region = effectivePlaybackRegion(visualizer);
   return {
-    activeEngine: state.playback.engine,
     cursorMs: state.cursor.ms,
     durationMs: state.graph.durationMs,
     engine: decision.engine,
