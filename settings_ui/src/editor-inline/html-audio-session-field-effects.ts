@@ -2,13 +2,62 @@ import { focusAndSendCommand } from "./bridge.js";
 import { clearStatus, restoreStatusForOrd, setCommandButtonLabel } from "./control-actions.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { setCachedProgressMs, updateFieldState } from "./field-state-store.js";
-import type { HtmlAudioStartRequest } from "./html-audio-session-machine.js";
+import { audioForOrd } from "./html-audio-session-audio-element.js";
+import {
+  installLearnerAudioHandlers,
+  publishLearnerPlaybackState,
+} from "./html-audio-session-learner-effects.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
+import type { HtmlAudioSessionEvent, HtmlAudioSessionState, HtmlAudioStartRequest } from "./html-audio-session-types.js";
 import {
   preserveStatusOnPlaybackEndRuntime,
   setPreserveStatusOnPlaybackEndRuntime,
 } from "./visualizer-runtime-state.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
+
+type HtmlAudioPlaybackStatus = "stopped" | "playing" | "paused";
+type ReadHtmlAudioSessionState = (ord: number) => HtmlAudioSessionState;
+type DispatchHtmlAudioSessionEvent = (ord: number, event: HtmlAudioSessionEvent) => void;
+
+interface PublishPlaybackStateOptions {
+  cursorMs: number | undefined;
+  dispatchEvent: DispatchHtmlAudioSessionEvent;
+  ord: number;
+  readState: ReadHtmlAudioSessionState;
+  request: HtmlAudioStartRequest | null;
+  session: HtmlAudioSessionState;
+  status: HtmlAudioPlaybackStatus;
+}
+
+export function publishPlaybackState(options: PublishPlaybackStateOptions): void {
+  const { cursorMs, dispatchEvent, ord, readState, request, session, status } = options;
+  if (publishLearnerPlaybackState(ord, status, cursorMs, session)) {
+    const audio = audioForOrd(ord);
+    if (audio) installLearnerAudioHandlers(ord, audio, readState, dispatchEvent);
+    return;
+  }
+  updateFieldState(ord, (field) => ({
+    ...field,
+    cursor: cursorMs === undefined
+      ? field.cursor
+      : {
+          ...field.cursor,
+          ms: cursorMs,
+          progressMs: cursorMs,
+        },
+    playback: {
+      ...field.playback,
+      clockMode: status === "playing" ? "audio" : "stopped",
+      endMs: request?.endMs ?? field.playback.endMs,
+      regionMode: request?.regionMode ?? field.playback.regionMode,
+      state: status,
+      startMs: request?.cursorMs ?? field.playback.startMs,
+    },
+  }));
+  setCommandButtonLabel(ord, "aqe:play", status === "playing" ? "Pause" : "Play");
+  const visualizer = visualizerForOrd(ord);
+  if (visualizer) syncSelectionToolbar(visualizer);
+}
 
 export function publishRepeatWaitingState(
   ord: number,

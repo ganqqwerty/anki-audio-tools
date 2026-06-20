@@ -147,6 +147,56 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps HTML audio session model files pure", () => {
+    const forbiddenImports = [
+      "bridge",
+      "control-actions",
+      "dom-selectors",
+      "field-state-store",
+      "graph-countdown-overlay",
+      "html-audio-session-audio-element",
+      "html-audio-session-backend-queue",
+      "html-audio-session-field-effects",
+      "html-audio-session-learner-effects",
+      "logger",
+      "selection-toolbar-state",
+      "visualizer-runtime-state",
+      "viewport-actions",
+    ];
+    const forbiddenRuntimeTerms = [
+      "Date",
+      "cancelAnimationFrame",
+      "clearTimeout",
+      "document",
+      "logger",
+      "performance",
+      "pycmd",
+      "readFieldState",
+      "requestAnimationFrame",
+      "sendGraphAnalysisRequest",
+      "setCachedProgressMs",
+      "setTimeout",
+      "updateFieldState",
+      "visualizerForOrd",
+      "window",
+    ];
+    const offenders = htmlAudioSessionModelFiles().flatMap((path) => {
+      const relPath = toRelPath(path);
+      const source = withoutComments(readFileSync(path, "utf-8"));
+      const runtimeSource = withoutStringLiterals(source);
+      return [
+        ...forbiddenImports
+          .filter((module) => importsRelativeModule(source, module))
+          .map((module) => `${relPath}: imports ${module}`),
+        ...forbiddenRuntimeTerms
+          .filter((term) => new RegExp(`\\b${term}\\b`).test(runtimeSource))
+          .map((term) => `${relPath}: runtime term ${term}`),
+      ];
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps reviewer panel trigger as a runtime-mounted selector client", () => {
     const triggerSource = readFileSync(join(projectRoot, "src/editor-inline/reviewer-panel-trigger.ts"), "utf-8");
     const runtimeSource = readFileSync(join(projectRoot, "src/editor-inline/runtime.ts"), "utf-8");
@@ -255,6 +305,16 @@ function editorStyleFiles(): string[] {
     .filter((path) => path.endsWith(".css"));
 }
 
+function htmlAudioSessionModelFiles(): string[] {
+  return productionFiles()
+    .filter((path) => {
+      const relPath = toRelPath(path);
+      return relPath === "src/editor-inline/html-audio-session-types.ts" ||
+        relPath === "src/editor-inline/html-audio-session-progress.ts" ||
+        relPath.startsWith("src/editor-inline/html-audio-session-machine");
+    });
+}
+
 function isHandMaintainedFrontendFile(relPath: string): boolean {
   return ![
     /^src\/lib\/generated\//,
@@ -311,6 +371,11 @@ function importsFrontendArea(source: string, prefix: string): boolean {
     if (specifier.startsWith(`../${areaName}/`) || specifier.startsWith(`../../${areaName}/`)) return true;
     return specifier.includes(`/${areaName}/`);
   });
+}
+
+function importsRelativeModule(source: string, module: string): boolean {
+  const pattern = new RegExp(`\\bfrom\\s+["']\\./${module}\\.js["']|\\bimport\\s+["']\\./${module}\\.js["']`);
+  return pattern.test(source);
 }
 
 function assignedPublicWindowContractNames(source: string): string[] {

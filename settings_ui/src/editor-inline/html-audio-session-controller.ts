@@ -1,10 +1,9 @@
 import { sendGraphAnalysisRequest } from "./bridge.js";
-import { setCommandButtonLabel, setStatusForOrd } from "./control-actions.js";
+import { setStatusForOrd } from "./control-actions.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { readFieldState, updateFieldState, setCachedProgressMs } from "./field-state-store.js";
+import { readFieldState, setCachedProgressMs } from "./field-state-store.js";
 import { queueBackendPlayback } from "./html-audio-session-backend-queue.js";
-import { audioForOrd, audioProgressMsForOrd, createHtmlAudioElementOperations } from "./html-audio-session-audio-element.js";
-import { htmlAudioRequestCoversFullSource } from "./html-audio-session-request.js";
+import { audioProgressMsForOrd, createHtmlAudioElementOperations } from "./html-audio-session-audio-element.js";
 import {
   initialHtmlAudioSessionState,
   transitionHtmlAudioSession,
@@ -17,11 +16,13 @@ import {
   clearPostEditReadyDispatches,
   dispatchPostEditReady,
 } from "./html-audio-session-post-edit-dispatch.js";
-import { completePlayback, publishRepeatWaitingState } from "./html-audio-session-field-effects.js";
+import { completePlayback, publishPlaybackState, publishRepeatWaitingState } from "./html-audio-session-field-effects.js";
+import {
+  htmlAudioProgressDecision,
+  type HtmlAudioProgressClock,
+} from "./html-audio-session-progress.js";
 import {
   clearLearnerAudioHandler,
-  installLearnerAudioHandlers,
-  publishLearnerPlaybackState,
   renderLearnerPlaybackCursor,
 } from "./html-audio-session-learner-effects.js";
 import { logger } from "./logger.js";
@@ -35,11 +36,10 @@ import {
 import { clearRepeatPauseCountdownOverlay, startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
 import type { PlaybackPass } from "./playback-model.js";
-import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 
 const sessionStates = new Map<number, HtmlAudioSessionState>();
 const progressFrames = new Map<number, number | null>();
-const progressClocks = new Map<number, { cursorMs: number; endMs: number; startedAtMs: number }>();
+const progressClocks = new Map<number, HtmlAudioProgressClock>();
 const metadataTimers = new Map<number, number>();
 const repeatTimers = new Map<number, number>();
 const audioElementOperations = createHtmlAudioElementOperations(
@@ -152,7 +152,15 @@ function executeHtmlAudioSessionEffect(ord: number, effect: HtmlAudioSessionEffe
       queueBackendPlayback(effect.request);
       return;
     case "PublishPlaybackState":
-      publishPlaybackState(ord, effect.status, effect.cursorMs);
+      publishPlaybackState({
+        cursorMs: effect.cursorMs,
+        dispatchEvent: dispatchHtmlAudioSessionEvent,
+        ord,
+        readState: readHtmlAudioSessionState,
+        request: requestForFieldUpdate(ord),
+        session: readHtmlAudioSessionState(ord),
+        status: effect.status,
+      });
       return;
     case "PublishRepeatWaitingState":
       publishRepeatWaitingState(ord, effect.cursorMs, requestForFieldUpdate(ord));
@@ -189,7 +197,7 @@ function startProgressFrame(ord: number, cursorMs: number, endMs: number): void 
   const visualizer = visualizerForOrd(ord);
   const session = readHtmlAudioSessionState(ord);
   const request = "request" in session ? session.request : null;
-  if (visualizer && request && "source" in session && session.source?.kind !== "learner_recording") {
+  if (visualizer && request && "source" in session && session.source?.kind === "source") {
     setPlaybackClockRuntime(visualizer, cursorMs);
     setPlaybackPassRuntime(visualizer, playbackPassForRequest(request));
     ensurePlaybackCursorVisible(visualizer, cursorMs);
@@ -208,47 +216,30 @@ function startProgressFrame(ord: number, cursorMs: number, endMs: number): void 
     }
     const clock = progressClocks.get(ord);
     if (!clock) return;
-    const audioProgressMs = audioProgressMsForOrd(ord);
-    const elapsedProgressMs = Math.round(clock.cursorMs + Math.max(0, performance.now() - clock.startedAtMs));
-    const progressMs = Math.min(Math.max(audioProgressMs, elapsedProgressMs), clock.endMs);
-    if (state.source.kind === "learner_recording") {
-      renderLearnerPlaybackCursor(ord, state.source.startCursorMs + progressMs);
+    const field = state.source.kind === "source" ? readFieldState(ord) : null;
+    const currentVisualizer = state.source.kind === "source" ? visualizerForOrd(ord) : null;
+    const decision = htmlAudioProgressDecision({
+      audioProgressMs: audioProgressMsForOrd(ord),
+      clock,
+      graphDurationMs: field?.graph.durationMs ?? state.durationMs,
+      nowMs: performance.now(),
+      repeatEnabled: field?.playback.repeat ?? false,
+      repeatPauseMs: currentVisualizer ? readRepeatPauseSecondsRuntime(currentVisualizer) * 1000 : 0,
+      state,
+    });
+    if (decision.kind === "learner_progress") {
+      renderLearnerPlaybackCursor(ord, decision.learnerCursorMs);
     } else {
-      const currentVisualizer = visualizerForOrd(ord);
-      setCachedProgressMs(ord, progressMs, currentVisualizer);
-      if (currentVisualizer) ensurePlaybackCursorVisible(currentVisualizer, progressMs);
-      const current = readHtmlAudioSessionState(ord);
-      const currentRequest = "request" in current ? current.request : null;
-      if (progressMs >= boundaryMsForRequest(ord, currentRequest, clock.endMs)) {
-        const field = readFieldState(ord);
-        dispatchHtmlAudioSessionEvent(ord, {
-          cursorMs: clock.endMs,
-          repeatEnabled: field.playback.repeat,
-          repeatPauseMs: currentVisualizer ? readRepeatPauseSecondsRuntime(currentVisualizer) * 1000 : 0,
-          resetCursorMs: currentRequest?.cursorMs ?? 0,
-          restartAudio: currentRequest ? htmlAudioRequestCoversFullSource(currentRequest, field.graph.durationMs) : false,
-          type: "BoundaryReached",
-        });
+      setCachedProgressMs(ord, decision.progressMs, currentVisualizer);
+      if (currentVisualizer) ensurePlaybackCursorVisible(currentVisualizer, decision.progressMs);
+      if (decision.kind === "boundary") {
+        dispatchHtmlAudioSessionEvent(ord, decision.event);
         return;
       }
     }
     progressFrames.set(ord, window.requestAnimationFrame(tick));
   };
   progressFrames.set(ord, window.requestAnimationFrame(tick));
-}
-
-function boundaryMsForRequest(ord: number, request: HtmlAudioStartRequest | null, endMs: number): number {
-  const field = readFieldState(ord);
-  const durationMs = field.graph.durationMs;
-  if (
-    request &&
-    request.cursorMs <= 0 &&
-    field.playback.repeat &&
-    (request.regionMode === "full" || (durationMs > 0 && request.endMs >= Math.max(0, durationMs - 20)))
-  ) {
-    return Math.max(0, endMs - 40);
-  }
-  return endMs;
 }
 
 function playbackPassForRequest(request: HtmlAudioStartRequest): PlaybackPass {
@@ -329,40 +320,6 @@ function clearRepeatTimer(ord: number): void {
     clearRepeatPauseCountdownOverlay(visualizer);
   }
   repeatTimers.delete(ord);
-}
-
-function publishPlaybackState(
-  ord: number,
-  status: "stopped" | "playing" | "paused",
-  cursorMs: number | undefined,
-): void {
-  if (publishLearnerPlaybackState(ord, status, cursorMs, readHtmlAudioSessionState(ord))) {
-    const audio = audioForOrd(ord);
-    if (audio) installLearnerAudioHandlers(ord, audio, readHtmlAudioSessionState, dispatchHtmlAudioSessionEvent);
-    return;
-  }
-  const request = requestForFieldUpdate(ord);
-  updateFieldState(ord, (field) => ({
-    ...field,
-    cursor: cursorMs === undefined
-      ? field.cursor
-      : {
-          ...field.cursor,
-          ms: cursorMs,
-          progressMs: cursorMs,
-        },
-    playback: {
-      ...field.playback,
-      clockMode: status === "playing" ? "audio" : "stopped",
-      endMs: request?.endMs ?? field.playback.endMs,
-      regionMode: request?.regionMode ?? field.playback.regionMode,
-      state: status,
-      startMs: request?.cursorMs ?? field.playback.startMs,
-    },
-  }));
-  setCommandButtonLabel(ord, "aqe:play", status === "playing" ? "Pause" : "Play");
-  const visualizer = visualizerForOrd(ord);
-  if (visualizer) syncSelectionToolbar(visualizer);
 }
 
 function requestForFieldUpdate(ord: number): HtmlAudioStartRequest | null {
