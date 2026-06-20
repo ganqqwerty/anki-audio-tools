@@ -40,9 +40,11 @@ export interface EditorRuntimeConfig {
   locale?: string;
   messages?: Record<string, string>;
   pendingPostEditPlayback?: {
+    expectedDurationMs?: number;
     fieldOrd: number;
     generation: number;
     requireGraphRedraw?: boolean;
+    sourceKind: "generated_edit" | "existing_media";
     sourceFilename?: string;
   } | null;
   repeatPlaybackByDefault?: boolean;

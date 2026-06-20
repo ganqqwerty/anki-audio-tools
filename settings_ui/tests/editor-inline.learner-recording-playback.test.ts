@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { toggleLearnerRecordingHtmlPlayback } from "../src/editor-inline/learner-recording-playback.js";
+import { readHtmlAudioSessionState } from "../src/editor-inline/html-audio-session-controller.js";
 import {
   bridgeCommands,
   mockAnimationFrames,
@@ -42,7 +43,7 @@ describe("editor inline learner recording HTML playback", () => {
     );
   });
 
-  it("creates an HTML audio element with an encoded learner media URL", async () => {
+  it("plays learner recording through the shared HTML audio session", async () => {
     const playSpy = mockMediaPlayback();
     initAndScan(recordingConfig());
     await setupAudioTrack();
@@ -54,6 +55,13 @@ describe("editor inline learner recording HTML playback", () => {
     const audio = learnerAudio();
     expect(audio.getAttribute("src")).toBe("voice%20recording.wav");
     expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "playing",
+      source: {
+        kind: "learner_recording",
+        sourceFilename: "voice recording.wav",
+      },
+    });
     expect(bridgeCommands()).not.toContain("aqe:play-recording");
     expect(window.__aqeGraphStateForTest?.(0)?.learnerPlaybackStatus).toBe("playing");
     expect(playRecordingButton().dataset.aqeButtonState).toBe("pause");
@@ -157,7 +165,7 @@ function playRecordingButton(): HTMLButtonElement {
 }
 
 function learnerAudio(): HTMLAudioElement {
-  return document.querySelector<HTMLAudioElement>('[data-testid="aqe-learner-audio-0"]')!;
+  return document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
 }
 
 function mockMediaPlayback(): ReturnType<typeof vi.spyOn> {

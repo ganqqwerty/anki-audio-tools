@@ -240,6 +240,7 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
         editor,
         field_index,
         require_graph_redraw=field_index in session.analysis.graph_active_fields,
+        source_kind="existing_media",
     )
     reload_editor_with_pending_status(
         editor,

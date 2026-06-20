@@ -20,6 +20,8 @@ LEGACY_FRONTEND_TRANSITION_OWNER_ALLOWLIST = {
 }
 
 STATE_TRANSITION_ALLOWED = {
+    "settings_ui/src/editor-inline/html-audio-session-controller.ts",
+    "settings_ui/src/editor-inline/html-audio-session-machine.ts",
     "settings_ui/src/editor-inline/source-playback-machine.ts",
     "settings_ui/src/editor-inline/source-playback-controller.ts",
     "settings_ui/src/editor-inline/source-playback-repeat-loop.ts",
@@ -28,6 +30,7 @@ STATE_TRANSITION_ALLOWED = {
 }
 
 SOURCE_AUDIO_OPERATION_ALLOWED = {
+    "settings_ui/src/editor-inline/html-audio-session-audio-element.ts",
     "settings_ui/src/editor-inline/source-playback-controller.ts",
     "settings_ui/src/editor-inline/source-playback-repeat-loop.ts",
     "settings_ui/src/editor-inline/learner-recording-playback.ts",
@@ -86,8 +89,7 @@ def test_frontend_playback_audio_operations_are_quarantined() -> None:
 
     assert violations == [], (
         "Frontend playback audio element operations and playback timers must stay "
-        "inside the quarantined legacy owners until the source/learner playback "
-        "controllers replace them.\n"
+        "inside the shared HTML session controller or quarantined legacy owners.\n"
         + "\n".join(violations)
     )
 
@@ -109,7 +111,7 @@ def test_frontend_playback_transitions_are_quarantined() -> None:
 
     assert violations == [], (
         "Frontend playback state transitions must stay inside the quarantined legacy "
-        "owners until the pure playback machines replace them.\n"
+        "owners and pure playback machines.\n"
         + "\n".join(violations)
     )
 

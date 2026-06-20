@@ -56,6 +56,7 @@ def test_standard_render_replacement_records_pending_post_edit_playback(
     assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
     assert session.post_edit_playback.pending_requires_graph_redraw is False
     assert session.post_edit_playback.pending_source_filename == "clip__aqe.mp3"
+    assert session.post_edit_playback.pending_source_kind == "generated_edit"
 
 
 def test_standard_render_replacement_uses_session_field_when_focus_changes(
@@ -96,6 +97,7 @@ def test_standard_render_replacement_uses_session_field_when_focus_changes(
     assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
     assert session.post_edit_playback.pending_requires_graph_redraw is False
     assert session.post_edit_playback.pending_source_filename == "second__aqe.mp3"
+    assert session.post_edit_playback.pending_source_kind == "generated_edit"
 
 
 def test_stale_post_edit_playback_ready_event_is_ignored() -> None:
@@ -140,7 +142,40 @@ def test_post_edit_playback_request_records_frontend_ready_payload() -> None:
         "fieldOrd": 2,
         "generation": 7,
         "requireGraphRedraw": False,
+        "sourceKind": "generated_edit",
         "sourceFilename": "clip__aqe.mp3",
+    }
+
+
+def test_post_edit_playback_request_records_existing_media_metadata() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    SESSIONS[editor] = EditorSession(
+        current_filename="clip.mp3",
+        post_edit_playback=PostEditPlaybackState(generation=8),
+    )
+    deps = SimpleNamespace(
+        sessions=SESSIONS,
+    )
+
+    editor_frontend.request_playback_after_edit(
+        editor,
+        1,
+        deps,
+        source_kind="existing_media",
+        expected_duration_ms=1200,
+    )
+
+    session = SESSIONS[editor]
+    assert editor_frontend.pending_post_edit_playback_payload(session) == {
+        "expectedDurationMs": 1200,
+        "fieldOrd": 1,
+        "generation": 8,
+        "requireGraphRedraw": False,
+        "sourceKind": "existing_media",
+        "sourceFilename": "clip.mp3",
     }
 
 
@@ -171,3 +206,4 @@ def test_matching_post_edit_playback_ready_event_starts_once_and_clears_pending(
     assert session.post_edit_playback.pending_generation is None
     assert session.post_edit_playback.pending_requires_graph_redraw is False
     assert session.post_edit_playback.pending_source_filename is None
+    assert session.post_edit_playback.pending_source_kind == "generated_edit"

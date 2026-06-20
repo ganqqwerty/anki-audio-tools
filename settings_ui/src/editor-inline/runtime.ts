@@ -35,6 +35,7 @@ import {
     disposePostEditPlaybackReadiness,
     installPostEditPlaybackReadinessListener,
 } from "./post-edit-playback.js";
+import {clearAllHtmlAudioSessions} from "./html-audio-session-controller.js";
 
 let scheduledScanTimers: number[] = [];
 let mutationScanTimer: number | null = null;
@@ -99,6 +100,7 @@ export function disposeEditorRuntime(): void {
     editorDomObserver = null;
     window.removeEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handleAudioReadinessChanged);
     disposePostEditPlaybackReadiness();
+    clearAllHtmlAudioSessions();
     stopAllLearnerRecordingHtmlPlayback();
     disposeAllControllers();
     resetEditorControlState();

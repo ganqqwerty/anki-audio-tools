@@ -33,6 +33,8 @@ def request_playback_after_edit(
     deps: FrontendDeps,
     *,
     require_graph_redraw: bool = False,
+    source_kind: str = "generated_edit",
+    expected_duration_ms: int | None = None,
 ) -> None:
     """Record a playback request for the next frontend ready signal."""
     session = deps.sessions.get(editor)
@@ -47,6 +49,8 @@ def request_playback_after_edit(
         field_index,
         session.current_filename,
         require_graph_redraw=require_graph_redraw,
+        source_kind=source_kind,
+        expected_duration_ms=expected_duration_ms,
     )
     logger.info(
         "post-edit playback request recorded | %s",
@@ -67,8 +71,14 @@ def pending_post_edit_playback_payload(session: Any | None) -> dict[str, object]
         "fieldOrd": int(field_index),
         "generation": int(generation),
         "requireGraphRedraw": bool(session.post_edit_playback.pending_requires_graph_redraw),
+        "sourceKind": session.post_edit_playback.pending_source_kind,
         "sourceFilename": session.post_edit_playback.pending_source_filename or "",
     }
+    expected_duration_ms = session.post_edit_playback.pending_expected_duration_ms
+    if expected_duration_ms is None:
+        expected_duration_ms = _expected_post_edit_duration_ms(session, int(field_index))
+    if expected_duration_ms is not None and expected_duration_ms > 0:
+        payload["expectedDurationMs"] = int(expected_duration_ms)
     logger.info("post-edit playback injection payload | %s", payload)
     return payload
 
@@ -142,7 +152,9 @@ def _post_edit_playback_session_context(session: Any | None) -> dict[str, object
         "fieldOrd": session.post_edit_playback.pending_field_index,
         "generation": session.post_edit_playback.pending_generation,
         "requireGraphRedraw": bool(session.post_edit_playback.pending_requires_graph_redraw),
+        "sourceKind": session.post_edit_playback.pending_source_kind,
         "sourceFilename": session.post_edit_playback.pending_source_filename,
+        "expectedDurationMs": session.post_edit_playback.pending_expected_duration_ms,
         "currentFilename": session.current_filename,
         "sessionFieldOrd": session.field_index,
     }
@@ -165,3 +177,15 @@ def playback_after_edit_expression(field_index: int) -> str:
         f"return window.__aqePlayAfterEdit({json.dumps(int(field_index))});"
         "})()"
     )
+
+
+def _expected_post_edit_duration_ms(session: Any, field_index: int) -> int | None:
+    source_filename = session.post_edit_playback.pending_source_filename
+    graph = getattr(session, "graph", None)
+    if graph is None:
+        return None
+    if source_filename and getattr(graph, "filenames_by_field", {}).get(field_index) == source_filename:
+        return getattr(graph, "durations_by_field", {}).get(field_index)
+    if getattr(session, "field_index", None) == field_index and getattr(graph, "visualized_filename", None) == source_filename:
+        return getattr(graph, "visualized_duration_ms", None)
+    return None

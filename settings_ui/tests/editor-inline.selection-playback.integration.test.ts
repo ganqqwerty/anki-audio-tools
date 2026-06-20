@@ -193,7 +193,7 @@ afterEach(() => {
     frames.shift()?.(performance.now() + 970);
 
     expect(audio.loop).toBe(false);
-    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledTimes(2);
     expect(audio.play).toHaveBeenCalledTimes(2);
     expect(audio.currentTime).toBe(0);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({

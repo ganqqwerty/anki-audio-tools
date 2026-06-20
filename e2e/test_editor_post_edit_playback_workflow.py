@@ -336,6 +336,7 @@ def _install_post_edit_ready_probe_for_rendered_graph(editor, source_name: str) 
             fieldOrd: 0,
             generation: 99,
             requireGraphRedraw: true,
+            sourceKind: "generated_edit",
             sourceFilename: {source_name!r},
           }};
           window.__aqeSetBusy(0, false);
