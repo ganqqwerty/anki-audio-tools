@@ -1,5 +1,5 @@
-import { focusAndSendCommand, sendGraphAnalysisRequest } from "./bridge.js";
-import { clearStatus, restoreStatusForOrd, setCommandButtonLabel, setStatusForOrd } from "./control-actions.js";
+import { sendGraphAnalysisRequest } from "./bridge.js";
+import { setCommandButtonLabel, setStatusForOrd } from "./control-actions.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { readFieldState, updateFieldState, setCachedProgressMs } from "./field-state-store.js";
 import { queueBackendPlayback } from "./html-audio-session-backend-queue.js";
@@ -17,6 +17,7 @@ import {
   clearPostEditReadyDispatches,
   dispatchPostEditReady,
 } from "./html-audio-session-post-edit-dispatch.js";
+import { completePlayback, publishRepeatWaitingState } from "./html-audio-session-field-effects.js";
 import {
   clearLearnerAudioHandler,
   installLearnerAudioHandlers,
@@ -26,11 +27,9 @@ import {
 import { logger } from "./logger.js";
 import { t } from "../lib/i18n.js";
 import {
-  preserveStatusOnPlaybackEndRuntime,
   readRepeatPauseSecondsRuntime,
   setPlaybackClockRuntime,
   setPlaybackPassRuntime,
-  setPreserveStatusOnPlaybackEndRuntime,
   setRepeatPauseWaitingRuntime,
 } from "./visualizer-runtime-state.js";
 import { clearRepeatPauseCountdownOverlay, startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
@@ -156,7 +155,7 @@ function executeHtmlAudioSessionEffect(ord: number, effect: HtmlAudioSessionEffe
       publishPlaybackState(ord, effect.status, effect.cursorMs);
       return;
     case "PublishRepeatWaitingState":
-      publishRepeatWaitingState(ord, effect.cursorMs);
+      publishRepeatWaitingState(ord, effect.cursorMs, requestForFieldUpdate(ord));
       return;
     case "CompletePlayback":
       completePlayback(ord, effect.cursorMs);
@@ -330,64 +329,6 @@ function clearRepeatTimer(ord: number): void {
     clearRepeatPauseCountdownOverlay(visualizer);
   }
   repeatTimers.delete(ord);
-}
-
-function publishRepeatWaitingState(ord: number, cursorMs: number): void {
-  const request = requestForFieldUpdate(ord);
-  setCachedProgressMs(ord, cursorMs, visualizerForOrd(ord));
-  updateFieldState(ord, (field) => ({
-    ...field,
-    cursor: {
-      ...field.cursor,
-      ms: cursorMs,
-      progressMs: cursorMs,
-    },
-    playback: {
-      ...field.playback,
-      clockMode: "stopped",
-      endMs: request?.endMs ?? field.playback.endMs,
-      regionMode: request?.regionMode ?? field.playback.regionMode,
-      state: "playing",
-      startMs: request?.cursorMs ?? field.playback.startMs,
-    },
-  }));
-  setCommandButtonLabel(ord, "aqe:play", "Pause");
-  const visualizer = visualizerForOrd(ord);
-  if (visualizer) {
-    ensurePlaybackCursorVisible(visualizer, cursorMs);
-    syncSelectionToolbar(visualizer);
-  }
-}
-
-function completePlayback(ord: number, cursorMs: number): void {
-  const visualizer = visualizerForOrd(ord);
-  const preserveStatus = visualizer ? preserveStatusOnPlaybackEndRuntime(visualizer) : false;
-  updateFieldState(ord, (field) => ({
-    ...field,
-    cursor: {
-      ...field.cursor,
-      ms: cursorMs,
-      progressMs: cursorMs,
-    },
-    playback: {
-      ...field.playback,
-      clockMode: "stopped",
-      state: "stopped",
-    },
-  }));
-  setCachedProgressMs(ord, cursorMs, visualizer);
-  if (preserveStatus) {
-    restoreStatusForOrd(ord);
-  } else {
-    clearStatus(ord);
-  }
-  if (visualizer) {
-    setPreserveStatusOnPlaybackEndRuntime(visualizer, false);
-  }
-  setCommandButtonLabel(ord, "aqe:play", "Play");
-  if (visualizer) syncSelectionToolbar(visualizer);
-  window.__aqeActiveField = ord;
-  focusAndSendCommand(ord, "aqe:play-ended");
 }
 
 function publishPlaybackState(
