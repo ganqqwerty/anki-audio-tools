@@ -1,12 +1,9 @@
 import { focusAndSendCommand, popPendingPlaybackRequest, setPendingPlaybackRequest } from "./bridge.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { logger } from "./logger.js";
-import { htmlAudioReadinessFor } from "./audio-readiness.js";
-import type { PlaybackReadinessDecision } from "./playback-engine-decision.js";
 import {
   logPlaybackReadinessDecision,
   playbackReadinessDecisionFor,
-  postEditPlaybackStartContext,
 } from "./playback-telemetry.js";
 import { startSourceHtmlPlayback } from "./source-playback-controller.js";
 import {
@@ -23,26 +20,20 @@ import {
   stopProgressClock as stopProgressClockFromController,
   type ProgressClockOptions,
 } from "./playback-controller.js";
-import { planPlaybackRequest, type PlaybackSnapshot } from "./playback-model.js";
-import {
-  consumePostEditPlaybackIntent,
-  postEditRenderedGraphCanDriveHtmlPlayback,
-} from "./post-edit-playback.js";
+import { playbackRequestFromSnapshot } from "./playback-request-planning.js";
 import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import {
   effectivePlaybackRegion,
   playbackControllerDependencies,
-  repeatEnabledFor,
-  setRepeatEnabled,
-  setRepeatPauseSeconds,
 } from "./actions.js";
-import { anyBusy, setCommandButtonLabel } from "./control-actions.js";
+import { setCommandButtonLabel } from "./control-actions.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
-import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
 import { setPreserveStatusOnPlaybackEndRuntime } from "./visualizer-runtime-state.js";
+
+export { playAfterEdit } from "./post-edit-playback-actions.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
@@ -111,7 +102,7 @@ export function playbackRequest(ord: number): PlaybackRequest {
     return { ord, action: "start", cursorMs: 0 };
   }
   const decision = playbackReadinessDecisionFor(visualizer);
-  const request = planPlaybackRequest(playbackSnapshotFor(visualizer, ord, decision));
+  const request = playbackRequestFromSnapshot(visualizer, ord, decision);
   logPlaybackReadinessDecision("playback_request", visualizer, decision, {
     action: request.action,
     endMs: request.endMs ?? null,
@@ -119,87 +110,6 @@ export function playbackRequest(ord: number): PlaybackRequest {
     source: request.source ?? "user",
   });
   return request;
-}
-
-function playbackSnapshotFor(
-  visualizer: VisualizerElement,
-  ord: number,
-  decision: PlaybackReadinessDecision = playbackReadinessDecisionFor(visualizer),
-): PlaybackSnapshot {
-  const s = fieldState(visualizer);
-  return {
-    anchorMs: s.cursor.anchorMs,
-    currentProgressMs: currentProgressMs(visualizer),
-    cursorMs: s.cursor.ms,
-    durationMs: readVisualizerTargetDurationMs(visualizer),
-    engine: decision.engine,
-    ord,
-    playbackState: playbackStateFor(visualizer),
-    region: effectivePlaybackRegion(visualizer),
-    repeat: repeatEnabledFor(visualizer),
-    resumeRequiresRestart: s.playback.resumeRequiresRestart,
-  };
-}
-
-export function playAfterEdit(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) {
-    logger.warn("post-edit playback start rejected: visualizer missing", { ord });
-    return false;
-  }
-  if (anyBusy()) {
-    logger.info("post-edit playback start rejected: editor busy", postEditPlaybackStartContext(ord, visualizer));
-    return false;
-  }
-  const readiness = htmlAudioReadinessFor(visualizer);
-  if (readiness.transient && !postEditRenderedGraphCanDriveHtmlPlayback(
-    ord,
-    readFieldState(ord).sourceFilename,
-    readiness,
-  )) {
-    logger.info("post-edit playback start rejected: browser audio loading", {
-      ...postEditPlaybackStartContext(ord, visualizer),
-      htmlAudioReadinessReason: readiness.reason,
-      htmlAudioReadinessState: readiness.state,
-    });
-    return false;
-  }
-  const intent = consumePostEditPlaybackIntent(ord);
-  if (intent) {
-    setRepeatEnabled(visualizer, intent.repeat);
-    setRepeatPauseSeconds(visualizer, intent.repeatPauseSeconds);
-  }
-  window.__aqeActiveField = ord;
-  const region = effectivePlaybackRegion(visualizer);
-  const decision = playbackReadinessDecisionFor(visualizer);
-  const request: PlaybackRequest = {
-    action: "start",
-    cursorMs: Math.round(region.startMs),
-    endMs: Math.round(region.endMs),
-    engine: decision.engine,
-    loop: repeatEnabledFor(visualizer),
-    ord,
-    regionMode: region.mode,
-    source: "post_edit",
-  };
-  logPlaybackReadinessDecision("post_edit", visualizer, decision, {
-    action: request.action,
-    endMs: request.endMs ?? null,
-    source: "post_edit",
-  });
-  logger.info("post-edit playback start requested", {
-    ...postEditPlaybackStartContext(ord, visualizer),
-    cursorMs: request.cursorMs,
-    endMs: request.endMs,
-    loop: request.loop,
-    regionMode: request.regionMode,
-  });
-  const started = startSourcePlayback(visualizer, request);
-  logger.info("post-edit html playback start result", {
-    ...postEditPlaybackStartContext(ord, visualizer),
-    started,
-  });
-  return started;
 }
 
 export function playbackEngineFor(visualizer: VisualizerElement | null): "html" {
