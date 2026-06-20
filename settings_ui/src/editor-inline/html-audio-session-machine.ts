@@ -163,7 +163,12 @@ export function transitionHtmlAudioSession(
       }
       return failedTransition(state, event.cursorMs, event.reason);
     case "PauseRequested":
-      if (state.kind === "loading" || state.kind === "ready") {
+      if (state.kind === "loading") {
+        return { state: initialHtmlAudioSessionState(state.ord), effects: [
+          { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearMetadataTimer" },
+        ] };
+      }
+      if (state.kind === "ready") {
         return { state, effects: [{ type: "PauseAudio" }, { type: "ClearProgressFrame" }] };
       }
       if (state.kind !== "starting" && state.kind !== "playing") return noChange(state);

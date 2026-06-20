@@ -121,7 +121,8 @@ describe("html audio session machine", () => {
     let state: HtmlAudioSessionState = initialHtmlAudioSessionState(0);
     state = transitionHtmlAudioSession(state, { cursorMs: 250, source, type: "SourceConfigured" }).state;
     const pause = transitionHtmlAudioSession(state, { cursorMs: 250, type: "PauseRequested" });
-    expect(pause).toEqual({ state, effects: [{ type: "PauseAudio" }, { type: "ClearProgressFrame" }] });
+    expect(pause.state).toEqual(initialHtmlAudioSessionState(0));
+    expect(pause.effects.map((effect) => effect.type)).toEqual(["PauseAudio", "ClearProgressFrame", "ClearMetadataTimer"]);
     const transition = transitionHtmlAudioSession(state, { cursorMs: 250, type: "StopRequested" });
     expect(transition.state).toEqual(initialHtmlAudioSessionState(0));
     expect(transition.effects.map((effect) => effect.type)).toEqual([
