@@ -5,7 +5,6 @@ import {
   logPlaybackReadinessDecision,
   playbackReadinessDecisionFor,
 } from "./playback-telemetry.js";
-import { startSourceHtmlPlayback } from "./source-playback-controller.js";
 import {
   audioProgressMs as audioProgressMsFromController,
   completePlayback as completePlaybackFromController,
@@ -31,6 +30,7 @@ import { setCommandButtonLabel } from "./control-actions.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
+import { startSourcePlaybackAction } from "./source-playback-actions.js";
 import { setPreserveStatusOnPlaybackEndRuntime } from "./visualizer-runtime-state.js";
 
 export { playAfterEdit } from "./post-edit-playback-actions.js";
@@ -132,8 +132,7 @@ export function sendPlaybackRequest(request: PlaybackRequest): void {
 }
 
 export function startSourcePlayback(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
-  setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
-  return startSourceHtmlPlayback(visualizer, { ...request, engine: "html" });
+  return startSourcePlaybackAction(visualizer, request);
 }
 
 export function handleHtmlPlaybackCommand(ord: number): boolean {
