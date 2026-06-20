@@ -117,13 +117,13 @@ describe("html audio session machine", () => {
     ]);
   });
 
-  it("stops loading source playback without leaving a metadata timer active", () => {
+  it("cancels loading source playback and does not fake paused state before playback starts", () => {
     let state: HtmlAudioSessionState = initialHtmlAudioSessionState(0);
-
     state = transitionHtmlAudioSession(state, { cursorMs: 250, source, type: "SourceConfigured" }).state;
+    const pause = transitionHtmlAudioSession(state, { cursorMs: 250, type: "PauseRequested" });
+    expect(pause).toEqual({ state, effects: [{ type: "PauseAudio" }, { type: "ClearProgressFrame" }] });
     const transition = transitionHtmlAudioSession(state, { cursorMs: 250, type: "StopRequested" });
-
-    expect(transition.state).toEqual(state);
+    expect(transition.state).toEqual(initialHtmlAudioSessionState(0));
     expect(transition.effects.map((effect) => effect.type)).toEqual([
       "PauseAudio", "ClearProgressFrame", "ClearRepeatTimer", "ClearMetadataTimer", "PublishPlaybackState",
     ]);

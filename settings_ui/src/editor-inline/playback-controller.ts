@@ -3,7 +3,10 @@ import {
   audioClockReady,
   seekAudioElementForCursorPreview,
 } from "./audio-clock.js";
-import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
+import {
+  dispatchHtmlAudioSessionEvent,
+  readHtmlAudioSessionState,
+} from "./html-audio-session-controller.js";
 import { markHtmlAudioFailure } from "./audio-readiness.js";
 import { logger } from "./logger.js";
 import {
@@ -63,9 +66,12 @@ function fieldState(visualizer: VisualizerElement): EditorFieldState {
 }
 
 function stopSessionAudioForManualClock(visualizer: VisualizerElement, cursorMs: number): void {
-  dispatchHtmlAudioSessionEvent(Number(visualizer.dataset.aqeFieldOrd || "0"), {
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const session = readHtmlAudioSessionState(ord);
+  const activeSession = session.kind === "starting" || session.kind === "playing" || session.kind === "paused" || session.kind === "repeat_waiting";
+  dispatchHtmlAudioSessionEvent(ord, {
     cursorMs,
-    type: "StopRequested",
+    type: activeSession ? "StopRequested" : "PauseRequested",
   });
 }
 

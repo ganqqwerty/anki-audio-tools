@@ -164,14 +164,7 @@ export function transitionHtmlAudioSession(
       return failedTransition(state, event.cursorMs, event.reason);
     case "PauseRequested":
       if (state.kind === "loading" || state.kind === "ready") {
-        return {
-          state,
-          effects: [
-            { type: "PauseAudio" },
-            { type: "ClearProgressFrame" },
-            { type: "PublishPlaybackState", status: "paused", cursorMs: event.cursorMs },
-          ],
-        };
+        return { state, effects: [{ type: "PauseAudio" }, { type: "ClearProgressFrame" }] };
       }
       if (state.kind !== "starting" && state.kind !== "playing") return noChange(state);
       return {
@@ -209,17 +202,17 @@ export function transitionHtmlAudioSession(
       };
     }
     case "StopRequested":
-      if (state.kind === "loading" || state.kind === "ready") {
-        return {
-          state,
-          effects: [
-            { type: "PauseAudio" },
-            { type: "ClearProgressFrame" },
-            { type: "ClearRepeatTimer" },
-            ...(state.kind === "loading" ? [{ type: "ClearMetadataTimer" } as const] : []),
-            { type: "PublishPlaybackState", status: "stopped", cursorMs: event.cursorMs },
-          ],
-        };
+      if (state.kind === "loading") {
+        return { state: initialHtmlAudioSessionState(state.ord), effects: [
+          { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" },
+          { type: "ClearMetadataTimer" }, { type: "PublishPlaybackState", status: "stopped", cursorMs: event.cursorMs },
+        ] };
+      }
+      if (state.kind === "ready") {
+        return { state, effects: [
+          { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" },
+          { type: "PublishPlaybackState", status: "stopped", cursorMs: event.cursorMs },
+        ] };
       }
       if (state.kind !== "starting" && state.kind !== "playing" && state.kind !== "paused" && state.kind !== "repeat_waiting") {
         return noChange(state);
