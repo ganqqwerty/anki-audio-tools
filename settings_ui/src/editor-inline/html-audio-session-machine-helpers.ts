@@ -64,7 +64,7 @@ export function restartLoopTransition(
       { type: "ClearProgressFrame" },
       ...resetEffects,
       ...(restartAudio ? [{ type: "PlayAudio" } as const] : []),
-      { type: "StartProgressFrame", cursorMs: request.cursorMs, endMs: request.endMs },
+      ...(!restartAudio ? [{ type: "StartProgressFrame", cursorMs: request.cursorMs, endMs: request.endMs } as const] : []),
       { type: "PublishPlaybackState", status: "playing", cursorMs: request.cursorMs },
     ],
   };

@@ -64,7 +64,6 @@ describe("html audio session machine", () => {
     expect(transition.effects).toEqual([
       { cursorMs: 0, type: "SeekAudio" },
       { type: "PlayAudio" },
-      { cursorMs: 0, endMs: 1000, type: "StartProgressFrame" },
       { status: "playing", type: "PublishPlaybackState" },
     ]);
 
@@ -78,6 +77,7 @@ describe("html audio session machine", () => {
       startedAtMs: 120,
     });
     expect(transition.effects).toEqual([
+      { cursorMs: 0, endMs: 1000, type: "StartProgressFrame" },
       { status: "playing", type: "PublishPlaybackState" },
       { request, type: "QueueBackendPlayback" },
     ]);
@@ -112,7 +112,6 @@ describe("html audio session machine", () => {
       { type: "ClearMetadataTimer" },
       { cursorMs: 250, type: "SeekAudio" },
       { type: "PlayAudio" },
-      { cursorMs: 250, endMs: 750, type: "StartProgressFrame" },
       { status: "playing", type: "PublishPlaybackState" },
     ]);
   });

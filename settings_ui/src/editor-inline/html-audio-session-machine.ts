@@ -57,7 +57,6 @@ export function transitionHtmlAudioSession(
             { type: "ClearMetadataTimer" },
             { type: "SeekAudio", cursorMs: state.pendingStart.cursorMs },
             { type: "PlayAudio" },
-            { type: "StartProgressFrame", cursorMs: state.pendingStart.cursorMs, endMs: state.pendingStart.endMs },
             { type: "PublishPlaybackState", status: "playing" },
           ],
         };
@@ -111,7 +110,6 @@ export function transitionHtmlAudioSession(
             { type: "ClearProgressFrame" },
             { type: "SeekAudio", cursorMs: event.request.cursorMs },
             { type: "PlayAudio" },
-            { type: "StartProgressFrame", cursorMs: event.request.cursorMs, endMs: event.request.endMs },
             { type: "PublishPlaybackState", status: "playing", cursorMs: event.request.cursorMs },
           ],
         };
@@ -130,7 +128,6 @@ export function transitionHtmlAudioSession(
         effects: [
           { type: "SeekAudio", cursorMs: event.request.cursorMs },
           { type: "PlayAudio" },
-          { type: "StartProgressFrame", cursorMs: event.request.cursorMs, endMs: event.request.endMs },
           { type: "PublishPlaybackState", status: "playing" },
         ],
       };
@@ -148,6 +145,7 @@ export function transitionHtmlAudioSession(
           startedAtMs: event.nowMs,
         },
         effects: [
+          { type: "StartProgressFrame", cursorMs: state.request.cursorMs, endMs: state.request.endMs },
           { type: "PublishPlaybackState", status: "playing" },
           ...backendPlaybackEffects(state),
         ],
@@ -201,7 +199,6 @@ export function transitionHtmlAudioSession(
         effects: [
           { type: "SeekAudio", cursorMs: state.pausedAtMs },
           { type: "PlayAudio" },
-          { type: "StartProgressFrame", cursorMs: state.pausedAtMs, endMs: state.request.endMs },
           { type: "PublishPlaybackState", status: "playing", cursorMs: state.pausedAtMs },
         ],
       };
