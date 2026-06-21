@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pytest
 
 from tests.anki_test_mocks import reset_static_mock_modules
 from tests.reviewer_integration_fixtures import (
     _reset_reviewer_visibility as _reset_reviewer_visibility,
 )
+
+
+@pytest.fixture(autouse=True)
+def _reset_audio_processor_dependency_injections() -> Iterator[None]:
+    """Restore leaf audio module dependency aliases after tests monkeypatch the facade."""
+    yield
+
+    from anki_audio_quick_editor import audio_processor as facade
+
+    facade._sync_tool_dependencies()
+    facade._sync_external_dependencies()
+    facade._sync_pause_dependencies()
+    facade._sync_rendering_dependencies()
+    facade._sync_noise_dependencies()
+    facade._sync_pitch_hum_dependencies()
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +35,7 @@ def _reset_anki_test_mocks() -> None:
 
 @pytest.fixture(autouse=True)
 def _isolate_managed_runtime_from_unit_tool_discovery(
+    _reset_audio_processor_dependency_injections: None,
     request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
