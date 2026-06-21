@@ -3,6 +3,7 @@ import {
 } from "./dom-selectors.js";
 import {
   audioClockReady as isAudioClockReady,
+  fieldPlaybackUsesAudioClock,
   installAudioClockHandlers as installAudioClockElementHandlers,
   resetAudioClockState as resetAudioClockElementState,
 } from "./audio-clock.js";
@@ -89,9 +90,11 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
     },
     onErrorDuringPlayback(cursorMs) {
       const ord = fieldOrd(visualizer);
+      const session = readHtmlAudioSessionState(ord);
+      if (!htmlAudioErrorBelongsToActiveSession(session) && !fieldPlaybackUsesAudioClock(ord)) return;
       logger.warn("audio clock failed during playback", { ord });
       dispatchHtmlAudioSessionEvent(ord, {
-        cursorMs,
+        cursorMs: cursorMs || htmlAudioErrorCursorMs(ord, session),
         reason: "audio_error",
         type: "AudioError",
       });
@@ -135,6 +138,16 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
 
 function fieldPlaybackEngineIsHtml(ord: number): boolean {
   return readFieldState(ord).playback.engine === "html";
+}
+
+function htmlAudioErrorBelongsToActiveSession(session: ReturnType<typeof readHtmlAudioSessionState>): boolean {
+  if (session.kind === "loading") return session.pendingStart !== null;
+  return session.kind === "starting" || session.kind === "playing";
+}
+
+function htmlAudioErrorCursorMs(ord: number, session: ReturnType<typeof readHtmlAudioSessionState>): number {
+  if ("request" in session) return session.request.cursorMs;
+  return readFieldState(ord).cursor.ms;
 }
 
 function dispatchSourceSessionBoundary(

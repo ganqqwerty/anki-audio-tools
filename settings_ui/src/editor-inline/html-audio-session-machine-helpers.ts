@@ -21,9 +21,11 @@ export function failedTransition(
     },
     effects: [
       { type: "ClearProgressFrame" },
+      { type: "ClearRepeatTimer" },
+      { type: "ClearMetadataTimer" },
       { type: "PauseAudio" },
       { type: "PublishPlaybackState", status: "stopped", cursorMs },
-      ...playbackFailureStatusEffects(state),
+      ...playbackFailureStatusEffects(state, reason),
       {
         type: "LogPlaybackTelemetry",
         event: "playback.html_failed",
@@ -53,7 +55,7 @@ export function restartLoopTransition(
   const request = { ...state.request, cursorMs: htmlAudioLoopStartMs(state.request) };
   const shouldReloadAudio = request.source !== "post_edit" && htmlAudioRequestCoversFullSource(request, state.durationMs);
   const resetEffects = shouldReloadAudio
-    ? [{ type: "ReloadAudioSource" } as const]
+    ? [{ type: "ReloadAudioSource" } as const, { type: "SeekAudio", cursorMs: request.cursorMs } as const]
     : [{ type: "SeekAudio", cursorMs: request.cursorMs } as const];
   const nextState: HtmlAudioSessionState = !restartAudio && state.kind === "playing"
     ? { ...state, request }
@@ -66,17 +68,9 @@ export function restartLoopTransition(
       ...resetEffects,
       ...(restartAudio ? [{ type: "PlayAudio" } as const] : []),
       ...(!restartAudio ? [{ type: "StartProgressFrame", cursorMs: request.cursorMs, endMs: request.endMs } as const] : []),
-      { type: "PublishPlaybackState", status: "playing", cursorMs: request.cursorMs },
+      ...(!restartAudio ? [{ type: "PublishPlaybackState", status: "playing", cursorMs: request.cursorMs } as const] : []),
     ],
   };
-}
-
-export function backendPlaybackEffects(
-  state: Extract<HtmlAudioSessionState, { kind: "starting" }>,
-): HtmlAudioSessionEffect[] {
-  return state.request.source === "learner_recording"
-    ? []
-    : [{ request: state.request, type: "QueueBackendPlayback" }];
 }
 
 export function noChange(state: HtmlAudioSessionState): HtmlAudioSessionTransition {
@@ -126,9 +120,19 @@ export function currentCursorMs(state: Exclude<HtmlAudioSessionState, { kind: "e
 
 function playbackFailureStatusEffects(
   state: Exclude<HtmlAudioSessionState, { kind: "empty" | "failed" }>,
+  reason: HtmlAudioFailureReason,
 ): HtmlAudioSessionEffect[] {
-  if ("request" in state && state.request.source === "post_edit") {
+  const request = "request" in state ? state.request : state.kind === "loading" ? state.pendingStart : null;
+  if (request?.source === "post_edit") {
     return [{ statusKey: "editor.status.browser_audio_unavailable", type: "ShowPostEditPlaybackWarning" }];
+  }
+  if (state.source.kind === "source" && reason === "audio_error") {
+    return [{
+      kind: "error",
+      statusCode: "AQE-MEDIA-002",
+      statusKey: "editor.status.referenced_audio_missing",
+      type: "ShowPlaybackStatus",
+    }];
   }
   return [{ statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" }];
 }

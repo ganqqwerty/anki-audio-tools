@@ -5,6 +5,7 @@ import {
   markHtmlAudioFailure,
   publishAudioReadinessChange,
 } from "./audio-readiness.js";
+import { logger } from "./logger.js";
 
 export interface AudioClockHandlerCallbacks {
   onEndedDuringPlayback?: (durationMs: number) => void;
@@ -18,6 +19,11 @@ export function mediaUrlForFilename(filename: string): string {
 
 export function audioClockFor(visualizer: VisualizerElement | null): AudioClockElement | null {
   return visualizer?.querySelector<AudioClockElement>(".aqe-audio-clock") ?? null;
+}
+
+export function fieldPlaybackUsesAudioClock(ord: number): boolean {
+  const field = readFieldState(ord);
+  return field.playback.clockMode === "audio" && field.playback.state === "playing";
 }
 
 export function resetAudioClockState(visualizer: VisualizerElement): void {
@@ -46,18 +52,42 @@ export function installAudioClockHandlers(
     visualizer.__aqeAudioClockFallback = false;
     clearHtmlAudioFailure(visualizer);
     const durationSeconds = Number(audio.duration);
+    logger.debug("audio_clock.loadedmetadata", {
+      durationMs: Number.isFinite(durationSeconds) ? Math.round(durationSeconds * 1000) : null,
+      ord,
+      readyState: audio.readyState,
+      src: audio.getAttribute("src") || "",
+    });
     if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
       callbacks.onLoadedMetadata?.(Math.round(durationSeconds * 1000));
     }
   });
   audio.addEventListener("error", () => {
     markHtmlAudioFailure(visualizer, "audio_error");
-    const state = readFieldState(ord);
-    if (state.playback.state === "playing" && state.playback.clockMode === "audio") {
-      callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio));
-    }
+    logger.debug("audio_clock.error", {
+      currentTimeMs: audioCurrentTimeMs(audio),
+      errorCode: audio.error?.code ?? null,
+      ord,
+      readyState: audio.readyState,
+      src: audio.getAttribute("src") || "",
+    });
+    callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio));
+  });
+  audio.addEventListener("play", () => {
+    logger.debug("audio_clock.play", audioClockEventContext(audio, ord));
+  });
+  audio.addEventListener("playing", () => {
+    logger.debug("audio_clock.playing", audioClockEventContext(audio, ord));
+  });
+  audio.addEventListener("pause", () => {
+    logger.debug("audio_clock.pause", audioClockEventContext(audio, ord));
   });
   audio.addEventListener("ended", () => {
+    logger.debug("audio_clock.ended", {
+      ...audioClockEventContext(audio, ord),
+      playbackState: readFieldState(ord).playback.state,
+      repeatEnabled: readFieldState(ord).playback.repeat,
+    });
     if (readFieldState(ord).playback.state === "playing") {
       callbacks.onEndedDuringPlayback?.(audioBoundaryDurationMs(audio));
     }
@@ -65,6 +95,18 @@ export function installAudioClockHandlers(
   audio.addEventListener("seeked", () => {
     visualizer.__aqeAudioClockLastSeekedMs = Math.round((Number(audio.currentTime) || 0) * 1000);
   });
+}
+
+function audioClockEventContext(audio: AudioClockElement, ord: number): Record<string, unknown> {
+  return {
+    currentTimeMs: audioCurrentTimeMs(audio),
+    durationMs: audioDurationMs(audio),
+    ended: audio.ended,
+    ord,
+    paused: audio.paused,
+    readyState: audio.readyState,
+    src: audio.getAttribute("src") || "",
+  };
 }
 
 function audioBoundaryDurationMs(audio: AudioClockElement): number {

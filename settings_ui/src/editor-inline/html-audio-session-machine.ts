@@ -1,5 +1,4 @@
 import {
-  backendPlaybackEffects,
   currentCursorMs,
   exhaustive,
   failedTransition,
@@ -57,7 +56,6 @@ export function transitionHtmlAudioSession(
             { type: "ClearMetadataTimer" },
             { type: "SeekAudio", cursorMs: state.pendingStart.cursorMs },
             { type: "PlayAudio" },
-            { type: "PublishPlaybackState", status: "playing" },
           ],
         };
       }
@@ -110,7 +108,6 @@ export function transitionHtmlAudioSession(
             { type: "ClearProgressFrame" },
             { type: "SeekAudio", cursorMs: event.request.cursorMs },
             { type: "PlayAudio" },
-            { type: "PublishPlaybackState", status: "playing", cursorMs: event.request.cursorMs },
           ],
         };
       }
@@ -128,7 +125,6 @@ export function transitionHtmlAudioSession(
         effects: [
           { type: "SeekAudio", cursorMs: event.request.cursorMs },
           { type: "PlayAudio" },
-          { type: "PublishPlaybackState", status: "playing" },
         ],
       };
     case "PlayResolved":
@@ -147,7 +143,6 @@ export function transitionHtmlAudioSession(
         effects: [
           { type: "StartProgressFrame", cursorMs: state.request.cursorMs, endMs: state.request.endMs },
           { type: "PublishPlaybackState", status: "playing" },
-          ...backendPlaybackEffects(state),
         ],
       };
     case "PlayRejected":
@@ -199,7 +194,6 @@ export function transitionHtmlAudioSession(
         effects: [
           { type: "SeekAudio", cursorMs: state.pausedAtMs },
           { type: "PlayAudio" },
-          { type: "PublishPlaybackState", status: "playing", cursorMs: state.pausedAtMs },
         ],
       };
     }
@@ -326,6 +320,9 @@ export function transitionHtmlAudioSession(
       if (event.intent.sourceFilename !== state.source.sourceFilename) {
         return noChange(state);
       }
+      if (isDuplicateActivePostEditAutoplay(state, event.request)) {
+        return noChange(state);
+      }
       return {
         state: {
           kind: "post_edit_waiting",
@@ -392,4 +389,26 @@ export function transitionHtmlAudioSession(
     default:
       return exhaustive(event);
   }
+}
+
+function isDuplicateActivePostEditAutoplay(
+  state: Extract<HtmlAudioSessionState, { kind: "loading" | "ready" | "starting" | "playing" | "paused" | "repeat_waiting" | "post_edit_waiting" }>,
+  request: Extract<HtmlAudioSessionEvent, { type: "PostEditAutoplayRequested" }>["request"],
+): boolean {
+  if (
+    state.kind !== "starting" &&
+    state.kind !== "playing" &&
+    state.kind !== "paused" &&
+    state.kind !== "repeat_waiting"
+  ) {
+    return false;
+  }
+  return state.request.source === "post_edit"
+    && request.source === "post_edit"
+    && state.request.cursorMs === request.cursorMs
+    && state.request.endMs === request.endMs
+    && state.request.loop === request.loop
+    && state.request.ord === request.ord
+    && state.request.regionMode === request.regionMode
+    && state.request.resetCursorMs === request.resetCursorMs;
 }

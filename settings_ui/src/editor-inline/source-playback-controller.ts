@@ -1,9 +1,13 @@
 import { readFieldState } from "./field-state-store.js";
+import { currentAudioSourceForOrd } from "./dom-selectors.js";
 import {
   dispatchHtmlAudioSessionEvent,
+  htmlAudioSessionSourceFilename,
   readHtmlAudioSessionState,
   stopOtherHtmlAudioSessions,
 } from "./html-audio-session-controller.js";
+import { htmlAudioReadinessFor } from "./audio-readiness.js";
+import { logger } from "./logger.js";
 import type {
   HtmlAudioSessionState,
   HtmlAudioStartRequest,
@@ -28,15 +32,24 @@ export function startSourceHtmlPlayback(
   clearPostEditPlaybackWarning(visualizer);
   const sourceRequest = sourcePlaybackRequestFor(visualizer, request);
   const field = readFieldState(sourceRequest.ord);
-  const sourceFilename = field.sourceFilename;
+  const sourceFilename = htmlAudioSessionSourceFilename(sourceRequest.ord)
+    || currentAudioSourceForOrd(sourceRequest.ord)
+    || field.sourceFilename;
   if (!sourceFilename) return false;
 
   const htmlRequest = htmlAudioStartRequestForSourceRequest(sourceRequest);
   const durationMs = field.graph.durationMs || sourceRequest.endMs;
+  logger.debug("source_html_playback.start", {
+    durationMs,
+    readiness: htmlAudioReadinessFor(visualizer),
+    request: htmlAudioStartRequestForSourceRequest(sourceRequest),
+    session: htmlAudioSourceSessionSummary(readHtmlAudioSessionState(sourceRequest.ord)),
+    sourceFilename,
+  });
   stopOtherHtmlAudioSessions(sourceRequest.ord);
   ensureHtmlAudioSessionSource(sourceRequest.ord, sourceFilename, sourceRequest.cursorMs);
 
-  dispatchHtmlAudioStartRequest(htmlRequest, sourceFilename, durationMs);
+  dispatchHtmlAudioStartRequest(visualizer, htmlRequest, sourceFilename, durationMs);
   return true;
 }
 
@@ -100,6 +113,7 @@ function ensureHtmlAudioSessionSource(
 }
 
 function dispatchHtmlAudioStartRequest(
+  visualizer: VisualizerElement,
   request: HtmlAudioStartRequest,
   sourceFilename: string,
   durationMs: number,
@@ -108,6 +122,14 @@ function dispatchHtmlAudioStartRequest(
     request,
     type: "StartRequested",
   });
+  if (htmlAudioReadinessFor(visualizer).failed) {
+    dispatchHtmlAudioSessionEvent(request.ord, {
+      cursorMs: request.cursorMs,
+      reason: "audio_error",
+      type: "AudioError",
+    });
+    return;
+  }
   dispatchKnownMetadataForLoadingSource(request.ord, sourceFilename, durationMs);
 }
 
@@ -116,14 +138,35 @@ function dispatchKnownMetadataForLoadingSource(
   sourceFilename: string,
   durationMs: number,
 ): void {
-  if (durationMs <= 0) return;
+  if (durationMs <= 0) {
+    logger.debug("source_html_playback.metadata_known_skipped", {
+      durationMs,
+      ord,
+      reason: "non_positive_duration",
+      sourceFilename,
+    });
+    return;
+  }
   const state = readHtmlAudioSessionState(ord);
   if (state.kind === "loading" && state.source.sourceFilename === sourceFilename) {
+    logger.debug("source_html_playback.metadata_known_dispatched", {
+      durationMs,
+      ord,
+      sourceFilename,
+    });
     dispatchHtmlAudioSessionEvent(ord, {
       durationMs,
       type: "MetadataLoaded",
     });
+    return;
   }
+  logger.debug("source_html_playback.metadata_known_skipped", {
+    durationMs,
+    ord,
+    reason: state.kind === "loading" ? "source_mismatch" : "state_not_loading",
+    session: htmlAudioSourceSessionSummary(state),
+    sourceFilename,
+  });
 }
 
 function htmlAudioSessionNeedsSource(
@@ -141,6 +184,13 @@ function clearPostEditPlaybackWarning(visualizer: VisualizerElement): void {
   warning.textContent = "";
   delete warning.dataset.kind;
   warning.hidden = true;
+}
+
+function htmlAudioSourceSessionSummary(state: HtmlAudioSessionState): Record<string, unknown> {
+  return {
+    kind: state.kind,
+    sourceFilename: "source" in state ? state.source?.sourceFilename : null,
+  };
 }
 
 function playbackWarningForVisualizer(visualizer: VisualizerElement): HTMLElement | null {

@@ -61,6 +61,12 @@ function configureAudioSource(
   pauseAudio(ord);
   audio.loop = false;
   audio.setAttribute("src", mediaUrlForFilename(sourceFilename));
+  logger.debug("html_audio_element.configure_source", {
+    ord,
+    readyState: audio.readyState,
+    sourceFilename,
+    src: audio.getAttribute("src") || "",
+  });
   try {
     audio.load();
   } catch {
@@ -113,11 +119,33 @@ function playAudio(
   if (state.kind !== "empty" && state.kind !== "failed" && state.source.kind === "learner_recording") {
     installLearnerAudioHandlers(ord, audio, readState, dispatch);
   }
+  logger.debug("html_audio_element.play_requested", {
+    currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
+    ord,
+    readyState: audio.readyState,
+    sourceFilename,
+    src: audio.getAttribute("src") || "",
+    stateKind: state.kind,
+  });
   Promise.resolve(audio.play())
     .then(() => {
+      logger.debug("html_audio_element.play_resolved", {
+        currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
+        ord,
+        readyState: audio.readyState,
+        sourceFilename,
+        src: audio.getAttribute("src") || "",
+      });
       dispatch(ord, { nowMs: Date.now(), sourceFilename, type: "PlayResolved" });
     })
     .catch(() => {
+      logger.debug("html_audio_element.play_rejected", {
+        currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
+        ord,
+        readyState: audio.readyState,
+        sourceFilename,
+        src: audio.getAttribute("src") || "",
+      });
       dispatch(ord, { reason: "audio_play_rejected", sourceFilename, type: "PlayRejected" });
     });
 }

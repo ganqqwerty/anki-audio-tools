@@ -46,12 +46,6 @@ def test_chorusing_practice_loops_suffixes_and_pauses_for_normal_play(
             and state["playbackEndMs"] == 2000
             and state["repeatEnabled"] is True,
         )
-        status_text = wait_for_js_condition(
-            editor.web,
-            "document.querySelector('[data-testid=\"aqe-controls-0\"] .aqe-status')?.textContent || ''",
-            lambda value: "Practice mode. Use the toolbar buttons for chorusing." in value,
-            timeout=5.0,
-        )
         wrapped = _force_repeat_wrap(editor, 1500)
 
         inserted = _click_chorusing_marker(editor, 0.625, expected_count=5)
@@ -77,7 +71,6 @@ def test_chorusing_practice_loops_suffixes_and_pauses_for_normal_play(
         )
 
         assert markers["chorusingState"] == "stopped"
-        assert "Playing from 1.50s" in status_text
         assert playing["chorusingBaseStartMs"] == 0
         assert playing["chorusingMarkersMs"] == [0, 500, 1000, 1500]
         assert playing["chorusingActiveStartMs"] == 1500

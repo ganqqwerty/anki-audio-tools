@@ -227,12 +227,20 @@ def _force_audio_boundary(editor, ord_: int = 0) -> None:
 
 
 def _force_repeat_wrap(editor, expected_start_ms: int, ord_: int = 0):
+    before = _state(
+        editor,
+        lambda state: state["playbackState"] == "playing",
+        ord_=ord_,
+        timeout=5.0,
+    )
     _force_audio_boundary(editor, ord_)
     return _state(
         editor,
         lambda state: state["playbackState"] == "playing"
-        and abs(state["cursorMs"] - expected_start_ms) <= PLAYBACK_INTERVAL_TOLERANCE_MS
-        and abs(state["audioClockCurrentMs"] - expected_start_ms) <= PLAYBACK_INTERVAL_TOLERANCE_MS,
+        and state["progressClockMode"] == "audio"
+        and abs(state["playbackStartMs"] - expected_start_ms) <= PLAYBACK_INTERVAL_TOLERANCE_MS
+        and state["audioClockCurrentMs"] < before["playbackEndMs"] - PLAYBACK_INTERVAL_TOLERANCE_MS
+        and state["progressMs"] < before["playbackEndMs"] - PLAYBACK_INTERVAL_TOLERANCE_MS,
         ord_=ord_,
         timeout=5.0,
     )

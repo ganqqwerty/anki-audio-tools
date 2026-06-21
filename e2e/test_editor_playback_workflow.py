@@ -288,6 +288,15 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
                 timeout=5.0,
             )
             note.fields[0] = missing_field
+            editor.set_note(note, hide=False, focusTo=0)
+            wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None
+                and state["sourceFilename"] == missing_name
+                and missing_name in state["audioClockSrc"],
+                timeout=5.0,
+            )
             wait_for_condition(
                 lambda: editor.note.fields[0] == missing_field,
                 timeout=5.0,
