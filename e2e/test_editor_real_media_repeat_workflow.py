@@ -354,20 +354,21 @@ def _real_audio_probe_js(ord_: int = 0) -> str:
       const state = window.__aqeGraphStateForTest?.({ord_});
       const probe = window.__aqeRealAudioProbe;
       if (!audio || !state || !probe) return null;
-      return {{
-        currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
-        durationMs: Math.round((Number(audio.duration) || 0) * 1000),
-        ended: audio.ended,
-        errorCode: audio.error ? audio.error.code : null,
+        return {{
+            currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
+            durationMs: Math.round((Number(audio.duration) || 0) * 1000),
+            ended: audio.ended,
+            errorCode: audio.error ? audio.error.code : null,
         errorMessage: audio.error ? audio.error.message : "",
         events: probe.events.slice(-24),
         loop: audio.loop,
         nativePlaybackRequests: probe.nativePlaybackRequests.slice(),
-        pauseCalls: probe.pauseCalls,
-        paused: audio.paused,
-        playCalls: probe.playCalls,
-        readyState: audio.readyState,
-        state,
-      }};
-    }})()
+            pauseCalls: probe.pauseCalls,
+            paused: audio.paused,
+            playCalls: probe.playCalls,
+            readyState: audio.readyState,
+            src: audio.getAttribute("src") || audio.currentSrc || "",
+            state,
+          }};
+        }})()
     """
