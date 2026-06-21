@@ -11,6 +11,7 @@ import {
   dispatchHtmlAudioSessionEvent,
   readHtmlAudioSessionState,
 } from "./html-audio-session-controller.js";
+import type { HtmlAudioStartRequest } from "./html-audio-session-machine.js";
 import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
 import { completePlayback, playbackStateFor, startProgressClock, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
@@ -26,6 +27,7 @@ import {
   isRepeatPauseWaitingRuntime,
   readRepeatPauseSecondsRuntime,
   readTargetDurationMsForVisualizer,
+  preserveStatusOnPlaybackEndRuntime,
   setTargetDurationMsForVisualizer,
 } from "./visualizer-runtime-state.js";
 
@@ -98,31 +100,80 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
     onEndedDuringPlayback(durationMs) {
       const ord = fieldOrd(visualizer);
       const session = readHtmlAudioSessionState(ord);
+      if (session.kind !== "empty" && session.kind !== "failed" && session.source.kind === "source") {
+        if (
+          session.kind === "starting" &&
+          session.request.source === "chorusing" &&
+          handleChorusingLoopBoundary(visualizer, playbackPassForSessionRequest(session.request))
+        ) {
+          return;
+        }
+        if (
+          session.kind === "playing" &&
+          session.request.source === "chorusing" &&
+          handleChorusingLoopBoundary(visualizer, playbackPassForSessionRequest(session.request))
+        ) {
+          return;
+        }
+        dispatchSourceSessionBoundary(visualizer, ord, durationMs, session.kind === "ready");
+        repaintCompletedSourceBoundaryCursor(visualizer, ord);
+        return;
+      }
+      if (fieldPlaybackEngineIsHtml(ord)) {
+        dispatchSourceSessionBoundary(visualizer, ord, durationMs, true);
+        repaintCompletedSourceBoundaryCursor(visualizer, ord);
+        return;
+      }
       if (session.kind !== "starting" && session.kind !== "playing") {
         handleLegacyAudioPlaybackEnded(visualizer, durationMs);
         return;
       }
-      if (session.source.kind !== "source") {
-        handleLegacyAudioPlaybackEnded(visualizer, durationMs);
-        return;
-      }
-      if (
-        session.request.source === "chorusing" &&
-        handleChorusingLoopBoundary(visualizer, playbackPassForSessionRequest(session.request))
-      ) {
-        return;
-      }
-      dispatchHtmlAudioSessionEvent(ord, {
-        cursorMs: durationMs,
-        repeatEnabled: repeatEnabledFor(visualizer),
-        repeatPauseMs: readRepeatPauseSecondsRuntime(visualizer) * 1000,
-        resetCursorMs: session.request.resetCursorMs ?? session.request.cursorMs,
-        restartAudio: true,
-        type: "BoundaryReached",
-      });
-      repaintCompletedSourceBoundaryCursor(visualizer, ord);
+      handleLegacyAudioPlaybackEnded(visualizer, durationMs);
     },
   });
+}
+
+function fieldPlaybackEngineIsHtml(ord: number): boolean {
+  return readFieldState(ord).playback.engine === "html";
+}
+
+function dispatchSourceSessionBoundary(
+  visualizer: VisualizerElement,
+  ord: number,
+  durationMs: number,
+  includeRequest: boolean,
+): void {
+  const request = sourceBoundaryRequest(visualizer, ord, durationMs);
+  const event = {
+    cursorMs: durationMs,
+    repeatEnabled: repeatEnabledFor(visualizer),
+    repeatPauseMs: readRepeatPauseSecondsRuntime(visualizer) * 1000,
+    resetCursorMs: request.resetCursorMs ?? request.cursorMs,
+    restartAudio: true,
+    type: "BoundaryReached",
+  } as const;
+  dispatchHtmlAudioSessionEvent(ord, includeRequest ? { ...event, request } : event);
+}
+
+function sourceBoundaryRequest(
+  visualizer: VisualizerElement,
+  ord: number,
+  durationMs: number,
+): HtmlAudioStartRequest {
+  const field = readFieldState(ord);
+  const regionMode = field.playback.regionMode === "selection" ? "selection" : "full";
+  const cursorMs = Math.round(field.playback.startMs || 0);
+  return {
+    cursorMs,
+    endMs: Math.round(field.playback.endMs || field.graph.durationMs || durationMs),
+    loop: repeatEnabledFor(visualizer),
+    ord,
+    regionMode,
+    resetCursorMs: regionMode === "selection" && field.selection.startMs !== null
+      ? Math.round(field.selection.startMs)
+      : Math.round(field.cursor.anchorMs),
+    source: preserveStatusOnPlaybackEndRuntime(visualizer) ? "post_edit" : "user",
+  };
 }
 
 function stopLegacyAudioPlaybackAfterEmptySessionError(

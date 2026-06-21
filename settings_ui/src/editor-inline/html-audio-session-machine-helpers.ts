@@ -51,7 +51,8 @@ export function restartLoopTransition(
   restartAudio: boolean,
 ): HtmlAudioSessionTransition {
   const request = { ...state.request, cursorMs: htmlAudioLoopStartMs(state.request) };
-  const resetEffects = htmlAudioRequestCoversFullSource(request, state.durationMs)
+  const shouldReloadAudio = request.source !== "post_edit" && htmlAudioRequestCoversFullSource(request, state.durationMs);
+  const resetEffects = shouldReloadAudio
     ? [{ type: "ReloadAudioSource" } as const]
     : [{ type: "SeekAudio", cursorMs: request.cursorMs } as const];
   const nextState: HtmlAudioSessionState = !restartAudio && state.kind === "playing"

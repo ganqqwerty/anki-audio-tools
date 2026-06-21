@@ -89,7 +89,7 @@ describe("editor inline audio-clock workflows", () => {
     expect(readFieldState(0).playback.state).toBe("stopped");
   });
 
-  it("uses media duration when an ended event repeats with stale graph duration state", async () => {
+  it("does not repeat via the legacy clock when HTML playback has no active session", async () => {
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
     const visualizer = await mountTrack(0);
@@ -118,7 +118,10 @@ describe("editor inline audio-clock workflows", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(audio.play).toHaveBeenCalledTimes(2);
+    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      progressClockMode: "audio",
+    });
   });
 
   it("uses media current time when an audio error stops with stale cursor state", async () => {
