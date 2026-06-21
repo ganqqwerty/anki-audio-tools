@@ -1,7 +1,7 @@
 import { audioClockFor, mediaUrlForFilename, resetAudioClockState } from "./audio-clock.js";
 import { markHtmlAudioFailure, publishAudioReadinessChange } from "./audio-readiness.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { installLearnerAudioHandlers } from "./html-audio-session-learner-effects.js";
+import { installLearnerAudioHandlers } from "./html-audio-session-learner-projection.js";
 import { logger } from "./logger.js";
 import type { HtmlAudioSessionEvent, HtmlAudioSessionState } from "./html-audio-session-types.js";
 
