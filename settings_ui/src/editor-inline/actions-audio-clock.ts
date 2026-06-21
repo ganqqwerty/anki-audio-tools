@@ -1,11 +1,6 @@
 import {
   allVisualizers,
-  playRepeatMenuButtonForOrd,
-  repeatButtonsForOrd,
 } from "./dom-selectors.js";
-import { formatRepeatPauseSeconds } from "../lib/audio-operation-parameters.js";
-import { t } from "../lib/i18n.js";
-import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import {
   audioClockReady as isAudioClockReady,
   installAudioClockHandlers as installAudioClockElementHandlers,
@@ -22,7 +17,11 @@ import { renderCursor } from "./visualizer-renderer.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
 import type { PlaybackPass } from "./playback-model.js";
 import type { VisualizerElement } from "./types.js";
-import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
+import { readFieldState, updateFieldState } from "./field-state-store.js";
+import {
+  projectRepeatEnabled,
+  repeatEnabledFor,
+} from "./repeat-control-projection.js";
 import {
   isRepeatPauseWaitingRuntime,
   readRepeatPauseSecondsRuntime,
@@ -199,33 +198,9 @@ export function clampProgressMs(visualizer: VisualizerElement, ms: number): numb
 }
 
 export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean): void {
-  const ord = fieldOrd(visualizer);
-  const current = readFieldState(ord);
-  const next = {
-    ...current,
-    playback: { ...current.playback, repeat: enabled },
-  };
-  writeFieldState(ord, next);
-  for (const button of repeatButtonsForOrd(ord)) {
-    button.ariaPressed = enabled ? "true" : "false";
-    button.dataset.aqeButtonState = enabled ? "active" : "default";
-  }
-  const menuButton = playRepeatMenuButtonForOrd(ord);
-  if (menuButton) {
-    const pause = formatRepeatPauseSeconds(readRepeatPauseSecondsRuntime(visualizer));
-    const title = t("editor.play.menu_title", {
-      value: t("editor.play.current_value", {
-        pause,
-        repeat: enabled ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
-      }),
-    });
-    setButtonTooltipContent(menuButton, title);
-  }
+  projectRepeatEnabled(visualizer, enabled);
   if (!enabled && isRepeatPauseWaitingRuntime(visualizer)) {
     completePlayback(visualizer);
   }
 }
-
-export function repeatEnabledFor(visualizer: VisualizerElement): boolean {
-  return readFieldState(fieldOrd(visualizer)).playback.repeat;
-}
+export { repeatEnabledFor };
