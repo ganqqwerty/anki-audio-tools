@@ -43,8 +43,8 @@ export function playAfterEdit(ord: number): boolean {
   }
   const intent = consumePostEditPlaybackIntent(ord);
   if (intent) {
-    setRepeatPauseSecondsRuntime(visualizer, intent.repeatPauseSeconds);
     projectRepeatEnabled(visualizer, intent.repeat);
+    setRepeatPauseSecondsRuntime(visualizer, intent.repeatPauseSeconds);
   }
   window.__aqeActiveField = ord;
   const region = effectivePlaybackRegion(visualizer);
