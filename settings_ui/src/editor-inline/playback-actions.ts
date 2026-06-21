@@ -1,6 +1,6 @@
-import { focusAndSendCommand, popPendingPlaybackRequest, setPendingPlaybackRequest } from "./bridge.js";
+import { popPendingPlaybackRequest } from "./bridge.js";
+import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { logger } from "./logger.js";
 import {
   logPlaybackReadinessDecision,
   playbackReadinessDecisionFor,
@@ -19,7 +19,8 @@ import {
   stopProgressClock as stopProgressClockFromController,
   type ProgressClockOptions,
 } from "./playback-controller.js";
-import { playbackRequestFromSnapshot } from "./playback-request-planning.js";
+import { playbackRequestForVisualizer } from "./playback-request-planning.js";
+import { sendPlaybackRequest } from "./playback-request-dispatch.js";
 import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import { playbackControllerDependencies } from "./playback-controller-dependencies.js";
@@ -31,9 +32,14 @@ import { startSourcePlaybackAction } from "./source-playback-actions.js";
 import { setPreserveStatusOnPlaybackEndRuntime } from "./visualizer-runtime-state.js";
 
 export { playAfterEdit } from "./post-edit-playback-actions.js";
+export { sendPlaybackRequest } from "./playback-request-dispatch.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+}
+
+function playbackActionDependencies() {
+  return playbackControllerDependencies({ handleLoopBoundary: handleChorusingLoopBoundary });
 }
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
@@ -47,19 +53,19 @@ export function audioProgressMs(visualizer: VisualizerElement): number | null { 
 export function currentProgressMs(visualizer: VisualizerElement): number | null { return currentProgressMsFromController(visualizer); }
 
 export function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number): boolean {
-  return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackControllerDependencies());
+  return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackActionDependencies());
 }
 
 export function completePlayback(visualizer: VisualizerElement): void {
-  completePlaybackFromController(visualizer, playbackControllerDependencies());
+  completePlaybackFromController(visualizer, playbackActionDependencies());
 }
 
 export function paintProgressFromClock(visualizer: VisualizerElement): void {
-  paintProgressFromClockFromController(visualizer, playbackControllerDependencies());
+  paintProgressFromClockFromController(visualizer, playbackActionDependencies());
 }
 
 export function startManualProgressClock(visualizer: VisualizerElement, startMs: number): void {
-  startManualProgressClockFromController(visualizer, startMs, playbackControllerDependencies());
+  startManualProgressClockFromController(visualizer, startMs, playbackActionDependencies());
 }
 
 export function startAudioProgressClock(
@@ -67,7 +73,7 @@ export function startAudioProgressClock(
   startMs: number,
   options: ProgressClockOptions = {},
 ): void {
-  startAudioProgressClockFromController(visualizer, startMs, playbackControllerDependencies(), options);
+  startAudioProgressClockFromController(visualizer, startMs, playbackActionDependencies(), options);
 }
 
 export function startProgressClock(
@@ -75,18 +81,18 @@ export function startProgressClock(
   startMs: number,
   options: ProgressClockOptions = {},
 ): void {
-  startProgressClockFromController(visualizer, startMs, playbackControllerDependencies(), options);
+  startProgressClockFromController(visualizer, startMs, playbackActionDependencies(), options);
 }
 
 export function pauseProgressClock(visualizer: VisualizerElement): void {
-  pauseProgressClockFromController(visualizer, playbackControllerDependencies());
+  pauseProgressClockFromController(visualizer, playbackActionDependencies());
 }
 
 export function stopProgressClock(
   visualizer: VisualizerElement,
   options: { clearAudio?: boolean; clearEngine?: boolean } = {},
 ): void {
-  stopProgressClockFromController(visualizer, playbackControllerDependencies(), options);
+  stopProgressClockFromController(visualizer, playbackActionDependencies(), options);
 }
 
 export function playbackRequest(ord: number): PlaybackRequest {
@@ -97,7 +103,7 @@ export function playbackRequest(ord: number): PlaybackRequest {
     return { ord, action: "start", cursorMs: 0 };
   }
   const decision = playbackReadinessDecisionFor(visualizer);
-  const request = playbackRequestFromSnapshot(visualizer, ord, decision);
+  const request = playbackRequestForVisualizer(visualizer, ord, decision);
   logPlaybackReadinessDecision("playback_request", visualizer, decision, {
     action: request.action,
     endMs: request.endMs ?? null,
@@ -109,21 +115,6 @@ export function playbackRequest(ord: number): PlaybackRequest {
 
 export function playbackEngineFor(visualizer: VisualizerElement | null): "html" {
   return playbackReadinessDecisionFor(visualizer).engine;
-}
-
-export function sendPlaybackRequest(request: PlaybackRequest): void {
-  const visualizer = visualizerForOrd(request.ord);
-  if (visualizer) {
-    updateFieldState(request.ord, (state) => ({
-      ...state,
-      playback: { ...state.playback, engine: request.engine || "" },
-    }));
-    setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
-  }
-  setPendingPlaybackRequest(request);
-  window.__aqeActiveField = request.ord;
-  logger.info("playback request queued", request);
-  focusAndSendCommand(request.ord, "aqe:play");
 }
 
 export function startSourcePlayback(visualizer: VisualizerElement, request: PlaybackRequest): boolean {

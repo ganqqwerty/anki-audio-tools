@@ -1,5 +1,4 @@
 import { focusAndSendCommand } from "./bridge.js";
-import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
 import {
   clearPlaybackStatusForOrd,
   restoreStatusForOrd,
@@ -16,24 +15,33 @@ import { repeatEnabledFor } from "./repeat-control-projection.js";
 import { effectivePlaybackRegion } from "./selection-controller.js";
 import type { VisualizerElement } from "./types.js";
 
-export function playbackControllerDependencies(): PlaybackControllerDependencies {
-  return {
+export type PlaybackControllerDependencyOverrides = Partial<
+  Pick<PlaybackControllerDependencies, "handleLoopBoundary">
+>;
+
+export function playbackControllerDependencies(
+  overrides: PlaybackControllerDependencyOverrides = {},
+): PlaybackControllerDependencies {
+  const deps: PlaybackControllerDependencies = {
     clearStatus: clearPlaybackStatusForOrd,
     effectivePlaybackRegion,
     focusAndSendCommand,
-    handleLoopBoundary: handleChorusingLoopBoundary,
     playbackEngineFor: () => "html",
     repeatEnabledFor,
     restoreStatus: restoreStatusForOrd,
     setCursor,
     setPlaybackButtonLabel: setPlaybackButtonLabelForVisualizer,
-    stopOtherPlayback,
+    stopOtherPlayback: (activeVisualizer) => stopOtherPlayback(activeVisualizer, overrides),
   };
+  return { ...deps, ...overrides };
 }
 
-function stopOtherPlayback(activeVisualizer: VisualizerElement): void {
+function stopOtherPlayback(
+  activeVisualizer: VisualizerElement,
+  overrides: PlaybackControllerDependencyOverrides,
+): void {
   for (const visualizer of allVisualizers()) {
     if (visualizer === activeVisualizer || playbackStopped(visualizer)) continue;
-    stopProgressClockFromController(visualizer, playbackControllerDependencies());
+    stopProgressClockFromController(visualizer, playbackControllerDependencies(overrides));
   }
 }

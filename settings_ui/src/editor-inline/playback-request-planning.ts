@@ -6,7 +6,7 @@ import type { PlaybackRequest, VisualizerElement } from "./types.js";
 import { readFieldState } from "./field-state-store.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 
-export function playbackRequestFromSnapshot(
+export function playbackRequestForVisualizer(
   visualizer: VisualizerElement,
   ord: number,
   decision: PlaybackReadinessDecision,
