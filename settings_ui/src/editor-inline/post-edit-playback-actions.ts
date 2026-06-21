@@ -1,7 +1,4 @@
-import {
-  repeatEnabledFor,
-  setRepeatEnabled,
-} from "./actions-audio-clock.js";
+import { projectRepeatEnabled } from "./repeat-control-projection.js";
 import { htmlAudioReadinessFor } from "./audio-readiness.js";
 import { anyBusy } from "./control-actions.js";
 import { visualizerForOrd } from "./dom-selectors.js";
@@ -46,8 +43,8 @@ export function playAfterEdit(ord: number): boolean {
   }
   const intent = consumePostEditPlaybackIntent(ord);
   if (intent) {
-    setRepeatEnabled(visualizer, intent.repeat);
     setRepeatPauseSecondsRuntime(visualizer, intent.repeatPauseSeconds);
+    projectRepeatEnabled(visualizer, intent.repeat);
   }
   window.__aqeActiveField = ord;
   const region = effectivePlaybackRegion(visualizer);
@@ -57,7 +54,7 @@ export function playAfterEdit(ord: number): boolean {
     cursorMs: Math.round(region.startMs),
     endMs: Math.round(region.endMs),
     engine: decision.engine,
-    loop: repeatEnabledFor(visualizer),
+    loop: readFieldState(ord).playback.repeat,
     ord,
     regionMode: region.mode,
     source: "post_edit",

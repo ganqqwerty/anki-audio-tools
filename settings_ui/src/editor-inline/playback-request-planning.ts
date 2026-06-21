@@ -1,4 +1,3 @@
-import { repeatEnabledFor } from "./actions-audio-clock.js";
 import { currentProgressMs } from "./playback-controller.js";
 import type { PlaybackReadinessDecision } from "./playback-engine-decision.js";
 import { planPlaybackRequest, type PlaybackSnapshot } from "./playback-model.js";
@@ -30,7 +29,7 @@ function playbackSnapshotFor(
     ord,
     playbackState: s.playback.state,
     region: effectivePlaybackRegion(visualizer),
-    repeat: repeatEnabledFor(visualizer),
+    repeat: s.playback.repeat,
     resumeRequiresRestart: s.playback.resumeRequiresRestart,
   };
 }

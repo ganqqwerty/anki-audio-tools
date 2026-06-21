@@ -21,6 +21,7 @@ import {
 } from "./playback-plan-state.js";
 import {
   planPlaybackBoundary,
+  playbackStateIsStopped,
   type PlaybackPass,
   type PlaybackRegion,
 } from "./playback-model.js";
@@ -63,6 +64,10 @@ const HTML_FULL_SOURCE_REPEAT_PREEMPT_MS = 40;
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+}
+
+export function playbackStopped(visualizer: VisualizerElement): boolean {
+  return playbackStateIsStopped(fieldState(visualizer).playback.state);
 }
 
 function stopSessionAudioForManualClock(visualizer: VisualizerElement, cursorMs: number): void {

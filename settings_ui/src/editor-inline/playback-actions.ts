@@ -22,14 +22,11 @@ import {
 import { playbackRequestFromSnapshot } from "./playback-request-planning.js";
 import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
-import {
-  effectivePlaybackRegion,
-  playbackControllerDependencies,
-} from "./actions.js";
-import { setCommandButtonLabel } from "./control-actions.js";
-import { syncSelectionToolbar } from "./selection-toolbar-state.js";
+import { playbackControllerDependencies } from "./playback-controller-dependencies.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
+import { setPlaybackButtonLabelForVisualizer } from "./playback-button-label.js";
+import { effectivePlaybackRegion } from "./selection-controller.js";
 import { startSourcePlaybackAction } from "./source-playback-actions.js";
 import { setPreserveStatusOnPlaybackEndRuntime } from "./visualizer-runtime-state.js";
 
@@ -40,9 +37,7 @@ function fieldState(visualizer: VisualizerElement): EditorFieldState {
 }
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
-  const s = fieldState(visualizer);
-  setCommandButtonLabel(s.ord, "aqe:play", label);
-  syncSelectionToolbar(visualizer);
+  setPlaybackButtonLabelForVisualizer(visualizer, label);
 }
 
 export function manualProgressMs(visualizer: VisualizerElement): number { return manualProgressMsFromController(visualizer); }

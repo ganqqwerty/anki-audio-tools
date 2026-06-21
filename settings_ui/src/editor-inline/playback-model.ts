@@ -129,6 +129,10 @@ export function playbackCompletionCursor(pass: Pick<PlaybackPass, "regionMode" |
   return Math.round(pass.resetCursorMs);
 }
 
+export function playbackStateIsStopped(state: PlaybackState): boolean {
+  return state === "stopped";
+}
+
 function playbackLoopPass(pass: PlaybackPass): PlaybackPass {
   return {
     ...pass,
