@@ -64,7 +64,6 @@ describe("html audio session machine", () => {
     expect(transition.effects).toEqual([
       { cursorMs: 0, type: "SeekAudio" },
       { type: "PlayAudio" },
-      { status: "playing", type: "PublishPlaybackState" },
     ]);
 
     transition = transitionHtmlAudioSession(transition.state, {
@@ -79,7 +78,6 @@ describe("html audio session machine", () => {
     expect(transition.effects).toEqual([
       { cursorMs: 0, endMs: 1000, type: "StartProgressFrame" },
       { status: "playing", type: "PublishPlaybackState" },
-      { request, type: "QueueBackendPlayback" },
     ]);
   });
 
@@ -112,7 +110,6 @@ describe("html audio session machine", () => {
       { type: "ClearMetadataTimer" },
       { cursorMs: 250, type: "SeekAudio" },
       { type: "PlayAudio" },
-      { status: "playing", type: "PublishPlaybackState" },
     ]);
   });
 
@@ -376,6 +373,7 @@ describe("html audio session machine", () => {
       request: loopRequest,
     });
     expect(restarting.effects).toContainEqual({ type: "ReloadAudioSource" });
+    expect(restarting.effects).toContainEqual({ cursorMs: 0, type: "SeekAudio" });
     expect(restarting.effects).toContainEqual({ type: "PlayAudio" });
   });
 
@@ -411,6 +409,7 @@ describe("html audio session machine", () => {
     });
     expect(transition.effects).toEqual([
       { type: "ClearProgressFrame" },
+      { type: "ClearRepeatTimer" }, { type: "ClearMetadataTimer" },
       { type: "PauseAudio" },
       { cursorMs: 250, status: "stopped", type: "PublishPlaybackState" },
       { statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" },
@@ -450,6 +449,7 @@ describe("html audio session machine", () => {
     });
     expect(transition.effects).toEqual([
       { type: "ClearProgressFrame" },
+      { type: "ClearRepeatTimer" }, { type: "ClearMetadataTimer" },
       { type: "PauseAudio" },
       { cursorMs: 400, status: "stopped", type: "PublishPlaybackState" },
       { statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" },

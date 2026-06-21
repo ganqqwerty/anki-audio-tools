@@ -58,6 +58,12 @@ describe("editor inline html audio session controller", () => {
       type: "StartRequested",
     });
 
+    expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "starting",
+      source: { kind: "source", sourceFilename: "clip one.mp3" },
+    });
+    expect(readFieldState(0).playback.state).toBe("stopped");
+
     await Promise.resolve();
     await Promise.resolve();
 
@@ -181,6 +187,43 @@ describe("editor inline html audio session controller", () => {
     });
     expect(readFieldState(0).playback.state).toBe("stopped");
     expect(audio.play).not.toHaveBeenCalled();
+  });
+
+  it("surfaces audio element load errors while source playback is starting", () => {
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    audio.play = vi.fn<() => Promise<void>>(() => new Promise(() => undefined));
+    audio.pause = vi.fn<() => void>(() => undefined);
+
+    dispatchHtmlAudioSessionEvent(0, {
+      cursorMs: 0,
+      source: { kind: "source", sourceFilename: "missing.mp3" },
+      type: "SourceConfigured",
+    });
+    dispatchHtmlAudioSessionEvent(0, {
+      durationMs: 1000,
+      type: "MetadataLoaded",
+    });
+    dispatchHtmlAudioSessionEvent(0, {
+      request: {
+        cursorMs: 0,
+        endMs: 1000,
+        loop: false,
+        ord: 0,
+        regionMode: "full",
+        source: "user",
+      },
+      type: "StartRequested",
+    });
+
+    audio.dispatchEvent(new Event("error"));
+
+    expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "failed",
+      reason: "audio_error",
+    });
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "AQE-MEDIA-002: The referenced audio file was not found in Anki's media folder.",
+    );
   });
 
   it("ignores a stale play resolve after source reconfiguration", async () => {

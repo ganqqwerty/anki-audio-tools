@@ -7,6 +7,8 @@ import {
     initializeEditorRuntime,
     scan,
 } from "../src/editor-inline/runtime.js";
+import {readFieldState} from "../src/editor-inline/field-state-store.js";
+import {readHtmlAudioSessionState} from "../src/editor-inline/html-audio-session-controller.js";
 import {muteConsole, renderFields, track} from "./editor-inline.integration.helpers.js";
 
 describe("editor inline runtime scan integration", () => {
@@ -112,6 +114,25 @@ describe("editor inline runtime scan integration", () => {
 
         expect(document.querySelectorAll(".aqe-controls")).toHaveLength(1);
         expect(document.querySelector(".aqe-controls")?.getAttribute("data-aqe-source-filename")).toBe("second.ogg");
+    });
+
+    it("reconfigures HTML audio without re-labeling the rendered graph source on rescan", async () => {
+        initializeEditorRuntime({audioFieldIndices: [0]});
+        scan({audioFieldIndices: [0]});
+        await Promise.resolve();
+        window.__aqeSetVisualizer?.(0, track, 0);
+
+        document.getElementById("f0")!.textContent = "[sound:changed.ogg]";
+        scan({audioFieldIndices: [0]});
+
+        expect(readFieldState(0).sourceFilename).toBe("clip one.mp3");
+        expect(readHtmlAudioSessionState(0)).toMatchObject({
+            kind: "loading",
+            source: {kind: "source", sourceFilename: "changed.ogg"},
+        });
+        expect(document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')?.getAttribute("src")).toBe(
+            "changed.ogg",
+        );
     });
 
     it("mounts explicit audio controls when field containers appear after scheduled scans", async () => {

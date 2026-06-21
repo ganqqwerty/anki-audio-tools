@@ -155,7 +155,6 @@ describe("frontend architecture guardrails", () => {
       "field-state-store",
       "graph-countdown-overlay",
       "html-audio-session-audio-element",
-      "html-audio-session-backend-queue",
       "html-audio-session-field-projection",
       "html-audio-session-learner-projection",
       "logger",

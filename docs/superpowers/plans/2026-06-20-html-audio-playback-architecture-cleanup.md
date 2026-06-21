@@ -6,6 +6,10 @@
 
 **Architecture:** Treat `html-audio-session-machine.ts`, `html-audio-session-machine-helpers.ts`, `html-audio-session-progress.ts`, and `html-audio-session-types.ts` as the pure model layer. Treat `html-audio-session-controller.ts` as the only owner of source/learner session state and effect dispatch. Keep `field-state-store` as the UI projection, but add guardrails so source playback lifecycle writes flow through session effects rather than the legacy progress controller.
 
+**Observability:** Use [`../../architecture/html-audio-observability.md`](../../architecture/html-audio-observability.md)
+as the single source of truth for playback logs, suspicious invariants, and e2e
+observation requirements. Do not duplicate that checklist in this plan.
+
 **Tech Stack:** Svelte 5 editor webview, TypeScript, Vitest, Python `scripts/dev.py`, Anki/Qt e2e tests.
 
 ---

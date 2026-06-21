@@ -2,7 +2,6 @@ import { sendGraphAnalysisRequest } from "./bridge.js";
 import { setStatusForOrd } from "./control-actions.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { readFieldState, setCachedProgressMs } from "./field-state-store.js";
-import { queueBackendPlayback } from "./html-audio-session-backend-queue.js";
 import { audioProgressMsForOrd, createHtmlAudioElementOperations } from "./html-audio-session-audio-element.js";
 import {
   initialHtmlAudioSessionState,
@@ -26,6 +25,7 @@ import {
   renderLearnerPlaybackCursor,
 } from "./html-audio-session-learner-projection.js";
 import { logger } from "./logger.js";
+import type { EditorStatusMessage } from "./control-actions.js";
 import { t } from "../lib/i18n.js";
 import {
   readRepeatPauseSecondsRuntime,
@@ -52,10 +52,23 @@ export function readHtmlAudioSessionState(ord: number): HtmlAudioSessionState {
   return sessionStates.get(ord) ?? initialHtmlAudioSessionState(ord);
 }
 
+export function htmlAudioSessionSourceFilename(ord: number): string {
+  const state = readHtmlAudioSessionState(ord);
+  if (state.kind === "empty") return "";
+  return state.source?.sourceFilename ?? "";
+}
+
 export function dispatchHtmlAudioSessionEvent(ord: number, event: HtmlAudioSessionEvent): void {
   const current = readHtmlAudioSessionState(ord);
   const transition = transitionHtmlAudioSession(current, event);
   sessionStates.set(ord, transition.state);
+  logger.debug("html_audio_session.transition", {
+    effects: transition.effects.map((effect) => effect.type),
+    event: htmlAudioSessionEventSummary(event),
+    from: htmlAudioSessionStateSummary(current),
+    ord,
+    to: htmlAudioSessionStateSummary(transition.state),
+  });
   const expectedState = transition.state;
   for (const effect of transition.effects) {
     executeHtmlAudioSessionEffect(ord, effect);
@@ -63,6 +76,117 @@ export function dispatchHtmlAudioSessionEvent(ord: number, event: HtmlAudioSessi
       break;
     }
   }
+}
+
+function htmlAudioSessionStateSummary(state: HtmlAudioSessionState): Record<string, unknown> {
+  const base = {
+    cursorMs: "cursorMs" in state ? state.cursorMs : null,
+    durationMs: "durationMs" in state ? state.durationMs : null,
+    kind: state.kind,
+    sourceFilename: "source" in state ? state.source?.sourceFilename : null,
+  };
+  if (state.kind === "loading") {
+    return {
+      ...base,
+      pendingStart: state.pendingStart ? htmlAudioRequestSummary(state.pendingStart) : null,
+    };
+  }
+  if (state.kind === "post_edit_waiting") {
+    return {
+      ...base,
+      postEdit: {
+        generation: state.postEdit.generation,
+        requireGraphRedraw: state.postEdit.requireGraphRedraw,
+        sourceFilename: state.postEdit.sourceFilename,
+        sourceKind: state.postEdit.sourceKind,
+      },
+      readyDispatched: state.readyDispatched,
+      request: htmlAudioRequestSummary(state.request),
+    };
+  }
+  if ("request" in state) {
+    return {
+      ...base,
+      request: htmlAudioRequestSummary(state.request),
+    };
+  }
+  if (state.kind === "failed") {
+    return {
+      ...base,
+      reason: state.reason,
+    };
+  }
+  return base;
+}
+
+function htmlAudioSessionEventSummary(event: HtmlAudioSessionEvent): Record<string, unknown> {
+  switch (event.type) {
+    case "SourceConfigured":
+      return {
+        cursorMs: event.cursorMs,
+        sourceFilename: event.source.sourceFilename,
+        sourceKind: event.source.kind,
+        type: event.type,
+      };
+    case "StartRequested":
+      return { request: htmlAudioRequestSummary(event.request), type: event.type };
+    case "PostEditAutoplayRequested":
+      return {
+        intent: {
+          generation: event.intent.generation,
+          requireGraphRedraw: event.intent.requireGraphRedraw,
+          sourceFilename: event.intent.sourceFilename,
+          sourceKind: event.intent.sourceKind,
+        },
+        request: htmlAudioRequestSummary(event.request),
+        type: event.type,
+      };
+    case "BoundaryReached":
+      return {
+        cursorMs: event.cursorMs,
+        repeatEnabled: event.repeatEnabled,
+        repeatPauseMs: event.repeatPauseMs,
+        request: event.request ? htmlAudioRequestSummary(event.request) : null,
+        resetCursorMs: event.resetCursorMs,
+        restartAudio: event.restartAudio,
+        type: event.type,
+      };
+    case "GraphRenderedForSource":
+    case "PostEditReadyConfirmed":
+      return {
+        durationMs: event.durationMs,
+        sourceFilename: event.sourceFilename,
+        type: event.type,
+      };
+    case "MetadataLoaded":
+      return { durationMs: event.durationMs, type: event.type };
+    case "PlayResolved":
+      return { sourceFilename: event.sourceFilename, type: event.type };
+    case "PlayRejected":
+      return { reason: event.reason, sourceFilename: event.sourceFilename, type: event.type };
+    case "SeekFailed":
+    case "AudioError":
+      return { cursorMs: event.cursorMs, reason: event.reason, type: event.type };
+    case "PauseRequested":
+    case "StopRequested":
+      return { cursorMs: event.cursorMs, type: event.type };
+    case "RepeatDelayElapsed":
+      return { repeatEnabled: event.repeatEnabled, type: event.type };
+    default:
+      return { type: (event as { type: string }).type };
+  }
+}
+
+function htmlAudioRequestSummary(request: HtmlAudioStartRequest): Record<string, unknown> {
+  return {
+    cursorMs: request.cursorMs,
+    endMs: request.endMs,
+    loop: request.loop,
+    ord: request.ord,
+    regionMode: request.regionMode,
+    resetCursorMs: request.resetCursorMs,
+    source: request.source,
+  };
 }
 
 export function clearHtmlAudioSession(ord: number): void {
@@ -149,9 +273,6 @@ function executeHtmlAudioSessionEffect(ord: number, effect: HtmlAudioSessionEffe
         sourceFilename: effect.sourceFilename,
       });
       return;
-    case "QueueBackendPlayback":
-      queueBackendPlayback(effect.request);
-      return;
     case "PublishPlaybackState":
       publishPlaybackState({
         cursorMs: effect.cursorMs,
@@ -170,7 +291,13 @@ function executeHtmlAudioSessionEffect(ord: number, effect: HtmlAudioSessionEffe
       completePlayback(ord, effect.cursorMs);
       return;
     case "ShowPlaybackStatus":
-      setStatusForOrd(ord, t(effect.statusKey), "warning", "", "playback");
+      setStatusForOrd(
+        ord,
+        playbackStatusMessage(effect),
+        effect.kind ?? "warning",
+        "",
+        effect.kind === "error" ? "error" : "playback",
+      );
       return;
     case "ShowPostEditPlaybackWarning":
       showPostEditPlaybackWarning(ord, t(effect.statusKey));
@@ -191,6 +318,13 @@ function showPostEditPlaybackWarning(ord: number, message: string): void {
   warning.textContent = message;
   warning.dataset.kind = "warning";
   warning.hidden = false;
+}
+
+function playbackStatusMessage(
+  effect: Extract<HtmlAudioSessionEffect, { type: "ShowPlaybackStatus" }>,
+): EditorStatusMessage {
+  const message = t(effect.statusKey);
+  return effect.statusCode ? { code: effect.statusCode, message } : message;
 }
 
 function startProgressFrame(ord: number, cursorMs: number, endMs: number): void {

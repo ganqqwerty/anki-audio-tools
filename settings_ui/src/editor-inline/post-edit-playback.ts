@@ -1,4 +1,4 @@
-import { allControls, visualizerForOrd } from "./dom-selectors.js";
+import { allControls, currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
 import {
   editorRuntimeConfig,
   repeatPlaybackByDefault as configRepeatPlaybackByDefault,
@@ -11,6 +11,7 @@ import { readRepeatPauseSecondsRuntime } from "./visualizer-runtime-state.js";
 import type { PostEditPlaybackIntent } from "./types.js";
 import {
   dispatchHtmlAudioSessionEvent,
+  htmlAudioSessionSourceFilename,
   readHtmlAudioSessionState,
 } from "./html-audio-session-controller.js";
 import type {
@@ -31,11 +32,15 @@ const postEditGraphRequests: Set<string> = new Set();
 export function rememberPostEditPlaybackIntent(ord: number): void {
   const visualizer = visualizerForOrd(ord);
   const s = visualizer ? readFieldState(ord) : null;
-  postEditPlaybackIntents()[ord] = {
-    repeat: s ? s.playback.repeat : repeatDefaultFromConfig(),
-    repeatPauseSeconds: normalizedRepeatPauseSeconds(
-      visualizer ? readRepeatPauseSecondsRuntime(visualizer) : 0,
-    ),
+  const intents = postEditPlaybackIntents();
+  const previous = intents[ord] ?? null;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
+  const pendingPreviousEdit = previous !== null && pending?.fieldOrd === ord;
+  intents[ord] = {
+    repeat: pendingPreviousEdit ? previous.repeat : (s ? s.playback.repeat : repeatDefaultFromConfig()),
+    repeatPauseSeconds: pendingPreviousEdit
+      ? previous.repeatPauseSeconds
+      : normalizedRepeatPauseSeconds(visualizer ? readRepeatPauseSecondsRuntime(visualizer) : 0),
   };
 }
 
@@ -108,7 +113,7 @@ export function notifyMountedPostEditPlaybackReady(): void {
     const ord = Number(controls.dataset.aqeFieldOrd || "0");
     notifyPostEditPlaybackReady(
       ord,
-      readFieldState(ord).sourceFilename,
+      liveAudioSourceFilename(ord),
     );
   });
 }
@@ -132,7 +137,7 @@ function handlePostEditReadinessChanged(event: Event): void {
   if (!detail) return;
   const pending = editorRuntimeConfig().pendingPostEditPlayback;
   if (!pending || pending.fieldOrd !== detail.ord) return;
-  notifyPostEditPlaybackReady(detail.ord, readFieldState(detail.ord).sourceFilename);
+  notifyPostEditPlaybackReady(detail.ord, liveAudioSourceFilename(detail.ord));
 }
 
 function postEditHtmlReadiness(ord: number) {
@@ -183,8 +188,15 @@ function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string):
     pendingRequireGraphRedraw: pending?.requireGraphRedraw === true,
     pendingSourceFilename: pending?.sourceFilename || "",
     pendingSourceKind: pending?.sourceKind || "",
+    sessionSourceFilename: htmlAudioSessionSourceFilename(ord),
     visualizerSourceFilename: s?.sourceFilename || "",
   };
+}
+
+function liveAudioSourceFilename(ord: number): string {
+  return htmlAudioSessionSourceFilename(ord)
+    || currentAudioSourceForOrd(ord)
+    || readFieldState(ord).sourceFilename;
 }
 
 export function postEditRenderedGraphCanDriveHtmlPlayback(

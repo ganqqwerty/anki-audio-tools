@@ -134,16 +134,8 @@ describe("editor inline post-edit playback readiness integration", () => {
     await Promise.resolve();
 
     expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(window.__aqePendingPlaybackRequest).toEqual({
-      action: "start",
-      cursorMs: 0,
-      endMs: 1000,
-      engine: "html",
-      loop: false,
-      ord: 0,
-      regionMode: "selection",
-      source: "post_edit",
-    });
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:play");
     expect(document.querySelector('[data-testid="aqe-playback-warning-0"]')).toHaveAttribute("hidden");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackEngine: "html",
@@ -174,16 +166,8 @@ describe("editor inline post-edit playback readiness integration", () => {
 
     expect(audio.play).toHaveBeenCalledTimes(1);
     expect(consumePendingCommandPayload()).toBeNull();
-    expect(window.__aqeGetPlaybackRequest?.()).toEqual({
-      action: "start",
-      cursorMs: 0,
-      endMs: 1000,
-      engine: "html",
-      loop: false,
-      ord: 0,
-      regionMode: "selection",
-      source: "post_edit",
-    });
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:play");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackEngine: "html",
       playbackState: "playing",

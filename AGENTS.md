@@ -133,6 +133,9 @@ When I describe a bug, it's your responsibility to try to reproduce it in e2e te
 ## Logging
 
 Use the unified package logger. File logging is initialized from the add-on bootstrap after the main window is ready. Log on python level and on svelte level. Users will give us logs and we will find bugs more easily. 
+For HTML audio playback logs, invariants, and e2e observation requirements,
+link to [`docs/architecture/html-audio-observability.md`](docs/architecture/html-audio-observability.md)
+instead of duplicating the checklist.
 
 ## Code Style
 

@@ -292,16 +292,8 @@ describe("editor inline chorusing integration", () => {
     await Promise.resolve();
 
     expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      action: "start",
-      cursorMs: 500,
-      endMs: 1000,
-      engine: "html",
-      loop: true,
-      ord: 0,
-      regionMode: "selection",
-      source: "chorusing",
-    });
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands().filter((command) => command === "aqe:play")).toHaveLength(0);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingActiveMarkerIndex: 1,
@@ -310,7 +302,7 @@ describe("editor inline chorusing integration", () => {
       repeatEnabled: true,
     });
     expect(window.__aqePendingPlaybackRequest).toBeNull();
-    expect(bridgeCommands().filter((command) => command === "aqe:play")).toHaveLength(1);
+    expect(bridgeCommands().filter((command) => command === "aqe:play")).toHaveLength(0);
 
     handlePlaybackBoundary(visualizer(), 1000);
     await Promise.resolve();
@@ -335,18 +327,8 @@ describe("editor inline chorusing integration", () => {
       selectionStartMs: 0,
     });
     expect(audio.play).toHaveBeenCalledTimes(2);
-    expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      action: "start",
-      cursorMs: 0,
-      endMs: 1000,
-      engine: "html",
-      loop: true,
-      ord: 0,
-      regionMode: "selection",
-      source: "chorusing",
-    });
     expect(window.__aqePendingPlaybackRequest).toBeNull();
-    expect(bridgeCommands().filter((command) => command === "aqe:play")).toHaveLength(2);
+    expect(bridgeCommands().filter((command) => command === "aqe:play")).toHaveLength(0);
   });
 
   it("ignores stale chorusing loop boundaries after auto-advance starts the next suffix", async () => {
@@ -358,10 +340,8 @@ describe("editor inline chorusing integration", () => {
     practiceButton().click();
     await Promise.resolve();
     await Promise.resolve();
-    expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      cursorMs: 500,
-      source: "chorusing",
-    });
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands().filter((command) => command === "aqe:play")).toHaveLength(0);
 
     const stalePass = {
       endMs: 1000,
@@ -381,11 +361,8 @@ describe("editor inline chorusing integration", () => {
     await Promise.resolve();
 
     expect(audio.play).toHaveBeenCalledTimes(2);
-    expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      cursorMs: 0,
-      source: "chorusing",
-    });
     expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands().filter((command) => command === "aqe:play")).toHaveLength(0);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingActiveMarkerIndex: 0,
       chorusingRepeatPassesCompleted: 0,

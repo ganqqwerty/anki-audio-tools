@@ -6,6 +6,10 @@
 
 **Architecture:** Introduce a shared HTML audio session model that owns source configuration, metadata readiness, play/pause lifecycle, failure state, progress clock ownership, repeat waiting, and post-edit autoplay readiness. Source playback and learner recording playback become thin domain adapters over this shared model. Python continues to create media files and publish explicit playback intent metadata, but it no longer relies on filename heuristics or frontend graph state as hidden playback contracts.
 
+**Observability:** Use [`../../architecture/html-audio-observability.md`](../../architecture/html-audio-observability.md)
+as the single source of truth for playback logs, suspicious invariants, and e2e
+observation requirements. Do not duplicate that checklist in this plan.
+
 **Tech Stack:** Svelte 5, TypeScript, Vitest, Python Anki/Qt e2e, existing `scripts/dev.py` quality gates.
 
 ---
@@ -122,7 +126,9 @@ The domain states differ, but the audio element lifecycle is the same.
 
 The branch added and used checks for unexpected native playback and lingering mpv playback, but this is still mostly targeted validation.
 
-**Design target:** playback leak assertions should be available as a reusable e2e fixture/helper and applied to transform/post-edit/repeat workflows that can accidentally keep audio playing.
+**Design target:** playback leak assertions should be available as reusable e2e
+fixtures/helpers and applied according to the canonical observability contract
+in [`../../architecture/html-audio-observability.md`](../../architecture/html-audio-observability.md).
 
 ### Problem 9: Commit History Does Not Explain Why
 
@@ -893,6 +899,12 @@ python3 scripts/dev.py test-e2e-parallel e2e/test_editor_voice_recording_compari
 Expected: pass.
 
 ### Task 9: Add Reusable E2E Playback Leak Guard
+
+This task implements the browser play-count portion of the canonical
+observability contract in
+[`../../architecture/html-audio-observability.md`](../../architecture/html-audio-observability.md).
+The contract is the source of truth; the code below is only one task-specific
+implementation sketch.
 
 **Files:**
 

@@ -70,6 +70,7 @@ def test_real_mp3_playback_advances_graph_cursor_without_test_driver(
         assert advanced["state"]["audioPlaybackTestDriver"] is False
         assert advanced["state"]["playbackEngine"] == "html"
         assert advanced["state"]["progressClockMode"] == "audio"
+        assert advanced["backendPlaybackRequests"] == []
         assert advanced["nativePlaybackRequests"] == []
     finally:
         _stop_real_audio_playback(editor)
@@ -101,6 +102,7 @@ def test_real_media_repeat_keeps_audio_playing_after_repeated_full_file_loops(
         assert repeated["paused"] is False, repeated
         assert repeated["errorCode"] is None, repeated
         assert EXPECTED_FORVO_REPEAT_PLAY_CALLS <= repeated["playCalls"] <= MAX_FORVO_REPEAT_PLAY_CALLS
+        assert repeated["backendPlaybackRequests"] == []
         assert repeated["nativePlaybackRequests"] == []
         assert source.name == "forvo_Vertrag.ogg"
     finally:
@@ -200,6 +202,11 @@ def _real_repeat_reached_expected_passes(value) -> bool:
             "Real-media repeat playback fell back to native playback unexpectedly: "
             f"{value['nativePlaybackRequests']!r}"
         )
+    if value["backendPlaybackRequests"]:
+        raise AssertionError(
+            "Real-media repeat playback re-entered backend playback unexpectedly: "
+            f"{value['backendPlaybackRequests']!r}"
+        )
     return (
         value["state"]["playbackState"] == "playing"
         and value["state"]["playbackEngine"] == "html"
@@ -264,17 +271,18 @@ def _install_real_audio_probe(editor, ord_: int = 0) -> None:
         editor.web,
         f"""
         (() => {{
-          const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
-          if (!audio || audio.__aqeRealAudioProbeInstalled) return !!audio?.__aqeRealAudioProbeInstalled;
-          const probe = window.__aqeRealAudioProbe = {{
+          const probe = window.__aqeRealAudioProbe ??= {{
+            backendPlaybackRequests: [],
             events: [],
             nativePlaybackRequests: [],
             pauseCalls: 0,
             playCalls: 0,
           }};
-          const originalPlay = audio.play.bind(audio);
-          const originalPause = audio.pause.bind(audio);
-          audio.play = function play() {{
+          const install = (audio) => {{
+            if (!audio || audio.__aqeRealAudioProbeInstalled) return;
+            const originalPlay = audio.play.bind(audio);
+            const originalPause = audio.pause.bind(audio);
+            audio.play = function play() {{
             probe.playCalls += 1;
             probe.events.push({{
               currentTime: audio.currentTime,
@@ -297,8 +305,8 @@ def _install_real_audio_probe(editor, ord_: int = 0) -> None:
               }}),
             );
             return result;
-          }};
-          audio.pause = function pause() {{
+            }};
+            audio.pause = function pause() {{
             probe.pauseCalls += 1;
             probe.events.push({{
               currentTime: audio.currentTime,
@@ -307,8 +315,8 @@ def _install_real_audio_probe(editor, ord_: int = 0) -> None:
               type: "pause-call",
             }});
             return originalPause();
-          }};
-          for (const type of ["ended", "pause", "play", "playing", "seeked", "seeking", "timeupdate"]) {{
+            }};
+            for (const type of ["ended", "pause", "play", "playing", "seeked", "seeking", "timeupdate"]) {{
             audio.addEventListener(type, () => probe.events.push({{
               currentTime: audio.currentTime,
               ended: audio.ended,
@@ -316,16 +324,41 @@ def _install_real_audio_probe(editor, ord_: int = 0) -> None:
               time: performance.now(),
               type,
             }}));
-          }}
-          const originalPycmd = window.pycmd;
-          window.pycmd = function monitoredPycmd(command) {{
-            if (typeof command === "string" && command.startsWith("aqe:play:")) {{
-              probe.nativePlaybackRequests.push(command);
             }}
-            return originalPycmd.apply(this, arguments);
+            audio.__aqeRealAudioProbeInstalled = true;
           }};
-          audio.__aqeRealAudioProbeInstalled = true;
-          return true;
+          window.__aqeInstallRealAudioProbeForTest = () => {{
+            for (const audio of document.querySelectorAll('[data-testid^="aqe-audio-clock-"]')) {{
+              install(audio);
+            }}
+          }};
+          if (!window.__aqeRealAudioProbePycmdInstalled) {{
+            const originalPycmd = window.pycmd;
+            window.pycmd = function monitoredPycmd(command) {{
+              if (typeof command === "string") {{
+                if (command === "aqe:play") {{
+                  probe.backendPlaybackRequests.push(command);
+                }}
+                if (command.startsWith("aqe:play:")) {{
+                  probe.nativePlaybackRequests.push(command);
+                }}
+              }}
+              return originalPycmd.apply(this, arguments);
+            }};
+            window.__aqeRealAudioProbePycmdInstalled = true;
+          }}
+          if (!window.__aqeRealAudioProbeObserver) {{
+            window.__aqeRealAudioProbeObserver = new MutationObserver(() => {{
+              window.__aqeInstallRealAudioProbeForTest();
+            }});
+            window.__aqeRealAudioProbeObserver.observe(document.body, {{
+              childList: true,
+              subtree: true,
+            }});
+          }}
+          window.__aqeInstallRealAudioProbeForTest();
+          const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
+          return !!audio?.__aqeRealAudioProbeInstalled;
         }})()
         """,
         lambda value: value is True,
@@ -360,6 +393,7 @@ def _real_audio_probe_js(ord_: int = 0) -> str:
             ended: audio.ended,
             errorCode: audio.error ? audio.error.code : null,
         errorMessage: audio.error ? audio.error.message : "",
+        backendPlaybackRequests: probe.backendPlaybackRequests.slice(),
         events: probe.events.slice(-24),
         loop: audio.loop,
         nativePlaybackRequests: probe.nativePlaybackRequests.slice(),

@@ -117,11 +117,10 @@ export type HtmlAudioSessionEffect =
   | { type: "ClearRepeatTimer" }
   | { type: "RequestGraphForSource"; ord: number; sourceFilename: string }
   | { type: "DispatchPostEditReady"; ord: number; generation: number; sourceFilename: string }
-  | { type: "QueueBackendPlayback"; request: HtmlAudioStartRequest }
   | { type: "PublishPlaybackState"; status: "stopped" | "playing" | "paused"; cursorMs?: number }
   | { type: "PublishRepeatWaitingState"; cursorMs: number }
   | { type: "CompletePlayback"; cursorMs: number }
-  | { type: "ShowPlaybackStatus"; statusKey: string }
+  | { type: "ShowPlaybackStatus"; kind?: "error" | "warning"; statusCode?: string; statusKey: string }
   | { type: "ShowPostEditPlaybackWarning"; statusKey: string }
   | { type: "LogPlaybackTelemetry"; event: string; data: Record<string, unknown> };
 
