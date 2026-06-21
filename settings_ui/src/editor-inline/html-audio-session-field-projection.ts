@@ -6,7 +6,7 @@ import { audioForOrd } from "./html-audio-session-audio-element.js";
 import {
   installLearnerAudioHandlers,
   publishLearnerPlaybackState,
-} from "./html-audio-session-learner-effects.js";
+} from "./html-audio-session-learner-projection.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import type { HtmlAudioSessionEvent, HtmlAudioSessionState, HtmlAudioStartRequest } from "./html-audio-session-types.js";
 import {

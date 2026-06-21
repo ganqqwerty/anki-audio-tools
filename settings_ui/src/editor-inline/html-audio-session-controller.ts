@@ -16,7 +16,7 @@ import {
   clearPostEditReadyDispatches,
   dispatchPostEditReady,
 } from "./html-audio-session-post-edit-dispatch.js";
-import { completePlayback, publishPlaybackState, publishRepeatWaitingState } from "./html-audio-session-field-effects.js";
+import { completePlayback, publishPlaybackState, publishRepeatWaitingState } from "./html-audio-session-field-projection.js";
 import {
   htmlAudioProgressDecision,
   type HtmlAudioProgressClock,
@@ -24,7 +24,7 @@ import {
 import {
   clearLearnerAudioHandler,
   renderLearnerPlaybackCursor,
-} from "./html-audio-session-learner-effects.js";
+} from "./html-audio-session-learner-projection.js";
 import { logger } from "./logger.js";
 import { t } from "../lib/i18n.js";
 import {
