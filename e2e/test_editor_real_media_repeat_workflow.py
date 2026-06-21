@@ -8,6 +8,7 @@ from pathlib import Path
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtTest import QTest
 
+from e2e.editor_audio_generation_helpers import _generate_high_bitrate_mp3
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _graph_state_js,
@@ -31,6 +32,49 @@ from e2e.helpers import (
 MEDIA_FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "audio"
 EXPECTED_FORVO_REPEAT_PLAY_CALLS = 3
 MAX_FORVO_REPEAT_PLAY_CALLS = EXPECTED_FORVO_REPEAT_PLAY_CALLS + 1
+
+
+def test_real_mp3_playback_advances_graph_cursor_without_test_driver(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_real_mp3_cursor_source.mp3"
+    _generate_high_bitrate_mp3(ffmpeg_config, source, duration_s=0.9)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, repeat_playback_by_default=False)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == source.name,
+            timeout=30.0,
+        )
+        _set_full_time_viewport(editor)
+        _wait_for_real_audio_ready(editor)
+        _install_real_audio_probe(editor)
+
+        _trusted_click_selector(editor, _button_selector("aqe:play"))
+        _wait_for_real_html_playback(editor)
+        advanced = wait_for_js_condition(
+            editor.web,
+            _real_audio_probe_js(),
+            lambda value: value is not None
+            and value["currentTimeMs"] >= 180
+            and value["state"]["progressMs"] >= 180
+            and value["state"]["cursorX"] > 80,
+            timeout=5.0,
+        )
+
+        assert advanced["state"]["audioPlaybackTestDriver"] is False
+        assert advanced["state"]["playbackEngine"] == "html"
+        assert advanced["state"]["progressClockMode"] == "audio"
+        assert advanced["nativePlaybackRequests"] == []
+    finally:
+        _stop_real_audio_playback(editor)
+        editor.set_note(None)
+        parent.close()
 
 
 def test_real_media_repeat_keeps_audio_playing_after_repeated_full_file_loops(

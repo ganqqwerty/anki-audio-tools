@@ -35,6 +35,7 @@ import {
 } from "./visualizer-runtime-state.js";
 import { clearRepeatPauseCountdownOverlay, startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
+import { renderPlaybackCursor } from "./visualizer-renderer.js";
 import type { PlaybackPass } from "./playback-model.js";
 
 const sessionStates = new Map<number, HtmlAudioSessionState>();
@@ -209,6 +210,7 @@ function startProgressFrame(ord: number, cursorMs: number, endMs: number): void 
   }
   progressClocks.set(ord, { cursorMs, endMs, startedAtMs: performance.now() });
   const tick = (): void => {
+    const nowMs = performance.now();
     const state = readHtmlAudioSessionState(ord);
     if (state.kind !== "starting" && state.kind !== "playing") {
       clearProgressFrame(ord);
@@ -218,11 +220,12 @@ function startProgressFrame(ord: number, cursorMs: number, endMs: number): void 
     if (!clock) return;
     const field = state.source.kind === "source" ? readFieldState(ord) : null;
     const currentVisualizer = state.source.kind === "source" ? visualizerForOrd(ord) : null;
+    const graphDurationMs = field?.graph.durationMs ?? state.durationMs;
     const decision = htmlAudioProgressDecision({
       audioProgressMs: audioProgressMsForOrd(ord),
       clock,
-      graphDurationMs: field?.graph.durationMs ?? state.durationMs,
-      nowMs: performance.now(),
+      graphDurationMs,
+      nowMs,
       repeatEnabled: field?.playback.repeat ?? false,
       repeatPauseMs: currentVisualizer ? readRepeatPauseSecondsRuntime(currentVisualizer) * 1000 : 0,
       state,
@@ -231,7 +234,10 @@ function startProgressFrame(ord: number, cursorMs: number, endMs: number): void 
       renderLearnerPlaybackCursor(ord, decision.learnerCursorMs);
     } else {
       setCachedProgressMs(ord, decision.progressMs, currentVisualizer);
-      if (currentVisualizer) ensurePlaybackCursorVisible(currentVisualizer, decision.progressMs);
+      if (currentVisualizer) {
+        ensurePlaybackCursorVisible(currentVisualizer, decision.progressMs);
+        renderPlaybackCursor(currentVisualizer, decision.progressMs, graphDurationMs, nowMs);
+      }
       if (decision.kind === "boundary") {
         dispatchHtmlAudioSessionEvent(ord, decision.event);
         return;
