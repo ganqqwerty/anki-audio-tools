@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { toggleLearnerRecordingHtmlPlayback } from "../src/editor-inline/learner-recording-playback.js";
 import { readHtmlAudioSessionState } from "../src/editor-inline/html-audio-session-controller.js";
+import { handleHtmlPlaybackCommand } from "../src/editor-inline/playback-actions.js";
 import {
   bridgeCommands,
   mockAnimationFrames,
@@ -67,6 +68,43 @@ describe("editor inline learner recording HTML playback", () => {
     expect(bridgeCommands()).not.toContain("aqe:play-recording");
     expect(window.__aqeGraphStateForTest?.(0)?.learnerPlaybackStatus).toBe("playing");
     expect(playRecordingButton().dataset.aqeButtonState).toBe("pause");
+  });
+
+  it("keeps main playback on the original field audio after a recording is ready", async () => {
+    const playSpy = mockMediaPlayback();
+    initAndScan({
+      ...recordingConfig(),
+      visibleEditorButtons: [
+        "aqe:play",
+        "aqe:analyze",
+        "aqe:record-voice",
+        "aqe:play-recording",
+      ],
+    });
+    await setupAudioTrack();
+    publishReadyRecording({ mediaFilename: "voice recording.wav" });
+
+    expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "ready",
+      source: {
+        kind: "learner_recording",
+        sourceFilename: "voice recording.wav",
+      },
+    });
+    expect(handleHtmlPlaybackCommand(0)).toBe(true);
+    await flushMicrotasks();
+
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    const audio = learnerAudio();
+    expect(audio.getAttribute("src")).toBe("clip%20one.mp3");
+    expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "playing",
+      source: {
+        kind: "source",
+        sourceFilename: "clip one.mp3",
+      },
+    });
+    expect(bridgeCommands()).not.toContain("aqe:play");
   });
 
   it("renders progress at the learner start cursor plus current audio time", async () => {
