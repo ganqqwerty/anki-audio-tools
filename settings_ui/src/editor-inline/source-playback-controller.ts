@@ -2,7 +2,6 @@ import { readFieldState } from "./field-state-store.js";
 import { currentAudioSourceForOrd } from "./dom-selectors.js";
 import {
   dispatchHtmlAudioSessionEvent,
-  htmlAudioSessionSourceFilename,
   readHtmlAudioSessionState,
   stopOtherHtmlAudioSessions,
 } from "./html-audio-session-controller.js";
@@ -32,9 +31,9 @@ export function startSourceHtmlPlayback(
   clearPostEditPlaybackWarning(visualizer);
   const sourceRequest = sourcePlaybackRequestFor(visualizer, request);
   const field = readFieldState(sourceRequest.ord);
-  const sourceFilename = htmlAudioSessionSourceFilename(sourceRequest.ord)
-    || currentAudioSourceForOrd(sourceRequest.ord)
-    || field.sourceFilename;
+  const sourceFilename = sourceSessionFilename(sourceRequest.ord)
+    || field.sourceFilename
+    || currentAudioSourceForOrd(sourceRequest.ord);
   if (!sourceFilename) return false;
 
   const htmlRequest = htmlAudioStartRequestForSourceRequest(sourceRequest);
@@ -174,8 +173,15 @@ function htmlAudioSessionNeedsSource(
   sourceFilename: string,
 ): boolean {
   if (state.kind === "empty" || state.kind === "failed") return true;
+  if (state.source.kind !== "source") return true;
   if (state.source.sourceFilename !== sourceFilename) return true;
   return state.kind !== "ready" && state.kind !== "loading";
+}
+
+function sourceSessionFilename(ord: number): string {
+  const state = readHtmlAudioSessionState(ord);
+  if (state.kind === "empty" || state.kind === "failed") return "";
+  return state.source.kind === "source" ? state.source.sourceFilename : "";
 }
 
 function clearPostEditPlaybackWarning(visualizer: VisualizerElement): void {
