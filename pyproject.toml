@@ -1,6 +1,6 @@
 [project]
 name = "anki-audio-quick-editor"
-version = "1.9.0rc1"
+version = "1.9.0rc2"
 requires-python = ">=3.13"
 license = "AGPL-3.0-or-later"
 dependencies = [
