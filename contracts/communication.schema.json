@@ -328,10 +328,11 @@
     "AudioExportDefaults": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["mode", "silence_between_clips_seconds"],
+      "required": ["mode", "silence_between_clips_seconds", "normalize_volume"],
       "properties": {
         "mode": { "$ref": "#/definitions/AudioExportMode" },
-        "silence_between_clips_seconds": { "type": "number", "minimum": 0, "maximum": 10 }
+        "silence_between_clips_seconds": { "type": "number", "minimum": 0, "maximum": 10 },
+        "normalize_volume": { "type": "boolean" }
       }
     },
     "BatchDpdfnetAttnLimitDB": {
@@ -517,7 +518,8 @@
         "mode",
         "destination_path",
         "field_selections",
-        "silence_between_clips_seconds"
+        "silence_between_clips_seconds",
+        "normalize_volume"
       ],
       "properties": {
         "mode": { "$ref": "#/definitions/AudioExportMode" },
@@ -526,7 +528,8 @@
           "type": "array",
           "items": { "$ref": "#/definitions/AudioExportFieldSelection" }
         },
-        "silence_between_clips_seconds": { "type": "number", "minimum": 0, "maximum": 10 }
+        "silence_between_clips_seconds": { "type": "number", "minimum": 0, "maximum": 10 },
+        "normalize_volume": { "type": "boolean" }
       }
     },
     "AudioExportProgressPayload": {

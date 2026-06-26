@@ -9,9 +9,10 @@ from .ffmpeg_output_contracts import validate_final_ffmpeg_output
 
 EXPORT_SAMPLE_RATE_HZ = 44100
 EXPORT_CHANNELS = 2
+LOUDNORM_EXPORT_FILTER = "loudnorm=I=-16:TP=-1.5:LRA=11"
 
 
-def build_normalize_wav_command(
+def build_stage_wav_command(
     ffmpeg_path: Path,
     source_path: Path,
     output_path: Path,
@@ -28,6 +29,49 @@ def build_normalize_wav_command(
         str(EXPORT_CHANNELS),
         "-c:a",
         "pcm_s16le",
+        str(output_path),
+    )
+
+
+def build_normalized_wav_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_path: Path,
+) -> tuple[str, ...]:
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-filter:a",
+        LOUDNORM_EXPORT_FILTER,
+        "-ar",
+        str(EXPORT_SAMPLE_RATE_HZ),
+        "-ac",
+        str(EXPORT_CHANNELS),
+        "-c:a",
+        "pcm_s16le",
+        str(output_path),
+    )
+
+
+def build_normalized_mp3_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_path: Path,
+) -> tuple[str, ...]:
+    codec_args = conversion_codec_args("mp3")
+    validate_final_mp3_output(output_path)
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-filter:a",
+        LOUDNORM_EXPORT_FILTER,
+        *codec_args,
         str(output_path),
     )
 

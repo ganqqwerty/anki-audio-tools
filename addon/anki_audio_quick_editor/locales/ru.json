@@ -436,6 +436,7 @@
   "audio_export.destination": "Назначение",
   "audio_export.fields": "Поля",
   "audio_export.silence_between_clips": "Тишина между клипами",
+  "audio_export.normalize_volume": "Нормализовать громкость",
   "audio_export.no_audio": "Нет аудио",
   "audio_export.starting": "Запуск экспорта аудио.",
   "audio_export.progress": "Экспортировано {processed}/{total} аудиофайлов. Текущее аудио: {audio}. Ошибок: {failures}.",

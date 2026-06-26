@@ -128,6 +128,30 @@ def test_audio_export_dialog_bridge_start_cancel_copy_and_close(monkeypatch, req
     assert dialog._dialog.rejected is True
 
 
+def test_audio_export_dialog_close_cancels_running_export(monkeypatch, request) -> None:
+    dialog_module = _reload_audio_export_dialog_with_fake_qt(request)
+    run_calls = []
+    monkeypatch.setattr(dialog_module, "request_from_audio_export_start_payload", lambda _payload: "request")
+    monkeypatch.setattr(dialog_module, "run_audio_export_in_background", lambda *args: run_calls.append(args))
+
+    dialog = dialog_module.AudioExportDialog(
+        browser=object(),
+        note_ids=[1],
+        groups=(FieldGroup("Basic", ("Audio",)),),
+        snapshots=(),
+    )
+
+    command = "bridge:" + json.dumps({"command": "audio-export.start", "payload": {"mode": "zip"}})
+    assert dialog._webview.bridge(command) is True
+    assert dialog.cancel_event.is_set() is False
+
+    assert dialog._webview.bridge('bridge:{"command":"audio-export.close"}') is True
+
+    assert dialog.cancel_event.is_set()
+    assert dialog._dialog.rejected is True
+    assert dialog._log_lines[-1]
+
+
 def test_audio_export_dialog_start_clears_prior_cancel_event(monkeypatch, request) -> None:
     dialog_module = _reload_audio_export_dialog_with_fake_qt(request)
     run_calls = []

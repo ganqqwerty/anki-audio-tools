@@ -436,6 +436,7 @@
   "audio_export.destination": "目标位置",
   "audio_export.fields": "字段",
   "audio_export.silence_between_clips": "片段之间的静音",
+  "audio_export.normalize_volume": "标准化音量",
   "audio_export.no_audio": "无音频",
   "audio_export.starting": "正在开始导出音频。",
   "audio_export.progress": "已导出 {processed}/{total} 个音频文件。当前音频：{audio}。失败：{failures}。",

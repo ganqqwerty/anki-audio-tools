@@ -36,6 +36,7 @@ function audioExportInitialState(): AudioExportInitialState {
     defaults: {
       mode: AudioExportMode.Zip,
       silence_between_clips_seconds: 1,
+      normalize_volume: false,
     },
     locale: "en",
     direction: Direction.LTR,
@@ -66,6 +67,7 @@ describe("BatchApp audio export surface", () => {
     expect(screen.getByText("Export audio files from the selected notes. If you choose more than 50 audio files, this can get very, very slow.")).toBeInTheDocument();
     expect(screen.getByTestId("audio-export-controls")).toBeInTheDocument();
     expect(screen.getByLabelText("Destination")).toBeInTheDocument();
+    expect(screen.getByLabelText("Normalize volume")).toBeInTheDocument();
     expect(screen.queryByTestId("batch-operation")).not.toBeInTheDocument();
     expect(container.querySelector("label label")).toBeNull();
     expect(container.querySelector("label button")).toBeNull();
@@ -109,8 +111,30 @@ describe("BatchApp audio export surface", () => {
         destination_path: "/tmp/cards.zip",
         field_selections: [{ notetype_name: "Basic", fields: ["Audio"] }],
         silence_between_clips_seconds: 1,
+        normalize_volume: false,
       },
     });
+  });
+
+  it("starts export with normalize volume enabled", async () => {
+    render(BatchApp);
+
+    await waitFor(() => expect(window.onAudioExportDestination).toBeTypeOf("function"));
+    window.onAudioExportDestination?.({ destination_path: "/tmp/cards.zip" });
+    await fireEvent.click(screen.getByLabelText("Normalize volume"));
+    await fireEvent.click(screen.getByTestId("batch-start"));
+
+    expect(bridgeEnvelope("audio-export.start")).toEqual({
+      command: "audio-export.start",
+      payload: {
+        mode: AudioExportMode.Zip,
+        destination_path: "/tmp/cards.zip",
+        field_selections: [{ notetype_name: "Basic", fields: ["Audio"] }],
+        silence_between_clips_seconds: 1,
+        normalize_volume: true,
+      },
+    });
+    expect(screen.getByLabelText("Normalize volume")).toBeDisabled();
   });
 
   it("cancels the running audio export", async () => {

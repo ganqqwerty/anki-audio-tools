@@ -25,6 +25,7 @@ class AudioExportRequest:
     destination_path: Path
     field_selections: tuple[AudioExportFieldSelection, ...]
     silence_between_clips_seconds: float = 1.0
+    normalize_volume: bool = False
 
 
 @dataclass(frozen=True)

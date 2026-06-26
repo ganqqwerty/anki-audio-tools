@@ -56,6 +56,16 @@
     </div>
   </div>
 
+  <label class="export-choice export-normalize">
+    <input
+      type="checkbox"
+      bind:checked={form.normalizeVolume}
+      disabled={disabled}
+      data-testid="audio-export-normalize-volume"
+    />
+    <span>{t("audio_export.normalize_volume")}</span>
+  </label>
+
   {#if form.mode === AudioExportMode.CombinedMp3}
     <label class="export-control">
       <span>{t("audio_export.silence_between_clips")}</span>
@@ -142,6 +152,10 @@
     display: inline-flex;
     gap: 5px;
     min-height: 24px;
+  }
+
+  .export-normalize {
+    align-self: end;
   }
 
   .export-choice span,

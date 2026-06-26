@@ -406,6 +406,7 @@ forbidden_modules = [
     "anki_audio_quick_editor.audio_recording",
     "anki_audio_quick_editor.browser_audio_export_dialog",
     "anki_audio_quick_editor.browser_audio_export_runner",
+    "anki_audio_quick_editor.audio_export_zip_writer",
     "anki_audio_quick_editor.browser_batch_runner",
     "anki_audio_quick_editor.browser_dialog",
     "anki_audio_quick_editor.browser_integration",

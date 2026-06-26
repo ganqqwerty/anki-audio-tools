@@ -22,6 +22,7 @@ from .i18n import active_context
 
 CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
 _DEFAULT_SILENCE_BETWEEN_CLIPS_SECONDS = 1.0
+_DEFAULT_NORMALIZE_VOLUME = False
 
 
 def build_audio_export_initial_state(
@@ -43,6 +44,7 @@ def build_audio_export_initial_state(
         "defaults": {
             "mode": EXPORT_MODE_ZIP,
             "silence_between_clips_seconds": _DEFAULT_SILENCE_BETWEEN_CLIPS_SECONDS,
+            "normalize_volume": _DEFAULT_NORMALIZE_VOLUME,
         },
         "locale": i18n["locale"],
         "direction": i18n["direction"],
@@ -80,6 +82,7 @@ def request_from_audio_export_start_payload(raw_payload: object) -> AudioExportR
         destination_path=Path(destination_path),
         field_selections=field_selections,
         silence_between_clips_seconds=silence_between_clips_seconds,
+        normalize_volume=bool(payload["normalize_volume"]),
     )
 
 

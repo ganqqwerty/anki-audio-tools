@@ -59,6 +59,7 @@ class AudioExportDialog:
         self._dialog.setWindowTitle(self.tr("audio_export.window_title"))
         self._dialog.setMinimumWidth(680)
         self._dialog.setMinimumHeight(520)
+        self._connect_dialog_close_cleanup()
 
         layout = QVBoxLayout(self._dialog)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -158,7 +159,7 @@ class AudioExportDialog:
             self._cancel_or_close()
             return True
         if command.name == "audio-export.close":
-            self._dialog.reject()
+            self._close_dialog()
             return True
         if command.name == "audio-export.copy_log":
             _clipboard_set_text("\n".join(self._log_lines))
@@ -225,6 +226,25 @@ class AudioExportDialog:
             self.append_log(self.tr("audio_export.cancel_requested"))
             return
         self._dialog.reject()
+
+    def _close_dialog(self) -> None:
+        self._cancel_running(mark_not_running=True)
+        self._dialog.reject()
+
+    def _connect_dialog_close_cleanup(self) -> None:
+        finished = getattr(self._dialog, "finished", None)
+        connect = getattr(finished, "connect", None)
+        if callable(connect):
+            connect(lambda _result: self._cancel_running(mark_not_running=True))
+
+    def _cancel_running(self, *, mark_not_running: bool = False) -> bool:
+        if not self._running:
+            return False
+        self.cancel_event.set()
+        self.append_log(self.tr("audio_export.cancel_requested"))
+        if mark_not_running:
+            self._running = False
+        return True
 
 
 def _render_audio_export_content(initial_state: dict[str, Any]) -> tuple[str, str]:

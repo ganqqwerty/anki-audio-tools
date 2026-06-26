@@ -6,17 +6,17 @@ import os
 import shutil
 import tempfile
 import threading
-import zipfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from .audio_export_planning import collect_audio_export_items, make_zip_entry_name
+from .audio_export_planning import collect_audio_export_items
 from .audio_export_rendering import (
     build_concat_list_text,
     build_final_mp3_command,
-    build_normalize_wav_command,
+    build_normalized_wav_command,
     build_silence_wav_command,
+    build_stage_wav_command,
     validate_final_mp3_output,
 )
 from .audio_export_types import (
@@ -27,6 +27,7 @@ from .audio_export_types import (
     AudioExportReport,
     AudioExportRequest,
 )
+from .audio_export_zip_writer import write_zip_export
 from .audio_external import (
     render_external_error_message,
     run_external_command,
@@ -121,13 +122,16 @@ def run_audio_export(
         return report
 
     if request.mode == EXPORT_MODE_ZIP:
-        _write_zip_export(
+        write_zip_export(
             plan.items,
             destination_path=request.destination_path,
+            normalize_volume=request.normalize_volume,
+            ffmpeg_path=find_ffmpeg() if request.normalize_volume else None,
             report=report,
             cancel_event=cancel_event,
             on_log=on_log,
             on_progress=on_progress,
+            run_export_command=_run_export_command,
         )
     elif request.mode == EXPORT_MODE_COMBINED_MP3:
         _write_combined_mp3_export(
@@ -140,59 +144,6 @@ def run_audio_export(
         )
     _add_log(report, on_log, report.summary)
     return report
-
-
-def _write_zip_export(
-    items: Sequence[AudioExportItem],
-    *,
-    destination_path: Path,
-    report: AudioExportReport,
-    cancel_event: threading.Event,
-    on_log: LogCallback,
-    on_progress: ProgressCallback,
-) -> None:
-    destination_path.parent.mkdir(parents=True, exist_ok=True)
-    file_descriptor, temp_name = tempfile.mkstemp(
-        prefix=f".{destination_path.name}.",
-        suffix=".tmp",
-        dir=destination_path.parent,
-    )
-    os.close(file_descriptor)
-    temp_path = Path(temp_name)
-    used_names: set[str] = set()
-
-    try:
-        with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for item in items:
-                if cancel_event.is_set():
-                    report.canceled = True
-                    break
-
-                entry_name = make_zip_entry_name(item, used_names=used_names)
-                archive.write(item.source_path, arcname=entry_name)
-                report.processed += 1
-                report.exported += 1
-                _add_log(report, on_log, f"Exported {item.original_filename} as {entry_name}.")
-                on_progress(
-                    report.processed,
-                    report.total,
-                    item.original_filename,
-                    report.failures,
-                )
-
-                if cancel_event.is_set():
-                    report.canceled = True
-                    break
-
-        if report.canceled:
-            _remove_temp_file(temp_path)
-            return
-
-        temp_path.replace(destination_path)
-    finally:
-        if temp_path.exists():
-            _remove_temp_file(temp_path)
-
 
 def _write_combined_mp3_export(
     items: Sequence[AudioExportItem],
@@ -207,7 +158,7 @@ def _write_combined_mp3_export(
     validate_final_mp3_output(destination_path)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     ffmpeg_path = find_ffmpeg()
-    temp_root = Path(tempfile.mkdtemp(prefix="aqe_audio_export_"))
+    temp_root = Path(tempfile.mkdtemp(prefix="aqe_audio_export_", dir=destination_path.parent))
     file_descriptor, temp_output_name = tempfile.mkstemp(
         prefix=f".{destination_path.name}.",
         suffix=".tmp.mp3",
@@ -224,14 +175,22 @@ def _write_combined_mp3_export(
                 break
 
             output_path = temp_root / f"{item.sequence:05d}.wav"
+            command_builder = (
+                build_normalized_wav_command if request.normalize_volume else build_stage_wav_command
+            )
             _run_export_command(
-                build_normalize_wav_command(ffmpeg_path, item.source_path, output_path),
+                command_builder(ffmpeg_path, item.source_path, output_path),
                 "Could not start audio export rendering.",
             )
             normalized_paths.append(output_path)
             report.processed += 1
             report.exported += 1
-            _add_log(report, on_log, f"Prepared {item.original_filename} for combined MP3 export.")
+            message = (
+                f"Normalized {item.original_filename} for combined MP3 export."
+                if request.normalize_volume
+                else f"Prepared {item.original_filename} for combined MP3 export."
+            )
+            _add_log(report, on_log, message)
             on_progress(
                 report.processed,
                 report.total,

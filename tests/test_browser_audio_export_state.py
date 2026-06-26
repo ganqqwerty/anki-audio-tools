@@ -39,6 +39,7 @@ def test_build_audio_export_initial_state_contains_defaults_fields_and_i18n() ->
     assert state["defaults"] == {
         "mode": "zip",
         "silence_between_clips_seconds": 1.0,
+        "normalize_volume": False,
     }
     assert state["locale"] == "en"
     assert state["direction"] == "ltr"
@@ -55,6 +56,7 @@ def test_request_from_audio_export_start_payload_decodes_combined_mp3_request() 
                 {"notetype_name": "Cloze", "fields": ["Text"]},
             ],
             "silence_between_clips_seconds": 1.5,
+            "normalize_volume": True,
         }
     )
 
@@ -65,6 +67,7 @@ def test_request_from_audio_export_start_payload_decodes_combined_mp3_request() 
         AudioExportFieldSelection("Cloze", ("Text",)),
     )
     assert request.silence_between_clips_seconds == 1.5
+    assert request.normalize_volume is True
 
 
 def test_request_from_audio_export_start_payload_rejects_invalid_silence() -> None:
@@ -75,6 +78,7 @@ def test_request_from_audio_export_start_payload_rejects_invalid_silence() -> No
                 "destination_path": "/tmp/export.zip",
                 "field_selections": [{"notetype_name": "Basic", "fields": ["Audio"]}],
                 "silence_between_clips_seconds": 10.1,
+                "normalize_volume": False,
             }
         )
     except ValueError as exc:
@@ -92,12 +96,29 @@ def test_request_from_audio_export_start_payload_rejects_blank_destination() -> 
                     "destination_path": destination_path,
                     "field_selections": [{"notetype_name": "Basic", "fields": ["Audio"]}],
                     "silence_between_clips_seconds": 1.0,
+                    "normalize_volume": False,
                 }
             )
         except ValueError as exc:
             assert str(exc) == DESTINATION_ERROR
         else:
             raise AssertionError(f"expected destination {destination_path!r} to fail")
+
+
+def test_request_from_audio_export_start_payload_requires_normalize_volume() -> None:
+    try:
+        request_from_audio_export_start_payload(
+            {
+                "mode": "zip",
+                "destination_path": "/tmp/export.zip",
+                "field_selections": [{"notetype_name": "Basic", "fields": ["Audio"]}],
+                "silence_between_clips_seconds": 1.0,
+            }
+        )
+    except ValueError as exc:
+        assert str(exc) == "Choose an export mode before starting."
+    else:
+        raise AssertionError("expected missing normalize_volume to fail generated contract decoding")
 
 
 def test_progress_and_finish_payloads_match_frontend_contract() -> None:

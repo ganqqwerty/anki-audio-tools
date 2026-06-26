@@ -35,6 +35,7 @@ class _MockState:
     mw: MagicMock
     aqt_utils: types.ModuleType
     aqt_gui_hooks: types.ModuleType
+    aqt_operations: types.ModuleType
     aqt_sound: types.ModuleType
     aqt_browser: types.ModuleType
     aqt_operations: types.ModuleType
@@ -132,6 +133,7 @@ def _build_mock_modules() -> _MockState:
     _aqt.gui_hooks = _aqt_gui_hooks
     _aqt.main = _aqt_main
     _aqt.qt = _qt
+    _aqt.operations = _aqt_operations
     _aqt.sound = _aqt_sound
     _aqt.taskman = _aqt_taskman
     _aqt.utils = _aqt_utils
@@ -175,6 +177,7 @@ def _build_mock_modules() -> _MockState:
         mw=mw,
         aqt_utils=_aqt_utils,
         aqt_gui_hooks=_aqt_gui_hooks,
+        aqt_operations=_aqt_operations,
         aqt_sound=_aqt_sound,
         aqt_browser=_aqt_browser,
         aqt_operations=_aqt_operations,

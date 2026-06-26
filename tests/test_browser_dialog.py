@@ -134,6 +134,40 @@ def test_batch_dialog_bridge_start_cancel_copy_and_close(monkeypatch, request) -
     assert dialog._dialog.rejected is True
 
 
+def test_batch_dialog_close_cancels_running_batch(monkeypatch, request) -> None:
+    dialog_module = _reload_browser_dialog_with_fake_qt(request)
+    run_calls = []
+    monkeypatch.setattr(dialog_module, "request_from_batch_start_payload", lambda _payload, _presets: "request")
+
+    dialog = dialog_module.BatchOperationsDialog(
+        browser=object(),
+        note_ids=[1],
+        groups=(),
+        config=AudioProcessingConfig(),
+        run_batch_in_background=lambda *args: run_calls.append(args),
+    )
+
+    command = "bridge:" + json.dumps(
+        {
+            "command": "batch.start",
+            "payload": {
+                "operation": "graph",
+                "source_field": "Audio",
+                "target_field": "Image",
+                "parameters": {},
+            },
+        }
+    )
+    assert dialog._webview.bridge(command) is True
+    assert dialog.cancel_event.is_set() is False
+
+    assert dialog._webview.bridge('bridge:{"command":"batch.close"}') is True
+
+    assert dialog.cancel_event.is_set()
+    assert dialog._dialog.rejected is True
+    assert dialog._log_lines[-1]
+
+
 def test_batch_dialog_bridge_opens_trusted_external_url(monkeypatch, request) -> None:
     dialog_module = _reload_browser_dialog_with_fake_qt(request)
     opened = []
