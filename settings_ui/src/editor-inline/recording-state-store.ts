@@ -9,8 +9,10 @@ export interface LearnerRecordingFieldState {
   generation: number | null;
   mediaFilename: string;
   playbackStatus: LearnerPlaybackStatus;
+  recordingDurationMs: number;
   recordingStatus: LearnerRecordingStatus;
   startCursorMs: number;
+  targetDurationMs: number;
 }
 
 const recordingStates: Map<number, LearnerRecordingFieldState> = new Map();
@@ -21,8 +23,10 @@ export function emptyLearnerRecordingState(): LearnerRecordingFieldState {
     generation: null,
     mediaFilename: "",
     playbackStatus: "stopped",
+    recordingDurationMs: 0,
     recordingStatus: "idle",
     startCursorMs: 0,
+    targetDurationMs: 0,
   };
 }
 
@@ -31,6 +35,11 @@ function normalizePlaybackStatus(value: LearnerRecordingStatePayload["playbackSt
 }
 
 function normalizeStartCursorMs(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.round(value));
+}
+
+function normalizeDurationMs(value: unknown, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
   return Math.max(0, Math.round(value));
 }
@@ -49,11 +58,17 @@ export function writeLearnerRecordingState(
     failureMessage: payload.failureMessage || "",
     generation: payload.generation == null ? null : payload.generation,
     mediaFilename: payload.mediaFilename || "",
-    playbackStatus: normalizePlaybackStatus(payload.playbackStatus),
+    playbackStatus: status === "ready" ? normalizePlaybackStatus(payload.playbackStatus) : "stopped",
+    recordingDurationMs: status === "idle" && payload.recordingDurationMs == null
+      ? 0
+      : normalizeDurationMs(payload.recordingDurationMs, previous.recordingDurationMs),
     recordingStatus: status,
     startCursorMs: status === "idle" && payload.startCursorMs == null
       ? 0
       : normalizeStartCursorMs(payload.startCursorMs, previous.startCursorMs),
+    targetDurationMs: status === "idle" && payload.targetDurationMs == null
+      ? 0
+      : normalizeDurationMs(payload.targetDurationMs, previous.targetDurationMs),
   };
   recordingStates.set(ord, next);
   return next;

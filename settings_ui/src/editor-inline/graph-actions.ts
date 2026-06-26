@@ -31,7 +31,7 @@ import {
   clearPlaybackFrame,
   clearSelection,
   configureAudioClock,
-  seekAudioClock,
+  seekAudioElementForCursorPreview,
   setCursor,
   setRepeatEnabled,
   setSelection,
@@ -58,7 +58,7 @@ import { resetVisualizerRuntimeState, clearVisualizerRuntimeStates } from "./vis
 import { clearLearnerRecordingStateStore } from "./recording-state-store.js";
 import { initFieldState, readFieldState, updateFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
-import { clearPostEditPlaybackReadinessTimers } from "./post-edit-playback.js";
+import { clearAllHtmlAudioSessions } from "./html-audio-session-controller.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -186,11 +186,11 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
     clearPendingGraphRedraw();
   }
   setSelection(visualizer, 0, track.durationMs || 0, { origin: "system", updateCursor: false });
-  configureAudioClock(visualizer, track.sourceFilename || "");
+  configureAudioClock(visualizer, track.sourceFilename || "", cursorMs || 0);
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setCursor(visualizer, cursorMs || 0, false, { updateAnchor: false });
   if (audioClockReady(visualizer)) {
-    seekAudioClock(visualizer, cursorMs || 0);
+    seekAudioElementForCursorPreview(visualizer, cursorMs || 0);
   }
   renderVisualizerStatus(visualizer, "", "info");
   setControlsBusy(ord, false, "", "");
@@ -243,7 +243,7 @@ function pendingGraphRedrawMatches(ord: number, sourceFilename: string): boolean
 
 export function prepareForNewNote(): void {
   clearPendingNoteScopedBridgeRequests();
-  clearPostEditPlaybackReadinessTimers();
+  clearAllHtmlAudioSessions();
   clearSourceMetadataRequests();
   resetEditorControlState();
   clearVisualizerRuntimeStates();

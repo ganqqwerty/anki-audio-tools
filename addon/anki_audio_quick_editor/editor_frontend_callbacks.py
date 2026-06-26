@@ -103,12 +103,16 @@ def _request_playback_after_edit(
     field_index: int,
     *,
     require_graph_redraw: bool = False,
+    source_kind: str = "generated_edit",
+    expected_duration_ms: int | None = None,
 ) -> None:
     editor_frontend.request_playback_after_edit(
         editor,
         field_index,
         _frontend_deps(),
         require_graph_redraw=require_graph_redraw,
+        source_kind=source_kind,
+        expected_duration_ms=expected_duration_ms,
     )
 
 

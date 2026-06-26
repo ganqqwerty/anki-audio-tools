@@ -1,26 +1,20 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
-
-from aqt.sound import av_player
 
 from anki_audio_quick_editor.audio_recording import AudioRecordingError, RecordingResult
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.editor_recording import (
     persist_learner_recording,
-    play_learner_recording,
     record_learner_voice,
     stop_learner_recording,
 )
 from anki_audio_quick_editor.editor_session import (
-    LearnerRecordingState,
     clear_learner_recording_state,
 )
-from anki_audio_quick_editor.error_codes import (
-    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
-    AQE_RECORDING_FAILED,
-)
+from anki_audio_quick_editor.error_codes import AQE_RECORDING_FAILED
 from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.prosody_settings import config_with_graph_settings
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, build_prosody_track
@@ -242,155 +236,49 @@ def test_persist_learner_recording_copies_temp_result_without_reading_into_memor
     assert output_path.read_bytes() == b"RIFFfakeWAVE"
 
 
-def test_play_learner_recording_reports_missing_before_ready(tmp_path: Path) -> None:
+def test_ready_learner_recording_state_publishes_media_filename_without_absolute_path(
+    tmp_path: Path,
+) -> None:
     editor, session, source_path = _editor_with_target(tmp_path)
     deps = _deps(editor, session, source_path)
 
-    play_learner_recording(editor, deps)
-
-    assert deps.statuses[-1] == _error_status(
-        AQE_MEDIA_REFERENCED_AUDIO_MISSING,
-        "The referenced audio file was not found in Anki's media folder.",
-    )
-    assert deps.stopped == []
-    av_player.play_tags.assert_not_called()
-
-
-def test_play_learner_recording_missing_media_resets_playback_state(tmp_path: Path) -> None:
-    editor, session, source_path = _editor_with_target(tmp_path)
-    missing_path = source_path.parent / "missing_learner.wav"
-    session.learner_recording = LearnerRecordingState(
-        status="ready",
-        field_index=0,
-        generation=1,
-        source_filename="target.wav",
-        target_duration_ms=1000,
-        media_filename=missing_path.name,
-        media_path=missing_path,
-        playback_status="playing",
-        playback_position_ms=400,
-        playback_started_at_monotonic=10.0,
-        playback_generation=2,
-    )
-    deps = _deps(editor, session, source_path)
-
-    play_learner_recording(editor, deps)
+    record_learner_voice(editor, deps)
+    stop_learner_recording(editor, deps)
 
     state = session.learner_recording
-    assert state.status == "failed"
-    assert state.playback_status == "stopped"
-    assert state.playback_position_ms == 0
-    assert state.playback_started_at_monotonic is None
-    assert state.playback_generation == 3
-    assert any('"playbackStatus": "stopped"' in call for call in editor.web.eval_calls)
+    payload = _last_learner_recording_payload(editor)
+    assert state.status == "ready"
+    assert payload["status"] == "ready"
+    assert payload["mediaFilename"] == state.media_filename
+    assert payload["recordingDurationMs"] == 1500
+    assert payload["targetDurationMs"] == 1000
+    assert payload["playbackStatus"] == "stopped"
+    assert str(source_path.parent) not in json.dumps(payload)
 
 
-def test_play_learner_recording_plays_latest_ready_media(tmp_path: Path) -> None:
+def test_missing_completed_recording_media_publishes_failed_state(tmp_path: Path) -> None:
     editor, session, source_path = _editor_with_target(tmp_path)
-    learner_path = source_path.parent / "target__aqe_voice_latest.wav"
-    learner_path.write_bytes(b"RIFFfakeWAVE")
-    session.learner_recording = LearnerRecordingState(
-        status="ready",
-        field_index=0,
-        generation=3,
-        source_filename="target.wav",
-        target_duration_ms=1000,
-        media_filename=learner_path.name,
-        media_path=learner_path,
-    )
-    deps = _deps(editor, session, source_path)
+    recorder = _FakeRecorder(source_path, write_bytes=None)
+    deps = _deps(editor, session, source_path, recorder=recorder)
 
-    play_learner_recording(editor, deps)
+    record_learner_voice(editor, deps)
+    stop_learner_recording(editor, deps)
 
-    assert deps.stopped == [True]
-    assert deps.statuses[-1] == ("Playing", "info")
-    assert session.learner_recording.playback_status == "playing"
-    av_player.play_tags.assert_called_once()
-    tag = av_player.play_tags.call_args.args[0][0]
-    assert tag.filename == str(learner_path)
+    payload = _last_learner_recording_payload(editor)
+    assert session.learner_recording.status == "failed"
+    assert payload["status"] == "failed"
+    assert payload["failureMessage"]
+    assert payload["playbackStatus"] == "stopped"
+    assert str(source_path.parent) not in json.dumps(payload)
 
 
-def test_play_learner_recording_toggles_pause_and_resume(tmp_path: Path, monkeypatch) -> None:
-    editor, session, source_path = _editor_with_target(tmp_path)
-    learner_path = source_path.parent / "target__aqe_voice_latest.wav"
-    learner_path.write_bytes(b"RIFFfakeWAVE")
-    session.learner_recording = LearnerRecordingState(
-        status="ready",
-        field_index=0,
-        generation=3,
-        source_filename="target.wav",
-        target_duration_ms=1000,
-        recording_duration_ms=1500,
-        media_filename=learner_path.name,
-        media_path=learner_path,
-    )
-    scheduled: list[tuple[int, Any]] = []
-    monotonic_values = iter([10.0, 10.25, 10.30])
-    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda delay, callback: scheduled.append((delay, callback)))
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_recording.time.monotonic",
-        lambda: next(monotonic_values),
-    )
-    deps = _deps(editor, session, source_path)
-
-    play_learner_recording(editor, deps)
-    play_learner_recording(editor, deps)
-    play_learner_recording(editor, deps)
-
-    assert session.learner_recording.playback_status == "playing"
-    assert session.learner_recording.playback_position_ms == 250
-    assert session.learner_recording.playback_started_at_monotonic == 10.30
-    assert av_player.play_tags.call_count == 1
-    assert av_player.toggle_pause.call_count == 2
-    assert [delay for delay, _callback in scheduled] == [1500, 1250]
-    assert any('"playbackStatus": "paused"' in call for call in editor.web.eval_calls)
-
-
-def test_learner_playback_completion_timer_resets_playback_status(tmp_path: Path, monkeypatch) -> None:
-    editor, session, source_path = _editor_with_target(tmp_path)
-    learner_path = source_path.parent / "target__aqe_voice_latest.wav"
-    learner_path.write_bytes(b"RIFFfakeWAVE")
-    session.learner_recording = LearnerRecordingState(
-        status="ready",
-        field_index=0,
-        generation=3,
-        source_filename="target.wav",
-        target_duration_ms=1000,
-        recording_duration_ms=1500,
-        media_filename=learner_path.name,
-        media_path=learner_path,
-    )
-    scheduled: list[Any] = []
-    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: scheduled.append(callback))
-    deps = _deps(editor, session, source_path)
-
-    play_learner_recording(editor, deps)
-    scheduled[-1]()
-
-    assert session.learner_recording.playback_status == "stopped"
-    assert session.learner_recording.playback_position_ms == 0
-    assert any('"playbackStatus": "stopped"' in call for call in editor.web.eval_calls)
-
-
-def test_play_learner_recording_reports_missing_media_file(tmp_path: Path) -> None:
-    editor, session, source_path = _editor_with_target(tmp_path)
-    missing_path = source_path.parent / "missing_learner.wav"
-    session.learner_recording = LearnerRecordingState(
-        status="ready",
-        field_index=0,
-        generation=1,
-        source_filename="target.wav",
-        target_duration_ms=1000,
-        media_filename=missing_path.name,
-        media_path=missing_path,
-    )
-    deps = _deps(editor, session, source_path)
-
-    play_learner_recording(editor, deps)
-
-    assert deps.statuses[-1] == _error_status(
-        AQE_MEDIA_REFERENCED_AUDIO_MISSING,
-        "The referenced audio file was not found in Anki's media folder.",
-    )
-    assert deps.stopped == []
-    av_player.play_tags.assert_not_called()
+def _last_learner_recording_payload(editor: Any) -> dict[str, Any]:
+    calls = [
+        call
+        for call in editor.web.eval_calls
+        if "__aqeSetLearnerRecordingState" in call
+    ]
+    if not calls:
+        raise AssertionError("expected learner recording state publication")
+    raw_payload = calls[-1].split("__aqeSetLearnerRecordingState(", 1)[1].rsplit(")", 1)[0]
+    return json.loads(raw_payload)

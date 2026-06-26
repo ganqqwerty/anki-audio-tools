@@ -39,12 +39,17 @@ const querySelectorAllowlist = new Set([
   "src/editor-inline/dom-selectors.ts",
   "src/editor-inline/field-controller.ts",
   "src/editor-inline/graph-actions.ts",
+  "src/editor-inline/html-audio-session-audio-element.ts",
+  "src/editor-inline/html-audio-session-controller.ts",
+  "src/editor-inline/learner-recording-playback.ts",
   "src/editor-inline/runtime.ts",
 ]);
 
 const requestAnimationFrameAllowlist = new Set([
+  "src/editor-inline/html-audio-session-controller.ts",
   "src/editor-inline/playback-controller.ts",
   "src/editor-inline/playback-controller-frame.ts",
+  "src/editor-inline/learner-recording-playback.ts",
   "src/editor-inline/recording-actions.ts",
   "src/editor-inline/recording-actions-state.ts",
   "src/editor-inline/test-contract.ts",
@@ -52,6 +57,8 @@ const requestAnimationFrameAllowlist = new Set([
 
 const audioElementAllowlist = new Set([
   "src/editor-inline/audio-clock.ts",
+  "src/editor-inline/html-audio-session-audio-element.ts",
+  "src/editor-inline/learner-recording-playback.ts",
   "src/editor-inline/playback-controller.ts",
   "src/editor-inline/playback-controller-audio.ts",
   "src/editor-inline/test-contract.ts",
@@ -138,6 +145,90 @@ describe("frontend architecture guardrails", () => {
     }
 
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps HTML audio session model files pure", () => {
+    const forbiddenImports = [
+      "bridge",
+      "control-actions",
+      "dom-selectors",
+      "field-state-store",
+      "graph-countdown-overlay",
+      "html-audio-session-audio-element",
+      "html-audio-session-field-projection",
+      "html-audio-session-learner-projection",
+      "logger",
+      "selection-toolbar-state",
+      "visualizer-runtime-state",
+      "viewport-actions",
+    ];
+    const forbiddenRuntimeTerms = [
+      "Date",
+      "cancelAnimationFrame",
+      "clearTimeout",
+      "document",
+      "logger",
+      "performance",
+      "pycmd",
+      "readFieldState",
+      "requestAnimationFrame",
+      "sendGraphAnalysisRequest",
+      "setCachedProgressMs",
+      "setTimeout",
+      "updateFieldState",
+      "visualizerForOrd",
+      "window",
+    ];
+    const offenders = htmlAudioSessionModelFiles().flatMap((path) => {
+      const relPath = toRelPath(path);
+      const source = withoutComments(readFileSync(path, "utf-8"));
+      const runtimeSource = withoutStringLiterals(source);
+      return [
+        ...forbiddenImports
+          .filter((module) => importsRelativeModule(source, module))
+          .map((module) => `${relPath}: imports ${module}`),
+        ...forbiddenRuntimeTerms
+          .filter((term) => new RegExp(`\\b${term}\\b`).test(runtimeSource))
+          .map((term) => `${relPath}: runtime term ${term}`),
+      ];
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps source playback boundaries out of the legacy progress controller", () => {
+    const forbiddenPatterns = [
+      {
+        relPath: "src/editor-inline/actions-playback.ts",
+        patterns: [/handleSourcePlaybackBoundary/, /source-playback-controller/],
+      },
+      {
+        relPath: "src/editor-inline/playback-controller.ts",
+        patterns: [/handleSourceLoopBoundary/],
+      },
+      {
+        relPath: "src/editor-inline/actions-audio-clock.ts",
+        patterns: [/handlePlaybackBoundary/, /handleSourceAudioError/],
+      },
+    ];
+    const offenders = forbiddenPatterns.flatMap(({ relPath, patterns }) => {
+      const source = withoutComments(readFileSync(join(projectRoot, relPath), "utf-8"));
+      return patterns
+        .filter((pattern) => pattern.test(source))
+        .map((pattern) => `${relPath}: ${pattern.source}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps source audio element mutation in the HTML audio session operations", () => {
+    const source = withoutComments(readFileSync(join(projectRoot, "src/editor-inline/audio-clock.ts"), "utf-8"));
+    const forbiddenExports = Array.from(
+      source.matchAll(/export function (pauseAudioClock|clearAudioClockSource|reloadAudioClockSource|configureAudioClock|setAudioClockLoop)\b/g),
+      (match) => match[1],
+    );
+
+    expect(forbiddenExports).toEqual([]);
   });
 
   it("keeps reviewer panel trigger as a runtime-mounted selector client", () => {
@@ -248,6 +339,16 @@ function editorStyleFiles(): string[] {
     .filter((path) => path.endsWith(".css"));
 }
 
+function htmlAudioSessionModelFiles(): string[] {
+  return productionFiles()
+    .filter((path) => {
+      const relPath = toRelPath(path);
+      return relPath === "src/editor-inline/html-audio-session-types.ts" ||
+        relPath === "src/editor-inline/html-audio-session-progress.ts" ||
+        relPath.startsWith("src/editor-inline/html-audio-session-machine");
+    });
+}
+
 function isHandMaintainedFrontendFile(relPath: string): boolean {
   return ![
     /^src\/lib\/generated\//,
@@ -304,6 +405,11 @@ function importsFrontendArea(source: string, prefix: string): boolean {
     if (specifier.startsWith(`../${areaName}/`) || specifier.startsWith(`../../${areaName}/`)) return true;
     return specifier.includes(`/${areaName}/`);
   });
+}
+
+function importsRelativeModule(source: string, module: string): boolean {
+  const pattern = new RegExp(`\\bfrom\\s+["']\\./${module}\\.js["']|\\bimport\\s+["']\\./${module}\\.js["']`);
+  return pattern.test(source);
 }
 
 function assignedPublicWindowContractNames(source: string): string[] {

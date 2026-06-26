@@ -301,4 +301,3 @@ build_spleeter_prepare_command = _runtime.build_spleeter_prepare_command
 build_spleeter_command = _runtime.build_spleeter_command
 build_mp3_encode_command = _runtime.build_mp3_encode_command
 build_audio_encode_command = _runtime.build_audio_encode_command
-build_playback_segment_filters = _runtime.build_playback_segment_filters

@@ -1,11 +1,10 @@
-import { focusAndSendCommand, popPendingPlaybackRequest, setPendingPlaybackRequest } from "./bridge.js";
+import { popPendingPlaybackRequest } from "./bridge.js";
+import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { logger } from "./logger.js";
-import { audioClockTelemetryFor, audioClockUnavailableReason } from "./playback-audio-telemetry.js";
-import { htmlAudioReadinessFor } from "./audio-readiness.js";
-import type { PlaybackEngineDecision } from "./playback-engine-decision.js";
-import { repeatFallbackRequiresBrowserAudio } from "./playback-html-fallback.js";
-import { logPlaybackEngineDecision, playbackEngineDecisionFor, playbackTelemetryContext, postEditPlaybackStartContext } from "./playback-telemetry.js";
+import {
+  logPlaybackReadinessDecision,
+  playbackReadinessDecisionFor,
+} from "./playback-telemetry.js";
 import {
   audioProgressMs as audioProgressMsFromController,
   completePlayback as completePlaybackFromController,
@@ -20,32 +19,31 @@ import {
   stopProgressClock as stopProgressClockFromController,
   type ProgressClockOptions,
 } from "./playback-controller.js";
-import { planPlaybackRequest, type PlaybackSnapshot } from "./playback-model.js";
-import { consumePostEditPlaybackIntent } from "./post-edit-playback.js";
+import { playbackRequestForVisualizer } from "./playback-request-planning.js";
+import { sendPlaybackRequest } from "./playback-request-dispatch.js";
+import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
-import {
-  effectivePlaybackRegion,
-  playbackControllerDependencies,
-  repeatEnabledFor,
-  setRepeatEnabled,
-  setRepeatPauseSeconds,
-} from "./actions.js";
-import { anyBusy, setCommandButtonLabel, setStatus } from "./control-actions.js";
-import { syncSelectionToolbar } from "./selection-toolbar-state.js";
-import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
+import { playbackControllerDependencies } from "./playback-controller-dependencies.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
-import { t } from "../lib/i18n.js";
+import { setPlaybackButtonLabelForVisualizer } from "./playback-button-label.js";
+import { effectivePlaybackRegion } from "./selection-controller.js";
+import { startSourcePlaybackAction } from "./source-playback-actions.js";
 import { setPreserveStatusOnPlaybackEndRuntime } from "./visualizer-runtime-state.js";
+
+export { playAfterEdit } from "./post-edit-playback-actions.js";
+export { sendPlaybackRequest } from "./playback-request-dispatch.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
 }
 
+function playbackActionDependencies() {
+  return playbackControllerDependencies({ handleLoopBoundary: handleChorusingLoopBoundary });
+}
+
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
-  const s = fieldState(visualizer);
-  setCommandButtonLabel(s.ord, "aqe:play", label);
-  syncSelectionToolbar(visualizer);
+  setPlaybackButtonLabelForVisualizer(visualizer, label);
 }
 
 export function manualProgressMs(visualizer: VisualizerElement): number { return manualProgressMsFromController(visualizer); }
@@ -54,20 +52,20 @@ export function audioProgressMs(visualizer: VisualizerElement): number | null { 
 
 export function currentProgressMs(visualizer: VisualizerElement): number | null { return currentProgressMsFromController(visualizer); }
 
-export function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number, options: { forceAudioPlay?: boolean } = {}): boolean {
-  return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackControllerDependencies(), options);
+export function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number): boolean {
+  return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackActionDependencies());
 }
 
 export function completePlayback(visualizer: VisualizerElement): void {
-  completePlaybackFromController(visualizer, playbackControllerDependencies());
+  completePlaybackFromController(visualizer, playbackActionDependencies());
 }
 
 export function paintProgressFromClock(visualizer: VisualizerElement): void {
-  paintProgressFromClockFromController(visualizer, playbackControllerDependencies());
+  paintProgressFromClockFromController(visualizer, playbackActionDependencies());
 }
 
 export function startManualProgressClock(visualizer: VisualizerElement, startMs: number): void {
-  startManualProgressClockFromController(visualizer, startMs, playbackControllerDependencies());
+  startManualProgressClockFromController(visualizer, startMs, playbackActionDependencies());
 }
 
 export function startAudioProgressClock(
@@ -75,7 +73,7 @@ export function startAudioProgressClock(
   startMs: number,
   options: ProgressClockOptions = {},
 ): void {
-  startAudioProgressClockFromController(visualizer, startMs, playbackControllerDependencies(), options);
+  startAudioProgressClockFromController(visualizer, startMs, playbackActionDependencies(), options);
 }
 
 export function startProgressClock(
@@ -83,30 +81,30 @@ export function startProgressClock(
   startMs: number,
   options: ProgressClockOptions = {},
 ): void {
-  startProgressClockFromController(visualizer, startMs, playbackControllerDependencies(), options);
+  startProgressClockFromController(visualizer, startMs, playbackActionDependencies(), options);
 }
 
 export function pauseProgressClock(visualizer: VisualizerElement): void {
-  pauseProgressClockFromController(visualizer, playbackControllerDependencies());
+  pauseProgressClockFromController(visualizer, playbackActionDependencies());
 }
 
 export function stopProgressClock(
   visualizer: VisualizerElement,
   options: { clearAudio?: boolean; clearEngine?: boolean } = {},
 ): void {
-  stopProgressClockFromController(visualizer, playbackControllerDependencies(), options);
+  stopProgressClockFromController(visualizer, playbackActionDependencies(), options);
 }
 
 export function playbackRequest(ord: number): PlaybackRequest {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) {
-    const decision = playbackEngineDecisionFor(null);
-    logPlaybackEngineDecision("playback_request", null, decision, { action: "start", ord });
+    const decision = playbackReadinessDecisionFor(null);
+    logPlaybackReadinessDecision("playback_request", null, decision, { action: "start", ord });
     return { ord, action: "start", cursorMs: 0 };
   }
-  const decision = playbackEngineDecisionFor(visualizer);
-  const request = planPlaybackRequest(playbackSnapshotFor(visualizer, ord, decision));
-  logPlaybackEngineDecision("playback_request", visualizer, decision, {
+  const decision = playbackReadinessDecisionFor(visualizer);
+  const request = playbackRequestForVisualizer(visualizer, ord, decision);
+  logPlaybackReadinessDecision("playback_request", visualizer, decision, {
     action: request.action,
     endMs: request.endMs ?? null,
     requestRegionMode: request.regionMode ?? "",
@@ -115,194 +113,17 @@ export function playbackRequest(ord: number): PlaybackRequest {
   return request;
 }
 
-function playbackSnapshotFor(
-  visualizer: VisualizerElement,
-  ord: number,
-  decision: PlaybackEngineDecision = playbackEngineDecisionFor(visualizer),
-): PlaybackSnapshot {
-  const s = fieldState(visualizer);
-  return {
-    anchorMs: s.cursor.anchorMs,
-    currentProgressMs: currentProgressMs(visualizer),
-    cursorMs: s.cursor.ms,
-    durationMs: readVisualizerTargetDurationMs(visualizer),
-    engine: decision.engine,
-    ord,
-    playbackState: playbackStateFor(visualizer),
-    region: effectivePlaybackRegion(visualizer),
-    repeat: repeatEnabledFor(visualizer),
-    resumeRequiresRestart: s.playback.resumeRequiresRestart,
-  };
+export function playbackEngineFor(visualizer: VisualizerElement | null): "html" {
+  return playbackReadinessDecisionFor(visualizer).engine;
 }
 
-export function playAfterEdit(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) {
-    logger.warn("post-edit playback start rejected: visualizer missing", { ord });
-    return false;
-  }
-  if (anyBusy()) {
-    logger.info("post-edit playback start rejected: editor busy", postEditPlaybackStartContext(ord, visualizer));
-    return false;
-  }
-  const readiness = htmlAudioReadinessFor(visualizer);
-  if (readiness.transient) {
-    logger.info("post-edit playback start rejected: browser audio loading", {
-      ...postEditPlaybackStartContext(ord, visualizer),
-      htmlAudioReadinessReason: readiness.reason,
-      htmlAudioReadinessState: readiness.state,
-    });
-    return false;
-  }
-  const intent = consumePostEditPlaybackIntent(ord);
-  if (intent) {
-    setRepeatEnabled(visualizer, intent.repeat);
-    setRepeatPauseSeconds(visualizer, intent.repeatPauseSeconds);
-  }
-  window.__aqeActiveField = ord;
-  const region = effectivePlaybackRegion(visualizer);
-  const decision = playbackEngineDecisionFor(visualizer);
-  const request: PlaybackRequest = {
-    action: "start",
-    cursorMs: Math.round(region.startMs),
-    endMs: Math.round(region.endMs),
-    engine: decision.engine,
-    loop: repeatEnabledFor(visualizer),
-    ord,
-    regionMode: region.mode,
-    source: "post_edit",
-  };
-  logPlaybackEngineDecision("post_edit", visualizer, decision, {
-    action: request.action,
-    endMs: request.endMs ?? null,
-    source: "post_edit",
-  });
-  logger.info("post-edit playback start requested", {
-    ...postEditPlaybackStartContext(ord, visualizer),
-    cursorMs: request.cursorMs,
-    endMs: request.endMs,
-    loop: request.loop,
-    regionMode: request.regionMode,
-  });
-  if (request.engine === "html") {
-    const started = startEditorHtmlPlayback(visualizer, request);
-    logger.info("post-edit html playback start result", {
-      ...postEditPlaybackStartContext(ord, visualizer),
-      started,
-    });
-    return started;
-  }
-  sendPlaybackRequest(request);
-  logger.info("post-edit native playback request sent", postEditPlaybackStartContext(ord, visualizer));
-  return true;
-}
-
-export function playbackEngineFor(visualizer: VisualizerElement | null): "html" | "native" {
-  return playbackEngineDecisionFor(visualizer).engine;
-}
-
-export function sendPlaybackRequest(request: PlaybackRequest): void {
-  const visualizer = visualizerForOrd(request.ord);
-  if (visualizer) {
-    updateFieldState(request.ord, (state) => ({
-      ...state,
-      playback: { ...state.playback, engine: request.engine || "" },
-    }));
-    setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
-  }
-  setPendingPlaybackRequest(request);
-  window.__aqeActiveField = request.ord;
-  logger.info("playback request queued", request);
-  focusAndSendCommand(request.ord, "aqe:play");
-}
-
-export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
-  setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
-  const startTelemetry = audioClockTelemetryFor(visualizer);
-  const htmlFailureReason = startTelemetry.audioClockReady
-    ? "html_play_rejected_or_seek_failed"
-    : audioClockUnavailableReason(startTelemetry);
-  if (!startTelemetry.audioClockReady) {
-    logger.debug("playback.html_unavailable", playbackTelemetryContext(
-      visualizer,
-      { engine: "html", reason: "audio_clock_not_ready" },
-      {
-        action: request.action,
-        endMs: request.endMs ?? null,
-        htmlFailureReason,
-        requestEngine: request.engine ?? "",
-        source: request.source ?? "user",
-      },
-    ));
-  }
-  startProgressClock(visualizer, request.cursorMs, {
-    engine: "html",
-    manualFallback: false,
-    onAudioStarted() {
-      logger.debug("playback.html_started", playbackTelemetryContext(
-        visualizer,
-        { engine: "html", reason: "audio_clock_ready" },
-        {
-          action: request.action,
-          endMs: request.endMs ?? null,
-          htmlFailureReason,
-          source: request.source ?? "user",
-        },
-      ));
-      sendPlaybackRequest(request);
-    },
-    onAudioPlayFailed() {
-      const fallbackBlocked = repeatFallbackRequiresBrowserAudio(visualizer, request);
-      logger.debug("playback.html_play_failed", playbackTelemetryContext(
-        visualizer,
-        { engine: "html", reason: "audio_clock_not_ready" },
-        {
-          action: request.action,
-          endMs: request.endMs ?? null,
-          fallbackBlocked,
-          htmlFailureReason,
-          source: request.source ?? "user",
-        },
-      ));
-      logger.warn("html playback failed; falling back to native", { ord: request.ord });
-      stopProgressClock(visualizer);
-      if (fallbackBlocked) {
-        logger.debug("playback.html_fallback_blocked", playbackTelemetryContext(
-          visualizer,
-          { engine: "html", reason: "selected_repeat_requires_html" },
-          {
-            action: request.action,
-            endMs: request.endMs ?? null,
-            htmlFailureReason,
-            source: request.source ?? "user",
-          },
-        ));
-        window.__aqeActiveField = request.ord;
-        setStatus(t("editor.status.selected_repeat_browser_audio"), "warning", "playback");
-        return;
-      }
-      logger.debug("playback.html_fallback_to_native", playbackTelemetryContext(
-        visualizer,
-        { engine: "native", reason: "audio_clock_not_ready" },
-        {
-          action: request.action,
-          endMs: request.endMs ?? null,
-          source: request.source ?? "user",
-        },
-      ));
-      sendPlaybackRequest({
-        ...request,
-        engine: "native",
-      });
-    },
-  });
-  return true;
+export function startSourcePlayback(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
+  return startSourcePlaybackAction(visualizer, request);
 }
 
 export function handleHtmlPlaybackCommand(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
-  const decision = playbackEngineDecisionFor(visualizer);
-  if (!visualizer || decision.engine !== "html") return false;
+  if (!visualizer) return false;
   const request: PlaybackRequest = {
     ...playbackRequest(ord),
     engine: "html",
@@ -311,14 +132,18 @@ export function handleHtmlPlaybackCommand(ord: number): boolean {
     pauseProgressClock(visualizer);
     const s = fieldState(visualizer);
     request.cursorMs = s.cursor.ms || request.cursorMs || 0;
+    dispatchHtmlAudioSessionEvent(ord, { cursorMs: request.cursorMs, type: "PauseRequested" });
     sendPlaybackRequest(request);
     return true;
   }
   if (request.action === "resume") {
     const s = fieldState(visualizer);
     request.cursorMs = s.cursor.ms || request.cursorMs || 0;
+    dispatchHtmlAudioSessionEvent(ord, { type: "ResumeRequested" });
+    sendPlaybackRequest(request);
+    return true;
   }
-  return startEditorHtmlPlayback(visualizer, request);
+  return startSourcePlayback(visualizer, request);
 }
 
 export function setPlaybackState(ord: number, state: PlaybackState, cursorMs: number): void {
@@ -333,9 +158,7 @@ export function setPlaybackState(ord: number, state: PlaybackState, cursorMs: nu
   if (state === "playing") {
     const s = fieldState(visualizer);
     startProgressClock(visualizer, cursorMs, {
-      engine: s.playback.engine === "html" || s.playback.engine === "native"
-        ? s.playback.engine
-        : "",
+      engine: s.playback.engine === "html" ? "html" : "",
     });
   } else if (state === "paused") {
     pauseProgressClock(visualizer);

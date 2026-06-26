@@ -203,6 +203,7 @@ def test_injection_script_embeds_pending_post_edit_playback() -> None:
             "fieldOrd": 0,
             "generation": 4,
             "requireGraphRedraw": True,
+            "sourceKind": "generated_edit",
             "sourceFilename": "clip__aqe.mp3",
         },
     )
@@ -211,6 +212,7 @@ def test_injection_script_embeds_pending_post_edit_playback() -> None:
         "fieldOrd": 0,
         "generation": 4,
         "requireGraphRedraw": True,
+        "sourceKind": "generated_edit",
         "sourceFilename": "clip__aqe.mp3",
     }
 

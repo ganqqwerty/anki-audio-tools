@@ -1,9 +1,8 @@
 import {
   audioClockReady,
-  clearAudioClockSource,
-  pauseAudioClock,
-  seekAudioClock,
+  seekAudioElementForCursorPreview,
 } from "./audio-clock.js";
+import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import { playbackCompletionCursor } from "./playback-model.js";
 import { clearPlaybackFrame } from "./playback-controller-frame.js";
 import type { PlaybackControllerDependencies } from "./playback-controller.js";
@@ -30,7 +29,7 @@ export function completePlayback(visualizer: VisualizerElement, deps: PlaybackCo
   deps.setCursor(visualizer, resetCursorMs, false, { updateAnchor: false });
   ensurePlaybackCursorVisible(visualizer, resetCursorMs);
   if (audioClockReady(visualizer)) {
-    seekAudioClock(visualizer, resetCursorMs, s.graph.durationMs);
+    seekAudioElementForCursorPreview(visualizer, resetCursorMs, s.graph.durationMs);
   }
   if (preserveStatus) {
     deps.restoreStatus(s.ord);
@@ -48,8 +47,11 @@ export function pauseProgressClock(visualizer: VisualizerElement, deps: Playback
     deps.setCursor(visualizer, currentMs, false, { updateAnchor: false });
   }
   clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
   const s = fieldState(visualizer);
+  dispatchHtmlAudioSessionEvent(s.ord, {
+    cursorMs: currentMs ?? s.cursor.ms,
+    type: "PauseRequested",
+  });
   writeFieldState(s.ord, {
     ...s,
     playback: { ...s.playback, state: "paused", clockMode: "stopped" },
@@ -63,8 +65,11 @@ export function stopProgressClock(
   options: { clearAudio?: boolean; clearEngine?: boolean } = {},
 ): void {
   clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
   const s = fieldState(visualizer);
+  dispatchHtmlAudioSessionEvent(s.ord, {
+    cursorMs: s.cursor.ms,
+    type: "StopRequested",
+  });
   writeFieldState(s.ord, {
     ...s,
     playback: {
@@ -76,7 +81,7 @@ export function stopProgressClock(
     },
   });
   if (options.clearAudio) {
-    clearAudioClockSource(visualizer);
+    dispatchHtmlAudioSessionEvent(s.ord, { type: "SourceCleared" });
   }
   deps.setPlaybackButtonLabel(visualizer, "Play");
 }

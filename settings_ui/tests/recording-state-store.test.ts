@@ -26,8 +26,10 @@ describe("recording state store", () => {
       generation: 5,
       mediaFilename: "voice.wav",
       playbackStatus: "playing",
+      recordingDurationMs: 543.2,
       startCursorMs: 123.6,
       status: "ready",
+      targetDurationMs: 1000.4,
     });
 
     expect(readLearnerRecordingState(0)).toEqual({
@@ -35,8 +37,10 @@ describe("recording state store", () => {
       generation: 5,
       mediaFilename: "voice.wav",
       playbackStatus: "playing",
+      recordingDurationMs: 543,
       recordingStatus: "ready",
       startCursorMs: 124,
+      targetDurationMs: 1000,
     });
     expect(readLearnerRecordingState(1)).toEqual(emptyLearnerRecordingState());
   });
@@ -48,6 +52,27 @@ describe("recording state store", () => {
     });
 
     expect(learnerPlaybackStatusForOrdState(0)).toBe("stopped");
+  });
+
+  it("resets playback status when recording state is not ready", () => {
+    writeLearnerRecordingState(0, {
+      mediaFilename: "voice.wav",
+      playbackStatus: "playing",
+      recordingDurationMs: 500,
+      status: "ready",
+      targetDurationMs: 1000,
+    });
+    writeLearnerRecordingState(0, {
+      playbackStatus: "playing",
+      status: "failed",
+    });
+
+    expect(readLearnerRecordingState(0)).toMatchObject({
+      playbackStatus: "stopped",
+      recordingDurationMs: 500,
+      recordingStatus: "failed",
+      targetDurationMs: 1000,
+    });
   });
 
   it("keeps the previous start cursor when payload omits it except on idle", () => {

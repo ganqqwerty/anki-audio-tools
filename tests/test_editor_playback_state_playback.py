@@ -12,18 +12,16 @@ import pytest
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import (
     _play_with_request,
-    _playback_segment_failed,
 )
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import (
     AnalysisState,
     EditorSession,
     GraphVisualizationState,
-    PlaybackState,
 )
 
 
-def test_html_playback_request_updates_session_without_native_segment(tmp_path: Path, monkeypatch) -> None:
+def test_html_playback_request_updates_session_without_temporary_segment(tmp_path: Path, monkeypatch) -> None:
     class Editor:
         pass
 
@@ -49,10 +47,6 @@ def test_html_playback_request_updates_session_without_native_segment(tmp_path: 
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_runtime.stop_audio_playback",
         lambda: stop_calls.append("stop"),
-    )
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_playback_segment",
-        lambda *_args, **_kwargs: pytest.fail("HTML playback should not render a segment"),
     )
 
     _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700})
@@ -90,7 +84,7 @@ def test_post_edit_playback_request_does_not_replace_status_while_analysis_is_bu
     )
     SESSIONS[editor] = session
 
-    _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0, "source": "post_edit"})
+    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 0, "source": "post_edit"})
 
     editor.web.eval.assert_not_called()
     assert session.playback.active is False
@@ -118,7 +112,7 @@ def test_playback_request_reports_missing_referenced_media_with_media_code(tmp_p
     )
     SESSIONS[editor] = session
 
-    _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0})
+    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 0})
 
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any('"code": "AQE-MEDIA-002"' in call for call in evals)
@@ -130,9 +124,8 @@ def test_playback_request_reports_missing_referenced_media_with_media_code(tmp_p
     assert session.playback.preparing is False
 
 
-def test_native_direct_playback_logs_debug_telemetry(
+def test_unsupported_playback_engine_request_is_ignored_without_state_change(
     tmp_path: Path,
-    monkeypatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     class Editor:
@@ -154,123 +147,55 @@ def test_native_direct_playback_logs_debug_telemetry(
         source_mtime_ns=source.stat().st_mtime_ns,
     )
     SESSIONS[editor] = session
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.editor_playback")
 
     _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0})
 
-    assert "playback.native_direct_started" in caplog.text
-    assert "'cursor_ms': 0" in caplog.text
-    assert "'source': 'user'" in caplog.text
+    assert session.cursor_ms == 0
+    assert session.playback.active is False
+    assert session.playback.preparing is False
+    assert "ignoring unsupported playback engine request for field 0" in caplog.text
 
 
-def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(
+def test_missing_engine_playback_request_defaults_to_html_state_sync(
     tmp_path: Path,
     monkeypatch,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            del daemon
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     class Editor:
         pass
 
     media_dir = tmp_path / "media"
     media_dir.mkdir()
-    source = media_dir / "clip.m4a"
+    source = media_dir / "clip.mp3"
     source.write_bytes(b"audio")
-    segment = tmp_path / "segment.mp3"
     editor = Editor()
     editor.currentField = 0
-    editor.note = SimpleNamespace(fields=["[sound:clip.m4a]"])
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
     editor.web = MagicMock()
-    editor.mw = SimpleNamespace(
-        addonManager=SimpleNamespace(addonFromModule=lambda _module: "aqe", getConfig=lambda _addon_id: {}),
-        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
-        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
-    )
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
     session = EditorSession(
-        state=AudioEditState("clip.m4a"),
+        state=AudioEditState("clip.mp3"),
         field_index=0,
-        current_filename="clip.m4a",
+        current_filename="clip.mp3",
         source_mtime_ns=source.stat().st_mtime_ns,
-        graph=GraphVisualizationState(
-            visualized_duration_ms=2000,
-            filenames_by_field={0: "clip.m4a"},
-            durations_by_field={0: 2000},
-        ),
+        graph=GraphVisualizationState(visualized_duration_ms=2000),
     )
     SESSIONS[editor] = session
-    render_calls: list[dict[str, object]] = []
-
-    monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
-    caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.editor_playback")
-
-    def fake_render_playback_segment(
-        source_path: Path,
-        start_ms: int,
-        _config: object,
-        output_path: Path | None = None,
-        on_command=None,
-        end_ms: int | None = None,
-    ) -> SimpleNamespace:
-        del output_path
-        render_calls.append({"source_path": source_path, "start_ms": start_ms, "end_ms": end_ms})
-        if on_command:
-            on_command(("ffmpeg", "-i", str(source_path)))
-        return SimpleNamespace(output_path=segment, command=(), duration_ms=500)
-
+    stop_calls: list[str] = []
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_playback_segment",
-        fake_render_playback_segment,
+        "anki_audio_quick_editor.editor_runtime.stop_audio_playback",
+        lambda: stop_calls.append("stop"),
     )
 
-    _play_with_request(
-        editor,
-        {"engine": "native", "action": "start", "cursorMs": 0, "endMs": 500, "regionMode": "selection"},
-    )
+    _play_with_request(editor, {"action": "start", "cursorMs": 700})
 
-    from aqt.sound import av_player
-
-    assert render_calls == [{"source_path": source, "start_ms": 0, "end_ms": 500}]
-    av_player.play_tags.assert_called_once()
-    played_tag = av_player.play_tags.call_args.args[0][0]
-    assert played_tag.filename == str(segment)
-    assert session.cursor_ms == 0
+    assert stop_calls == ["stop"]
+    assert session.cursor_ms == 700
     assert session.playback.active is True
+    assert session.playback.paused is False
+    assert session.playback.preparing is False
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
-    assert any("window.__aqeSetPlaybackState && window.__aqeSetPlaybackState(0, \"playing\", 0)" in call for call in evals)
-    assert any("Playing\"" in call for call in evals)
-    assert not any("Playing from 0.00s" in call for call in evals)
-    assert "playback.native_segment_prepare_started" in caplog.text
-    assert "playback.native_segment_ready" in caplog.text
-    assert "'end_ms': 500" in caplog.text
-
-
-def test_native_segment_failure_logs_debug_telemetry(caplog: pytest.LogCaptureFixture) -> None:
-    class Editor:
-        pass
-
-    editor = Editor()
-    editor.web = MagicMock()
-    session = EditorSession(
-        field_index=0,
-        cursor_ms=700,
-        playback=PlaybackState(active=True, preparing=True, generation=3),
-    )
-    SESSIONS[editor] = session
-    caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.editor_playback")
-
-    _playback_segment_failed(editor, 3, "render failed")
-
-    assert "playback.native_segment_failed" in caplog.text
-    assert "'cursor_ms': 700" in caplog.text
-    assert "'generation': 3" in caplog.text
+    assert any("Playing from 0.70s" in call for call in evals)
 
 
 def test_late_html_playback_request_is_ignored_after_editor_note_is_cleared() -> None:

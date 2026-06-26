@@ -237,15 +237,15 @@ def test_selection_toolbar_play_pause_uses_selected_html_audio(anki_mw, ffmpeg_c
     try:
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         _install_html_audio_test_driver(editor)
-        _shift_drag_region(editor, 0.25, 0.625)
+        _shift_drag_region(editor, 0.10, 0.95)
         _wait_for_toolbar(editor)
 
         click_selector(editor.web, _toolbar_selector("play"), timeout=5.0)
         playing = _wait_for_html_playback(
             editor,
             lambda state: state["playbackRegionMode"] == "selection"
-            and 450 <= state["playbackStartMs"] <= 550
-            and 1200 <= state["playbackEndMs"] <= 1300
+            and 150 <= state["playbackStartMs"] <= 250
+            and 1850 <= state["playbackEndMs"] <= 1950
             and state["selectionToolbarPlayState"] == "pause"
             and state["selectionToolbarPlayAriaLabel"] == "Pause\nPause selection",
         )

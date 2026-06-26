@@ -45,6 +45,11 @@ If Anki is already running, quit and relaunch it after setting the environment. 
 
 ## Playback Cursor Bugs
 
+For HTML audio playback state, browser-audio lifecycle, post-edit, repeat, and
+transform observability, use the canonical contract in
+[`docs/architecture/html-audio-observability.md`](docs/architecture/html-audio-observability.md).
+Do not copy its checklist into this file.
+
 When playback starts from the wrong point, inspect the graph state first: `anchorMs` is the user's selected start point and `cursorMs` is the visible/progress position.
 
 The e2e fake player records playback intervals as `start_ms` and `end_ms`; use those records to verify whether AQE requested the wrong interval before investigating physical audio output.

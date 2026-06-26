@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -43,11 +42,13 @@ class FakePlaybackRecorder:
         *,
         apply_immediate_seek: bool = True,
         ffmpeg_config: Any | None = None,
+        max_attempt_count: int | None = None,
     ) -> None:
         self.media_dir = media_dir
         self.durations_ms = durations_ms
         self.apply_immediate_seek = apply_immediate_seek
         self.ffmpeg_config = ffmpeg_config
+        self.max_attempt_count = max_attempt_count
         self.attempts: list[PlaybackAttempt] = []
         self.unknown_filenames: list[str] = []
         self.stop_count = 0
@@ -70,13 +71,13 @@ class FakePlaybackRecorder:
             duration_ms=duration_ms,
             started_at=time.monotonic(),
         )
-        segment_start_ms = _playback_segment_start_ms(path.name)
-        if segment_start_ms is not None:
-            attempt.start_ms = segment_start_ms
-            attempt.end_ms = segment_start_ms + duration_ms
-            attempt.audible_start_ms = segment_start_ms
-            attempt.audible_end_ms = attempt.end_ms
         self.attempts.append(attempt)
+        if self.max_attempt_count is not None and len(self.attempts) > self.max_attempt_count:
+            raise AssertionError(
+                "Native playback attempt count exceeded the test budget: "
+                f"{len(self.attempts)} > {self.max_attempt_count}; "
+                f"attempts={[attempt.filename for attempt in self.attempts]!r}"
+            )
 
     def _duration_ms(self, path: Path) -> int:
         duration_ms = self.durations_ms.get(path.name)
@@ -128,6 +129,7 @@ def _record_fake_playback(
     *,
     apply_immediate_seek: bool = True,
     ffmpeg_config: Any | None = None,
+    max_attempt_count: int | None = None,
 ):
     from aqt.sound import av_player
 
@@ -137,6 +139,7 @@ def _record_fake_playback(
         durations_ms,
         apply_immediate_seek=apply_immediate_seek,
         ffmpeg_config=ffmpeg_config,
+        max_attempt_count=max_attempt_count,
     )
     _FAKE_PLAYBACK_ACTIVE += 1
     try:
@@ -154,7 +157,7 @@ def _record_fake_playback(
 def _assert_no_playback_leaks(
     playback: FakePlaybackRecorder,
     *,
-    expected_attempt_count: int | None = None,
+    expected_attempt_count: int | None = 0,
     expected_toggle_count: int | None = None,
 ) -> None:
     """Assert the fake playback recorder saw no unexpected activity."""
@@ -164,25 +167,6 @@ def _assert_no_playback_leaks(
     assert playback.unknown_filenames == []
     if expected_toggle_count is not None:
         assert playback.toggle_count == expected_toggle_count
-
-
-def _assert_interval(
-    attempt: PlaybackAttempt,
-    expected_start_ms: int,
-    *,
-    expected_end_ms: int | None = None,
-    tolerance_ms: int = PLAYBACK_INTERVAL_TOLERANCE_MS,
-) -> None:
-    assert abs(attempt.start_ms - expected_start_ms) <= tolerance_ms
-    if expected_end_ms is not None:
-        assert abs(attempt.end_ms - expected_end_ms) <= tolerance_ms
-    else:
-        assert attempt.end_ms >= attempt.start_ms
-
-
-def _playback_segment_start_ms(filename: str) -> int | None:
-    match = re.search(r"__from_(\d+)ms_", filename)
-    return int(match.group(1)) if match else None
 
 
 def _shift_click_region(editor, ratio: float, ord_: int = 0) -> None:

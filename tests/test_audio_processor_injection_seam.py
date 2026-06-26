@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
-import uuid
 
 from anki_audio_quick_editor import (
     audio_external,
@@ -41,10 +40,3 @@ def test_leaf_modules_self_import_stdlib():
     """Stdlib identity is order-independent (shared module object)."""
     assert audio_rendering.subprocess is subprocess
     assert audio_rendering.tempfile is tempfile
-    assert audio_rendering.uuid is uuid
-
-
-def test_portal_uuid_seam_preserves_facade_uuid_attribute():
-    """Portal's make_playback_segment_filename accesses facade.uuid directly."""
-    assert hasattr(facade, "uuid")
-    assert facade.uuid is uuid

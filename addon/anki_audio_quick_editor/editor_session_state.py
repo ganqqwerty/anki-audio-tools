@@ -92,6 +92,8 @@ class PostEditPlaybackState:
     pending_generation: int | None = None
     pending_requires_graph_redraw: bool = False
     pending_source_filename: str | None = None
+    pending_source_kind: str = "generated_edit"
+    pending_expected_duration_ms: int | None = None
 
     def bump(self) -> None:
         self.generation += 1
@@ -102,17 +104,23 @@ class PostEditPlaybackState:
         source_filename: str | None,
         *,
         require_graph_redraw: bool = False,
+        source_kind: str = "generated_edit",
+        expected_duration_ms: int | None = None,
     ) -> None:
         self.pending_field_index = int(field_index)
         self.pending_generation = self.generation
         self.pending_requires_graph_redraw = bool(require_graph_redraw)
         self.pending_source_filename = source_filename
+        self.pending_source_kind = source_kind if source_kind == "existing_media" else "generated_edit"
+        self.pending_expected_duration_ms = expected_duration_ms
 
     def clear_pending(self) -> None:
         self.pending_field_index = None
         self.pending_generation = None
         self.pending_requires_graph_redraw = False
         self.pending_source_filename = None
+        self.pending_source_kind = "generated_edit"
+        self.pending_expected_duration_ms = None
 
     def reset(self) -> None:
         self.generation += 1

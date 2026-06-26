@@ -1,7 +1,7 @@
 import type { PlaybackRequest, PlaybackState } from "./types.js";
 
 export type PlaybackRegionMode = "selection" | "full";
-export type PlaybackEngine = "html" | "native" | "";
+export type PlaybackEngine = "html" | "";
 
 export interface PlaybackRegion {
   endMs: number;
@@ -127,6 +127,10 @@ export function planPlaybackBoundary(input: {
 
 export function playbackCompletionCursor(pass: Pick<PlaybackPass, "regionMode" | "resetCursorMs">): number {
   return Math.round(pass.resetCursorMs);
+}
+
+export function playbackStateIsStopped(state: PlaybackState): boolean {
+  return state === "stopped";
 }
 
 function playbackLoopPass(pass: PlaybackPass): PlaybackPass {

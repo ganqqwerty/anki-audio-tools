@@ -51,14 +51,20 @@ export {
   setPlaybackButtonLabel,
   setPlaybackState,
   startAudioProgressClock,
-  startEditorHtmlPlayback,
+  startSourcePlayback,
   startManualProgressClock,
   startProgressClock,
   stopEditorPlayback,
   stopProgressClock,
 } from "./playback-actions.js";
 export { handlePlaybackBoundary } from "./playback-actions.js";
-export { clearPlaybackFrame, playbackControllerDependencies, playbackRequestForStart, seekAudioClock, setCursor } from "./actions-playback.js";
+export {
+  clearPlaybackFrame,
+  playbackControllerDependencies,
+  playbackRequestForStart,
+  seekAudioElementForCursorPreview,
+  setCursor,
+} from "./actions-playback.js";
 export { initializePlaybackRegionState } from "./actions-playback.js";
 export {
   setRepeatEnabledForOrd,

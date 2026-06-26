@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
+  bridgeCommands,
   dispatchGraphPointer,
   dragGraphSelection,
   graphClientX,
@@ -44,12 +45,8 @@ describe("editor inline cursor, selection, playback integration", () => {
       repeatEnabled: true,
       selectionActive: true,
     });
-    expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      action: "start",
-      cursorMs: 500,
-      loop: true,
-      regionMode: "full",
-    });
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:play");
     expect(audio.play).toHaveBeenCalledTimes(1);
   });
 

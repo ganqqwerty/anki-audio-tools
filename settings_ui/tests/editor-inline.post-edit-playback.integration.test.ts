@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { notifyPostEditPlaybackReady } from "../src/editor-inline/post-edit-playback.js";
+import { setEditorRuntimeConfig } from "../src/editor-inline/editor-runtime-config.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
@@ -48,16 +50,9 @@ describe("editor inline post-edit playback integration", () => {
     expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
     await Promise.resolve();
 
-    expect(window.__aqeGetPlaybackRequest?.()).toEqual({
-      action: "start",
-      cursorMs: 0,
-      endMs: 1000,
-      engine: "html",
-      loop: true,
-      ord: 0,
-      regionMode: "full",
-      source: "post_edit",
-    });
+    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:play");
     expect(window.__aqePostEditPlaybackIntents?.[0]).toBeUndefined();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "playing",
@@ -86,16 +81,69 @@ describe("editor inline post-edit playback integration", () => {
     expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
     await Promise.resolve();
 
-    expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
-      engine: "html",
-      loop: false,
-      ord: 0,
-      regionMode: "full",
-    });
+    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:play");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackEngine: "html",
       playbackState: "playing",
       repeatEnabled: false,
+    });
+  });
+
+  it("preserves pending repeat intent across rapid post-edit remounts", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    await setRepeatMode(true);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
+    expect(window.__aqePostEditPlaybackIntents?.[0]).toMatchObject({ repeat: true });
+
+    disposeEditorRuntime();
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    setEditorRuntimeConfig({
+      ...window.__AQE_EDITOR_CONFIG__!,
+      pendingPostEditPlayback: {
+        fieldOrd: 0,
+        generation: 2,
+        sourceKind: "generated_edit",
+        sourceFilename: "generated-one.mp3",
+      },
+    });
+    expect(window.__aqeGraphStateForTest?.(0)?.repeatEnabled).toBe(false);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-faster"]')!.click();
+    expect(window.__aqePostEditPlaybackIntents?.[0]).toMatchObject({ repeat: true });
+  });
+
+  it("preserves the edit status when post-edit browser playback rejects", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetBusy?.(0, false, "Increased speed to x1.5.", "aqe:faster");
+    const audio = prepareHtmlAudio(0);
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
+    audio.dispatchEvent(new Event("loadedmetadata"));
+
+    expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:play");
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "Increased speed to x1.5.",
+    );
+    const playbackWarning = document.querySelector('[data-testid="aqe-playback-warning-0"]');
+    expect(playbackWarning).toHaveTextContent("Browser audio is unavailable.");
+    expect(playbackWarning).not.toHaveAttribute("hidden");
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackEngine: "html",
+      playbackState: "stopped",
     });
   });
 
@@ -121,7 +169,8 @@ describe("editor inline post-edit playback integration", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(window.__aqePostEditPlaybackIntents?.[0]).toBeUndefined();
-    expect(bridgeCommands()).toContain("aqe:play");
+    expect(window.__aqePendingPlaybackRequest).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:play");
   });
 
   it("notifies Python when a pending post-edit playback field is mounted", async () => {
@@ -130,6 +179,7 @@ describe("editor inline post-edit playback integration", () => {
       pendingPostEditPlayback: {
         fieldOrd: 0,
         generation: 3,
+        sourceKind: "generated_edit" as const,
         sourceFilename: "clip one.mp3",
       },
     });
@@ -151,12 +201,43 @@ describe("editor inline post-edit playback integration", () => {
     expect(bridgeCommands()).toContain("aqe:command-payload");
   });
 
+  it("suppresses duplicate ready notifications for the same post-edit generation", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      pendingPostEditPlayback: {
+        fieldOrd: 0,
+        generation: 12,
+        sourceKind: "generated_edit",
+        sourceFilename: "clip one.mp3",
+      },
+    });
+    scan(window.__AQE_EDITOR_CONFIG__!);
+    await Promise.resolve();
+
+    prepareHtmlAudio(0);
+    await Promise.resolve();
+
+    expect(consumePendingCommandPayload()).toEqual({
+      command: "aqe:post-edit-playback-ready",
+      fieldOrd: 0,
+      generation: 12,
+      sourceFilename: "clip one.mp3",
+    });
+
+    notifyPostEditPlaybackReady(0, "clip one.mp3");
+    await Promise.resolve();
+
+    expect(consumePendingCommandPayload()).toBeNull();
+    expect(bridgeCommands().filter((command) => command === "aqe:command-payload")).toHaveLength(1);
+  });
+
   it("defers the post-edit ready notification until controls are not busy", async () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
       pendingPostEditPlayback: {
         fieldOrd: 0,
         generation: 4,
+        sourceKind: "generated_edit",
         sourceFilename: "clip one.mp3",
       },
     });
@@ -186,6 +267,7 @@ describe("editor inline post-edit playback integration", () => {
       pendingPostEditPlayback: {
         fieldOrd: 0,
         generation: 5,
+        sourceKind: "generated_edit",
         requireGraphRedraw: true,
         sourceFilename: "clip one.mp3",
       },
@@ -215,6 +297,7 @@ describe("editor inline post-edit playback integration", () => {
       pendingPostEditPlayback: {
         fieldOrd: 0,
         generation: 7,
+        sourceKind: "generated_edit",
         requireGraphRedraw: true,
         sourceFilename: "updated.mp3",
       },
@@ -259,6 +342,7 @@ describe("editor inline post-edit playback integration", () => {
       pendingPostEditPlayback: {
         fieldOrd: 0,
         generation: 6,
+        sourceKind: "generated_edit",
         requireGraphRedraw: true,
         sourceFilename: "clip one.mp3",
       },
@@ -286,6 +370,7 @@ describe("editor inline post-edit playback integration", () => {
       pendingPostEditPlayback: {
         fieldOrd: 0,
         generation: 8,
+        sourceKind: "generated_edit",
         sourceFilename: "clip one.mp3",
       },
     });
@@ -308,33 +393,4 @@ describe("editor inline post-edit playback integration", () => {
     });
   });
 
-  it("releases post-edit ready notification after metadata wait timeout", async () => {
-    vi.useFakeTimers();
-    initializeEditorRuntime({
-      audioFieldIndices: [0],
-      pendingPostEditPlayback: {
-        fieldOrd: 0,
-        generation: 9,
-        sourceFilename: "clip one.mp3",
-      },
-    });
-    scan(window.__AQE_EDITOR_CONFIG__!);
-    await Promise.resolve();
-
-    expect(consumePendingCommandPayload()).toBeNull();
-
-    vi.advanceTimersByTime(5000);
-    await Promise.resolve();
-
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      htmlAudioReadinessReason: "metadata_timeout",
-      htmlAudioReadinessState: "failed",
-    });
-    expect(consumePendingCommandPayload()).toEqual({
-      command: "aqe:post-edit-playback-ready",
-      fieldOrd: 0,
-      generation: 9,
-      sourceFilename: "clip one.mp3",
-    });
-  });
 });

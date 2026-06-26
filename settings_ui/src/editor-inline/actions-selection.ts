@@ -29,11 +29,11 @@ import {
   startSelectionGesture as startSelectionGestureFlow,
   type SelectionGestureDependencies,
 } from "./selection-gestures.js";
-import { playbackStateFor, startEditorHtmlPlayback, stopProgressClock } from "./playback-actions.js";
+import { playbackStateFor, startSourcePlayback, stopProgressClock } from "./playback-actions.js";
 import { currentProgressMs } from "./playback-actions.js";
 import { readVisualizerTargetDurationMs, setVisualizerResumeRequiresRestart } from "./visualizer-state.js";
 import { audioClockReady } from "./actions-audio-clock.js";
-import { seekAudioClock } from "./actions-playback.js";
+import { seekAudioElementForCursorPreview } from "./actions-playback.js";
 import { playbackRequestForStart, setCursor } from "./actions-playback.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import type { VisualizerElement } from "./types.js";
@@ -132,9 +132,9 @@ export function shiftSelectionEdgeToMarker(
     setVisualizerResumeRequiresRestart(visualizer, true);
   }
   if (previousPlaybackState === "playing" && audioClockReady(visualizer)) {
-    startEditorHtmlPlayback(
+    startSourcePlayback(
       visualizer,
-      playbackRequestForStart(visualizer, ord, resolution.nextRange.startMs, "html"),
+      playbackRequestForStart(visualizer, ord, resolution.nextRange.startMs),
     );
   }
   return true;
@@ -169,12 +169,12 @@ function selectionGestureDependencies(): SelectionGestureDependencies {
     draftSelectionForVisualizer,
     playbackRequestForStart,
     playbackStateFor,
-    seekAudioClock,
+    seekAudioElementForCursorPreview,
     selectionForVisualizer,
     setCursor,
     setSelection,
     setSelectionDraft,
-    startEditorHtmlPlayback,
+    startSourcePlayback,
     stopProgressClock,
     visualizerForOrd,
   };

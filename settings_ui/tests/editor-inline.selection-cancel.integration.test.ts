@@ -121,6 +121,8 @@ describe("editor inline selection cancel integration", () => {
     });
 
     window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    await Promise.resolve();
+    await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "playing",

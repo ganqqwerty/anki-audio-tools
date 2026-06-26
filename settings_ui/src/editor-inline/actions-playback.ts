@@ -1,29 +1,16 @@
 import { visualizerForOrd } from "./dom-selectors.js";
-import { focusAndSendCommand, setCursorIntent } from "./bridge.js";
-import { seekAudioClock as seekAudioClockElement } from "./audio-clock.js";
-import { logger } from "./logger.js";
+import { seekAudioElementForCursorPreview as seekAudioElementForCursorPreviewElement } from "./audio-clock.js";
 import type {
-  CursorIntent,
   PlaybackRequest,
-  PlaybackState,
   VisualizerElement,
 } from "./types.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
-import {
-  clearPlaybackStatusForOrd,
-  repeatDefaultFromConfig,
-  restoreStatusForOrd,
-} from "./control-actions.js";
-import { playbackEngineFor, playbackStateFor, setPlaybackButtonLabel } from "./playback-actions.js";
+import { repeatDefaultFromConfig } from "./control-actions.js";
 import { clearPlaybackFrame as clearPlaybackFrameFromController } from "./playback-controller-frame.js";
-import type { PlaybackControllerDependencies } from "./playback-controller.js";
 import {
   clampProgressMs,
-  repeatEnabledFor,
   setRepeatEnabled,
-  stopOtherPlayback,
 } from "./actions-audio-clock.js";
-import { renderCursor } from "./visualizer-renderer.js";
 import {
   clearSelection as clearSelectionFromController,
   effectivePlaybackRegion as effectivePlaybackRegionFromController,
@@ -31,11 +18,14 @@ import {
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { notifySelectionChanged } from "./selection-events.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
-import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
+import { repeatEnabledFor } from "./repeat-control-projection.js";
 import {
   setPlaybackPassRuntime,
   setRepeatPauseSecondsRuntime,
 } from "./visualizer-runtime-state.js";
+
+export { setCursor } from "./cursor-actions.js";
+export { playbackControllerDependencies } from "./playback-controller-dependencies.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -63,26 +53,10 @@ export function setRepeatPauseSecondsForOrd(ord: number, seconds: number): boole
   return true;
 }
 
-export function playbackControllerDependencies(): PlaybackControllerDependencies {
-  return {
-    clearStatus: clearPlaybackStatusForOrd,
-    effectivePlaybackRegion: effectivePlaybackRegionFromController,
-    focusAndSendCommand,
-    handleLoopBoundary: handleChorusingLoopBoundary,
-    playbackEngineFor,
-    repeatEnabledFor,
-    restoreStatus: restoreStatusForOrd,
-    setCursor,
-    setPlaybackButtonLabel,
-    stopOtherPlayback,
-  };
-}
-
 export function playbackRequestForStart(
   visualizer: VisualizerElement,
   ord: number,
   startMs: number,
-  engine: "html" | "native" | "" = playbackEngineFor(visualizer),
 ): PlaybackRequest {
   const region = effectivePlaybackRegionFromController(visualizer);
   return {
@@ -90,55 +64,14 @@ export function playbackRequestForStart(
     action: "start",
     cursorMs: Math.round(clampProgressMs(visualizer, startMs)),
     endMs: Math.round(region.endMs),
-    engine,
+    engine: "html",
     loop: repeatEnabledFor(visualizer),
     regionMode: region.mode,
   };
 }
 
-export function seekAudioClock(visualizer: VisualizerElement, ms: number): boolean {
-  return seekAudioClockElement(visualizer, ms, readVisualizerTargetDurationMs(visualizer));
-}
-
-export function setCursor(
-  visualizer: VisualizerElement,
-  ms: number,
-  notifyPython: boolean,
-  options: {
-    engine?: "html" | "native" | "";
-    previousPlaybackState?: PlaybackState;
-    restartPlayback?: boolean;
-    updateAnchor?: boolean;
-  } = {},
-): void {
-  const ord = fieldOrd(visualizer);
-  const s = readFieldState(ord);
-  const targetDurationMs = readVisualizerTargetDurationMs(visualizer);
-  const clamped = Math.max(0, Math.min(Number(ms) || 0, targetDurationMs || 0));
-  writeFieldState(ord, {
-    ...s,
-    cursor: {
-      anchorMs: options.updateAnchor !== false ? Math.round(clamped) : s.cursor.anchorMs,
-      ms: Math.round(clamped),
-      progressMs: Math.round(clamped),
-    },
-  });
-  renderCursor(visualizer, clamped, s.graph.durationMs);
-  if (notifyPython) {
-    window.__aqeActiveField = Number(visualizer.dataset.aqeFieldOrd || "0");
-    const region = effectivePlaybackRegionFromController(visualizer);
-    const intent: CursorIntent = {
-      cursorMs: Math.round(clamped),
-      endMs: Math.round(region.endMs),
-      previousPlaybackState: options.previousPlaybackState || playbackStateFor(visualizer),
-      regionMode: region.mode,
-      restartPlayback: !!options.restartPlayback,
-    };
-    if (options.engine) intent.engine = options.engine;
-    setCursorIntent(intent);
-    logger.info("cursor committed", intent);
-    focusAndSendCommand(window.__aqeActiveField, "aqe:set-cursor");
-  }
+export function seekAudioElementForCursorPreview(visualizer: VisualizerElement, ms: number): boolean {
+  return seekAudioElementForCursorPreviewElement(visualizer, ms, readVisualizerTargetDurationMs(visualizer));
 }
 
 export function initializePlaybackRegionState(visualizer: VisualizerElement): void {

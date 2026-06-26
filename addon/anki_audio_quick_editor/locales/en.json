@@ -461,6 +461,7 @@
   "editor.status.delete_whole_clip": "Cannot delete the whole audio clip.",
   "editor.status.keep_whole_clip": "Selection already covers the whole audio clip.",
   "editor.status.deleting_region_plain": "Deleting region",
+  "editor.status.browser_audio_unavailable": "Browser audio is unavailable.",
   "editor.status.selected_repeat_browser_audio": "Selected repeat playback needs browser audio.",
   "batch.action": "Run Audio Batch Operation...",
   "batch.undo_label": "Batch Audio Operation",

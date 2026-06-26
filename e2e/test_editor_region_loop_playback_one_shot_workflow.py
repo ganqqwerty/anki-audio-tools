@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from e2e.editor_graph_helpers import (
+    _click_graph_and_wait,
+    _set_full_time_viewport,
+)
 from e2e.editor_note_helpers import (
+    _basic_audio_note,
     _button_selector,
+    _configure_ffmpeg,
+    _open_editor,
 )
 from e2e.editor_playback_helpers import (
     PLAYBACK_INTERVAL_TOLERANCE_MS,
-    _assert_interval,
     _record_fake_playback,
 )
 from e2e.editor_region_loop_helpers import (
@@ -19,7 +27,9 @@ from e2e.editor_region_loop_helpers import (
 )
 from e2e.helpers import (
     click_selector,
+    generate_tone,
     run_js,
+    wait_for_js_condition,
 )
 
 
@@ -100,64 +110,88 @@ def test_selected_one_shot_playback_respects_region_boundaries(
 
 
 @pytest.mark.parametrize("extension", ["aac", "m4a"])
-def test_native_selected_one_shot_playback_renders_only_selected_region(
+def test_selected_one_shot_playback_warns_without_temporary_segment_when_browser_audio_rejects(
     anki_mw,
     ffmpeg_config,
     extension: str,
 ) -> None:
-    media_dir, source, _note, editor, parent, track = _open_tone_editor(
+    media_dir, source, _note, editor, parent, track = _open_tone_editor_without_fake_audio(
         anki_mw,
         ffmpeg_config,
-        f"editor_region_native_one_shot.{extension}",
+        f"editor_region_html_reject_one_shot.{extension}",
         2.0,
     )
     try:
         expected_start = round(track["durationMs"] * 0.25)
         expected_end = round(track["durationMs"] * 0.625)
         _shift_drag_region(editor, 0.25, 0.625)
-        _force_hard_failure_native_playback(editor)
+        _force_html_audio_play_rejection(editor)
 
         with _record_fake_playback(
             media_dir,
             {source.name: round(track["durationMs"])},
             ffmpeg_config=ffmpeg_config,
+            max_attempt_count=0,
         ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
-            _state(
-                editor,
-                lambda state: state["playbackState"] == "playing"
-                and state["playbackEngine"] == "native"
-                and state["playbackStartMs"] == expected_start
-                and state["playbackEndMs"] == expected_end,
-                timeout=6.0,
-            )
-            finished = _state(
+            failed = _state(
                 editor,
                 lambda state: state["playbackState"] == "stopped"
-                and abs(state["cursorMs"] - expected_start) <= PLAYBACK_INTERVAL_TOLERANCE_MS,
+                and state["playbackEngine"] == "html",
                 timeout=6.0,
             )
+            wait_for_js_condition(
+                editor.web,
+                "document.querySelector('[data-testid=\"aqe-status-0\"]')?.textContent || ''",
+                lambda text: text == "Browser audio is unavailable.",
+                timeout=5.0,
+            )
 
-        assert len(playback.attempts) == 1
-        _assert_interval(playback.attempts[0], expected_start, expected_end_ms=expected_end)
-        assert playback.attempts[0].path.parent.name.startswith("aqe_playback_")
-        assert finished["playbackRegionMode"] == "selection"
+        assert playback.attempts == []
+        assert failed["selectionStartMs"] == expected_start
+        assert failed["selectionEndMs"] == expected_end
+        assert failed["playbackRegionMode"] == "selection"
     finally:
         editor.set_note(None)
         parent.close()
 
 
-def _force_hard_failure_native_playback(editor, ord_: int = 0) -> None:
+def _open_tone_editor_without_fake_audio(anki_mw, ffmpeg_config, filename: str, duration_s: float):
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / filename
+    generate_tone(ffmpeg_config, source, duration_s=duration_s)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, repeat_playback_by_default=False)
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+    except Exception:
+        editor.set_note(None)
+        parent.close()
+        raise
+    _set_full_time_viewport(editor)
+    return media_dir, source, note, editor, parent, track
+
+
+def _force_html_audio_play_rejection(editor, ord_: int = 0) -> None:
     run_js(
         editor.web,
         f"""
         (() => {{
           const visualizer = document.querySelector('[data-testid=\"aqe-graph-{ord_}\"]');
-          if (!visualizer) return false;
-          visualizer.__aqeAudioClockAvailable = false;
-          visualizer.__aqeAudioClockFallback = true;
-          visualizer.__aqeHtmlAudioFailureReason = "audio_error";
+          const audio = document.querySelector('[data-testid=\"aqe-audio-clock-{ord_}\"]');
+          if (!visualizer || !audio) return false;
+          Object.defineProperty(audio, "duration", {{
+            configurable: true,
+            value: Number(visualizer.dataset.durationMs || "0") / 1000,
+          }});
+          Object.defineProperty(audio, "readyState", {{ configurable: true, value: 1 }});
+          audio.pause = () => undefined;
+          audio.play = () => Promise.reject(new Error("blocked-one-shot"));
+          visualizer.__aqeAudioClockAvailable = true;
+          visualizer.__aqeAudioClockFallback = false;
           window.__aqeSetFieldStateForTest?.({ord_}, {{ playback: {{ engine: "" }} }});
+          audio.dispatchEvent(new Event("loadedmetadata"));
           return true;
         }})()
         """,

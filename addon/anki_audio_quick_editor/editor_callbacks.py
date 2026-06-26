@@ -78,8 +78,8 @@ _EXPORT_NAMES = (
     "main", "open_external_url", "open_settings_from_editor",
     "parse_graph_analysis_request", "parse_region_delete_request", "pending_post_edit_playback_payload",
     "persistent_undo_items", "pitch_hum_async", "play",
-    "play_ended", "play_learner_recording", "play_with_request",
-    "playback_after_edit_expression", "playback_segment_failed", "playback_segment_ready",
+    "play_ended", "play_with_request",
+    "playback_after_edit_expression",
     "record_dpdfnet_failure_context", "record_learner_voice", "record_rnnoise_failure_context",
     "record_spleeter_failure_context", "record_standard_persistent_undo", "redo",
     "reduce_size_async", "refresh_editor_after_settings_save", "region_delete_log_context",
@@ -97,7 +97,7 @@ _EXPORT_NAMES = (
     "schedule_history_snapshot_attempt", "set_busy", "set_busy_for_field",
     "set_cursor_from_web", "share_current_audio_file", "share_failed",
     "share_learner_recording_file", "show_current_audio_file", "show_learner_recording_file",
-    "start_field_analysis_async", "start_playback_from_cursor", "stop_audio_playback",
+    "start_field_analysis_async", "stop_audio_playback",
     "stop_learner_recording", "stop_playback", "stop_session_playback",
     "undo", "update_state_and_render", "voice_only_async", "write_generated_media",
 )
@@ -269,11 +269,7 @@ _play_ended = _with_deps(editor_playback.play_ended, _playback_deps)
 _stop_playback = _with_deps(editor_playback.stop_playback, _playback_deps)
 _play_with_request = _with_deps(editor_playback.play_with_request, _playback_deps)
 _playback_request_values = _with_deps(editor_playback.playback_request_values, _playback_deps)
-_toggle_native_pause_resume = _with_deps(editor_playback.toggle_native_pause_resume, _playback_deps)
 _apply_html_playback_request = _with_deps(editor_playback.apply_html_playback_request, _playback_deps)
-_start_playback_from_cursor = _with_deps(editor_playback.start_playback_from_cursor, _playback_deps)
-_playback_segment_ready = _with_deps(editor_playback.playback_segment_ready, _playback_deps)
-_playback_segment_failed = _with_deps(editor_playback.playback_segment_failed, _playback_deps)
 
 _record_learner_voice = _with_keyword_deps(
     editor_recording.record_learner_voice,
@@ -283,11 +279,6 @@ _stop_learner_recording = _with_deps(
     editor_recording.stop_learner_recording,
     _recording_deps,
 )
-_play_learner_recording = _with_deps(
-    editor_recording.play_learner_recording,
-    _recording_deps,
-)
-
 _undo = _with_deps(editor_history.undo, _history_deps)
 _redo = _with_deps(editor_history.redo, _history_deps)
 _history_jump = _with_deps(editor_history.history_jump, _history_deps)

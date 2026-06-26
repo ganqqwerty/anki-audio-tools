@@ -184,12 +184,12 @@ def test_play_from_zero_uses_original_file_without_segment(anki_mw, ffmpeg_confi
         parent.close()
 
 
-def test_play_without_graph_shown_uses_pause_button_until_native_playback_ends(
+def test_play_without_graph_shown_uses_html_pause_button_until_playback_ends(
     anki_mw,
     ffmpeg_config,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "editor_no_graph_native_playback_source.wav"
+    source = media_dir / "editor_no_graph_html_playback_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.0)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config)
@@ -205,16 +205,25 @@ def test_play_without_graph_shown_uses_pause_button_until_native_playback_ends(
             and state["playButtonLabel"] == "Play",
             timeout=5.0,
         )
-        with _record_fake_playback(media_dir, {source.name: 1000}) as playback:
+        _install_html_audio_test_driver(editor)
+        run_js(
+            editor.web,
+            "window.__aqeSetFieldStateForTest?.(0, { graph: { durationMs: 1000 }, playback: { endMs: 1000 } })",
+        )
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None
+            and state["hidden"] is True
+            and state["durationMs"] == 1000,
+            timeout=10.0,
+        )
+        with _record_fake_playback(media_dir, {source.name: 1000}, max_attempt_count=0) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
-            playing = wait_for_js_condition(
-                editor.web,
-                _graph_state_js(),
-                lambda state: state is not None
-                and state["hidden"] is True
-                and state["playbackState"] == "playing"
+            playing = _wait_for_html_playback(
+                editor,
+                lambda state: state["hidden"] is True
                 and state["playButtonLabel"] == "Pause",
-                timeout=5.0,
             )
             run_js(editor.web, "pycmd('aqe:play-ended')")
             wait_for_js_condition(
@@ -226,10 +235,8 @@ def test_play_without_graph_shown_uses_pause_button_until_native_playback_ends(
                 timeout=5.0,
             )
 
-        _assert_no_playback_leaks(playback, expected_attempt_count=1)
-        assert playback.attempts[0].filename == source.name
-        assert playback.attempts[0].start_ms == 0
-        assert playing["playbackEngine"] == "native"
+        _assert_no_playback_leaks(playback, expected_attempt_count=0)
+        assert playing["playbackEngine"] == "html"
     finally:
         editor.set_note(None)
         parent.close()
@@ -253,12 +260,23 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
             lambda state: state is not None and state["playButtonLabel"] == "Play",
             timeout=5.0,
         )
-        with _record_fake_playback(media_dir, {source.name: 1000}) as playback:
+        _install_html_audio_test_driver(editor)
+        run_js(
+            editor.web,
+            "window.__aqeSetFieldStateForTest?.(0, { graph: { durationMs: 1000 }, playback: { endMs: 1000 } })",
+        )
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None
+            and state["durationMs"] == 1000,
+            timeout=10.0,
+        )
+        with _record_fake_playback(media_dir, {source.name: 1000}, max_attempt_count=0) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
-            wait_for_condition(
-                lambda: len(playback.attempts) == 1,
-                timeout=5.0,
-                message="Initial playback did not start before renaming the field audio",
+            _wait_for_html_playback(
+                editor,
+                lambda state: state["playButtonLabel"] == "Pause",
             )
             run_js(editor.web, "pycmd('aqe:play-ended')")
             wait_for_js_condition(
@@ -270,6 +288,15 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
                 timeout=5.0,
             )
             note.fields[0] = missing_field
+            editor.set_note(note, hide=False, focusTo=0)
+            wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None
+                and state["sourceFilename"] == missing_name
+                and missing_name in state["audioClockSrc"],
+                timeout=5.0,
+            )
             wait_for_condition(
                 lambda: editor.note.fields[0] == missing_field,
                 timeout=5.0,
@@ -286,8 +313,7 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
                 timeout=5.0,
             )
 
-        _assert_no_playback_leaks(playback, expected_attempt_count=1)
-        assert playback.attempts[0].filename == source.name
+        _assert_no_playback_leaks(playback, expected_attempt_count=0)
         assert status["title"] == ""
         assert note.fields[0] == missing_field
     finally:
@@ -295,7 +321,7 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
         parent.close()
 
 
-def test_drag_to_70_percent_plays_html_audio_70_to_100_without_native_seek(
+def test_drag_to_70_percent_plays_html_audio_70_to_100_without_backend_seek(
     anki_mw,
     ffmpeg_config,
 ) -> None:

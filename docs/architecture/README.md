@@ -8,6 +8,7 @@ This directory contains the architecture model and supporting artifacts for Anki
 |------|------|-------------|
 | `workspace.dsl` | Structurizr C4 DSL | Human-authored architecture model (System Context, Container, Component) |
 | `webviews.yaml` | YAML | WebView injection map: which Anki hooks register which Svelte bundles |
+| `html-audio-observability.md` | Markdown | Canonical HTML audio playback observability contract |
 | `README.md` | Markdown | This file |
 
 ## Diagrams (auto-generated)

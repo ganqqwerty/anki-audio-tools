@@ -1,14 +1,18 @@
 import {
   audioClockFor,
   audioClockReady,
-  pauseAudioClock,
-  reloadAudioClockSource,
-  seekAudioClock,
-  setAudioClockLoop,
+  seekAudioElementForCursorPreview,
 } from "./audio-clock.js";
+import {
+  dispatchHtmlAudioSessionEvent,
+  readHtmlAudioSessionState,
+} from "./html-audio-session-controller.js";
 import { markHtmlAudioFailure } from "./audio-readiness.js";
-import { startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
 import { logger } from "./logger.js";
+import {
+  clearRepeatPauseCountdownOverlay,
+  startRepeatPauseCountdownOverlay,
+} from "./graph-countdown-overlay.js";
 import {
   clampProgressMs,
   liveProgressMs,
@@ -17,6 +21,7 @@ import {
 } from "./playback-plan-state.js";
 import {
   planPlaybackBoundary,
+  playbackStateIsStopped,
   type PlaybackPass,
   type PlaybackRegion,
 } from "./playback-model.js";
@@ -29,7 +34,6 @@ import {
 } from "./playback-controller-pass.js";
 import {
   clearPlaybackFrame,
-  clearRepeatPauseTimer,
 } from "./playback-controller-frame.js";
 import { completePlayback, stopProgressClock } from "./playback-controller-state.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
@@ -62,10 +66,25 @@ function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
 }
 
+export function playbackStopped(visualizer: VisualizerElement): boolean {
+  return playbackStateIsStopped(fieldState(visualizer).playback.state);
+}
+
+function stopSessionAudioForManualClock(visualizer: VisualizerElement, cursorMs: number): void {
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const session = readHtmlAudioSessionState(ord);
+  const activeSession = session.kind === "starting" || session.kind === "playing" || session.kind === "paused" || session.kind === "repeat_waiting";
+  dispatchHtmlAudioSessionEvent(ord, {
+    cursorMs,
+    type: activeSession ? "StopRequested" : "PauseRequested",
+  });
+}
+
 export interface ProgressClockOptions {
-  engine?: "html" | "native" | "";
+  allowLoadingAudio?: boolean;
+  engine?: "html" | "";
   manualFallback?: boolean;
-  onAudioPlayFailed?: () => void;
+  onAudioPlayFailed?: (reason?: "audio_play_rejected" | "audio_seek_failed") => void;
   onAudioStarted?: () => void;
 }
 
@@ -74,7 +93,7 @@ export interface PlaybackControllerDependencies {
   effectivePlaybackRegion: (visualizer: VisualizerElement) => PlaybackRegion;
   focusAndSendCommand: (ord: number, command: string) => void;
   handleLoopBoundary?: (visualizer: VisualizerElement, pass: PlaybackPass) => boolean;
-  playbackEngineFor: (visualizer: VisualizerElement | null) => "html" | "native";
+  playbackEngineFor: (visualizer: VisualizerElement | null) => "html";
   repeatEnabledFor: (visualizer: VisualizerElement) => boolean;
   restoreStatus: (ord: number) => void;
   setCursor: (
@@ -82,7 +101,7 @@ export interface PlaybackControllerDependencies {
     ms: number,
     notifyPython: boolean,
     options?: {
-      engine?: "html" | "native" | "";
+      engine?: "html" | "";
       previousPlaybackState?: PlaybackState;
       restartPlayback?: boolean;
       updateAnchor?: boolean;
@@ -96,7 +115,6 @@ export function handlePlaybackBoundary(
   visualizer: VisualizerElement,
   nextMs: number,
   deps: PlaybackControllerDependencies,
-  options: { forceAudioPlay?: boolean } = {},
 ): boolean {
   const boundary = planPlaybackBoundary({
     nextMs,
@@ -110,10 +128,10 @@ export function handlePlaybackBoundary(
       return true;
     }
     if (boundary.repeatPauseMs > 0) {
-      scheduleRepeatLoopPlayback(visualizer, deps, options, boundary.pass, boundary.repeatPauseMs);
-    } else {
-      restartLoopPlaybackNow(visualizer, deps, options, boundary.pass);
+      startManualRepeatPause(visualizer, boundary.pass, deps, boundary.repeatPauseMs);
+      return true;
     }
+    startManualPlaybackPass(visualizer, boundary.pass, deps, boundary.pass.startMs);
     return true;
   }
   completePlayback(visualizer, deps);
@@ -173,7 +191,7 @@ function startManualPlaybackPass(
   clockStartMs: number = pass.startMs,
 ): void {
   clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
+  stopSessionAudioForManualClock(visualizer, clockStartMs);
   const s = fieldState(visualizer);
   if (!s.graph.durationMs) return;
   visualizer.__aqeAudioClockFallback = true;
@@ -187,6 +205,35 @@ function startManualPlaybackPass(
   paintProgressFromClock(visualizer, deps);
 }
 
+function startManualRepeatPause(
+  visualizer: VisualizerElement,
+  pass: PlaybackPass,
+  deps: PlaybackControllerDependencies,
+  pauseMs: number,
+): void {
+  clearPlaybackFrame(visualizer);
+  stopSessionAudioForManualClock(visualizer, pass.startMs);
+  const s = fieldState(visualizer);
+  if (!s.graph.durationMs) return;
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, state: "playing", clockMode: "stopped" },
+  });
+  writePlaybackPass(visualizer, pass);
+  deps.setPlaybackButtonLabel(visualizer, "Pause");
+  deps.setCursor(visualizer, pass.startMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, pass.startMs);
+  setRepeatPauseWaitingRuntime(visualizer, true);
+  startRepeatPauseCountdownOverlay(visualizer, pauseMs);
+  visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
+    visualizer.__aqeRepeatPauseTimer = null;
+    clearRepeatPauseCountdownOverlay(visualizer);
+    setRepeatPauseWaitingRuntime(visualizer, false);
+    if (fieldState(visualizer).playback.state !== "playing") return;
+    startManualPlaybackPass(visualizer, pass, deps, pass.startMs);
+  }, Math.max(0, pauseMs));
+}
+
 export function startAudioProgressClock(
   visualizer: VisualizerElement,
   startMs: number,
@@ -195,7 +242,7 @@ export function startAudioProgressClock(
 ): void {
   const audio = audioClockFor(visualizer);
   const s = fieldState(visualizer);
-  if (!audio || !seekAudioClock(visualizer, startMs, s.graph.durationMs) || typeof audio.play !== "function") {
+  if (!audio || typeof audio.play !== "function") {
     if (options.manualFallback === false) {
       options.onAudioPlayFailed?.();
       return;
@@ -203,7 +250,27 @@ export function startAudioProgressClock(
     startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
     return;
   }
-  setAudioClockLoop(visualizer, false);
+  const canSeekImmediately = audioClockReady(visualizer);
+  const canStartWithoutMetadata = options.allowLoadingAudio === true && Math.round(startMs) <= 0;
+  if (canSeekImmediately) {
+    if (!seekAudioElementForCursorPreview(visualizer, startMs, s.graph.durationMs)) {
+      if (options.manualFallback === false) {
+        options.onAudioPlayFailed?.("audio_seek_failed");
+        return;
+      }
+      startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
+      return;
+    }
+  } else if (canStartWithoutMetadata) {
+    visualizer.__aqeAudioClockLastSeekedMs = 0;
+  } else {
+    if (options.manualFallback === false) {
+      options.onAudioPlayFailed?.("audio_seek_failed");
+      return;
+    }
+    startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
+    return;
+  }
   writeFieldState(s.ord, {
     ...s,
     playback: { ...s.playback, clockMode: "audio" },
@@ -273,11 +340,7 @@ export function startProgressClock(
   deps.setPlaybackButtonLabel(visualizer, "Pause");
   logger.info("playback clock selected", { engine: selectedEngine || "auto", startMs: clampedStartMs });
   if (!s.graph.durationMs) return;
-  if (selectedEngine === "native") {
-    startManualPlaybackPass(visualizer, pass, deps);
-    return;
-  }
-  if (audioClockReady(visualizer)) {
+  if (audioClockReady(visualizer) || options.allowLoadingAudio === true) {
     startAudioProgressClock(visualizer, clampedStartMs, deps, options);
     return;
   }
@@ -286,149 +349,6 @@ export function startProgressClock(
     return;
   }
   startManualPlaybackPass(visualizer, pass, deps);
-}
-
-function scheduleRepeatLoopPlayback(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  options: { forceAudioPlay?: boolean },
-  pass: PlaybackPass,
-  delayMs: number,
-): void {
-  const loopStartMs = pass.startMs;
-  clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
-  writePlaybackPass(visualizer, pass);
-  setPlaybackClockRuntime(visualizer, loopStartMs);
-  const s = fieldState(visualizer);
-  writeFieldState(s.ord, {
-    ...s,
-    playback: { ...s.playback, state: "playing", clockMode: "stopped" },
-  });
-  setRepeatPauseWaitingRuntime(visualizer, true);
-  deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
-  ensurePlaybackCursorVisible(visualizer, loopStartMs);
-  deps.setPlaybackButtonLabel(visualizer, "Pause");
-  startRepeatPauseCountdownOverlay(visualizer, delayMs);
-  visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
-    visualizer.__aqeRepeatPauseTimer = null;
-    clearRepeatPauseTimer(visualizer);
-    if (fieldState(visualizer).playback.state !== "playing") return;
-    if (!deps.repeatEnabledFor(visualizer)) {
-      completePlayback(visualizer, deps);
-      return;
-    }
-    restartLoopPlaybackNow(visualizer, deps, { ...options, forceAudioPlay: true }, pass);
-  }, delayMs);
-}
-
-function restartLoopPlaybackNow(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  options: { forceAudioPlay?: boolean } = {},
-  pass: PlaybackPass = activePlaybackPass(visualizer, deps),
-): void {
-  const loopStartMs = pass.startMs;
-  clearRepeatPauseTimer(visualizer);
-  writePlaybackPass(visualizer, pass);
-  setPlaybackClockRuntime(visualizer, loopStartMs);
-  const s = fieldState(visualizer);
-  writeFieldState(s.ord, {
-    ...s,
-    playback: { ...s.playback, state: "playing" },
-  });
-  deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
-  ensurePlaybackCursorVisible(visualizer, loopStartMs);
-  const canUseAudioClock = audioClockReady(visualizer)
-    && (s.playback.clockMode === "audio" || s.playback.engine === "html");
-  if (s.playback.clockMode !== "audio" || !audioClockReady(visualizer)) {
-    if (!canUseAudioClock) {
-      startManualPlaybackPass(visualizer, pass, deps);
-      return;
-    }
-    const fresh = readFieldState(s.ord);
-    writeFieldState(s.ord, {
-      ...fresh,
-      playback: { ...fresh.playback, clockMode: "audio" },
-    });
-  }
-  setAudioClockLoop(visualizer, false);
-  if (fullSourcePass(pass, s.graph.durationMs) && loopStartMs <= 0) {
-    restartFullSourceAudioLoop(visualizer, deps, pass);
-    return;
-  }
-  if (!seekAudioClock(visualizer, loopStartMs, s.graph.durationMs)) {
-    startManualPlaybackPass(visualizer, pass, deps);
-    return;
-  }
-  if (!options.forceAudioPlay && readFieldState(s.ord).playback.clockMode === "audio") {
-    clearPlaybackFrame(visualizer);
-    startPlaybackPlan(visualizer, loopStartMs, pass.endMs);
-    paintProgressFromClock(visualizer, deps);
-    return;
-  }
-  const audio = audioClockFor(visualizer);
-  if (!audio || typeof audio.play !== "function") return;
-  setAudioClockLoop(visualizer, false);
-  clearPlaybackFrame(visualizer);
-  const playGeneration = visualizer.__aqePlaybackGeneration ?? 0;
-  void Promise.resolve(audio.play())
-    .then(() => {
-      if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      const s2 = fieldState(visualizer);
-      if (s2.playback.state === "playing") {
-        writeFieldState(s2.ord, {
-          ...s2,
-          playback: { ...s2.playback, clockMode: "audio" },
-        });
-        startPlaybackPlan(visualizer, loopStartMs, pass.endMs);
-        paintProgressFromClock(visualizer, deps);
-      }
-    })
-    .catch(() => {
-      if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      if (fieldState(visualizer).playback.state === "playing") {
-        markHtmlAudioFailure(visualizer, "audio_play_rejected");
-        startManualPlaybackPass(visualizer, pass, deps);
-      }
-    });
-}
-
-function restartFullSourceAudioLoop(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  pass: PlaybackPass,
-): void {
-  const audio = audioClockFor(visualizer);
-  if (!audio || typeof audio.play !== "function") {
-    startManualPlaybackPass(visualizer, pass, deps);
-    return;
-  }
-  if (!reloadAudioClockSource(visualizer)) {
-    startManualPlaybackPass(visualizer, pass, deps);
-    return;
-  }
-  clearPlaybackFrame(visualizer);
-  const playGeneration = visualizer.__aqePlaybackGeneration ?? 0;
-  void Promise.resolve(audio.play())
-    .then(() => {
-      if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      const s = fieldState(visualizer);
-      if (s.playback.state !== "playing") return;
-      writeFieldState(s.ord, {
-        ...s,
-        playback: { ...s.playback, clockMode: "audio" },
-      });
-      startPlaybackPlan(visualizer, pass.startMs, pass.endMs);
-      paintProgressFromClock(visualizer, deps);
-    })
-    .catch(() => {
-      if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      if (fieldState(visualizer).playback.state === "playing") {
-        markHtmlAudioFailure(visualizer, "audio_play_rejected");
-        startManualPlaybackPass(visualizer, pass, deps);
-      }
-    });
 }
 
 function htmlFullSourceRepeatBoundaryMs(

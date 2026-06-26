@@ -8,7 +8,7 @@ import {
   handleHtmlPlaybackCommand,
   pauseAudioClock,
   playbackRequest,
-  seekAudioClock,
+  seekAudioElementForCursorPreview,
   setRepeatEnabled,
   setPlaybackState,
   startManualProgressClock,
@@ -40,7 +40,7 @@ describe("editor inline audio-clock workflows", () => {
     audio.dispatchEvent(new Event("loadedmetadata"));
 
     expect(audioClockReady(visualizer)).toBe(true);
-    expect(seekAudioClock(visualizer, 500)).toBe(true);
+    expect(seekAudioElementForCursorPreview(visualizer, 500)).toBe(true);
     expect(Math.round(audio.currentTime * 1000)).toBe(500);
 
     audio.pause = vi.fn<() => void>(() => {
@@ -55,10 +55,10 @@ describe("editor inline audio-clock workflows", () => {
     configureAudioClock(visualizer, "");
     expect(visualizer.__aqeAudioClockFallback).toBe(true);
     clearAudioClockSource(visualizer);
-    expect(audio.getAttribute("src")).toBe("");
+    expect(audio.getAttribute("src") ?? "").toBe("");
   });
 
-  it("moves audio errors to the manual playback clock and completes on ended", async () => {
+  it("stops and warns when audio errors during playback and completes on ended", async () => {
     const frames: Array<(time: number) => void> = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -76,7 +76,8 @@ describe("editor inline audio-clock workflows", () => {
     expect(readFieldState(0).playback.clockMode).toBe("audio");
 
     audio.dispatchEvent(new Event("error"));
-    expect(readFieldState(0).playback.clockMode).toBe("manual");
+    expect(readFieldState(0).playback.clockMode).toBe("stopped");
+    expect(readFieldState(0).playback.state).toBe("stopped");
 
     visualizer.__aqeAudioClockAvailable = true;
     updateFieldState(0, (state) => ({
@@ -88,7 +89,7 @@ describe("editor inline audio-clock workflows", () => {
     expect(readFieldState(0).playback.state).toBe("stopped");
   });
 
-  it("uses media duration when an ended event repeats with stale graph duration state", async () => {
+  it("does not repeat via the legacy clock when HTML playback has no active session", async () => {
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
     const visualizer = await mountTrack(0);
@@ -117,10 +118,13 @@ describe("editor inline audio-clock workflows", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(audio.play).toHaveBeenCalledTimes(2);
+    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      progressClockMode: "audio",
+    });
   });
 
-  it("uses media current time when an audio error falls back with stale cursor state", async () => {
+  it("uses media current time when an audio error stops with stale cursor state", async () => {
     const frames: Array<(time: number) => void> = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -150,23 +154,23 @@ describe("editor inline audio-clock workflows", () => {
 
     audio.dispatchEvent(new Event("error"));
 
-    expect(readFieldState(0).playback.clockMode).toBe("manual");
+    expect(readFieldState(0).playback.clockMode).toBe("stopped");
     expect(readFieldState(0).cursor.progressMs).toBe(400);
   });
 
-  it("computes pause/resume playback requests and stop hooks", async () => {
+  it("computes pause/resume playback requests and stop hooks on the HTML path", async () => {
     const visualizer = await mountTrack(300);
     updateFieldState(0, (state) => ({
       ...state,
       graph: { ...state.graph, hasTrack: true },
-      playback: { ...state.playback, clockMode: "manual", engine: "native", state: "playing" },
+      playback: { ...state.playback, clockMode: "manual", engine: "html", state: "playing" },
     }));
     visualizer.dataset.playStartedAt = String(performance.now() - 125);
     visualizer.dataset.playStartMs = "300";
 
     const pause = playbackRequest(0);
     expect(pause.action).toBe("pause");
-    expect(pause.engine).toBe("native");
+    expect(pause.engine).toBe("html");
     expect(pause.cursorMs).toBeGreaterThanOrEqual(300);
 
     updateFieldState(0, (state) => ({
@@ -183,20 +187,20 @@ describe("editor inline audio-clock workflows", () => {
     expect(stopEditorPlayback(9)).toBe(false);
   });
 
-  it("logs selected playback engine and native reason for playback requests", async () => {
+  it("logs playback readiness and browser failure reason for playback requests", async () => {
     const visualizer = await mountTrack(100);
     visualizer.__aqeHtmlAudioFailureReason = "audio_error";
     warnSpy.mockClear();
 
     const request = playbackRequest(0);
 
-    expect(request.engine).toBe("native");
+    expect(request.engine).toBe("html");
     expect(warnSpy).toHaveBeenCalledWith(
-      "[editor] playback.engine_selected",
+      "[editor] playback.readiness_described",
       expect.objectContaining({
         action: "start",
         audioClockReady: false,
-        engine: "native",
+        engine: "html",
         graphHasTrack: true,
         htmlAudioReadinessReason: "audio_error",
         htmlAudioReadinessState: "failed",

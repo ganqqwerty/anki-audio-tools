@@ -10,6 +10,7 @@ import EditorControls from "./EditorControls.svelte";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { initFieldState, readFieldState, removeFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
+import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
 import type { FieldTarget } from "./types.js";
 
 export interface FieldController {
@@ -46,10 +47,12 @@ export function mountController(target: FieldTarget): FieldController | null {
     if (visualizer) {
       const s = readFieldState(target.ord);
       if (s.graph.busy || s.graph.hasTrack) {
-        const renderedSource = s.sourceFilename || target.sourceFilename;
-        existing.sourceFilename = renderedSource;
-        const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
-        if (controls) controls.dataset.aqeSourceFilename = renderedSource;
+        existing.sourceFilename = target.sourceFilename;
+        dispatchHtmlAudioSessionEvent(target.ord, {
+          cursorMs: s.cursor.ms,
+          source: { kind: "source", sourceFilename: target.sourceFilename },
+          type: "SourceConfigured",
+        });
         removeDuplicateControls(target.ord, existing.host);
         applyInitialStatus(target.ord, initialStatus);
         return existing;

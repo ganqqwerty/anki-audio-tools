@@ -531,13 +531,13 @@ This machine owns all "Play yours" behavior. Svelte button code may dispatch `Pl
   npm test -- source-playback-machine.test.ts learner-recording-playback-machine.test.ts
   ```
 
-### Phase 2: Make Source Playback Engine Selection HTML-Only and Wire the Source Controller
+### Phase 2: Make Source Playback Engine Selection HTML-Only and Wire the Source Controller Adapter
 
-Status 2026-06-19: completed as a controlled adapter phase. Source playback engine selection is now HTML-only, native fallback dispatch was removed from source playback, browser `audio.play()` rejection stops/logs without sending `aqe:play`, and post-edit autoplay failures preserve the edit success status. Deeper ownership moves in `actions-playback.ts`, `actions-selection.ts`, `chorusing-controller.ts`, and `audio-clock.ts` remain deferred to the later frontend type/ownership collapse phases to keep this phase bounded and fully verified.
+Status 2026-06-19: source-start ownership and frontend native-engine removal completed as bounded, verified steps. Source playback engine selection is HTML-only, native fallback dispatch was removed from source playback, browser `audio.play()` rejection and seek failure stop/log without sending `aqe:play`, post-edit autoplay failures preserve the edit success status while showing a separate playback warning, and source playback starts from selection/chorusing now route through `source-playback-controller.ts`. Full repeat-boundary and timer ownership remains an explicit follow-up because it must move with playback-boundary behavior, not as a hidden part of the type collapse.
 
-- [x] Create `settings_ui/src/editor-inline/source-playback-controller.ts`.
+- [x] Create `settings_ui/src/editor-inline/source-playback-controller.ts` as an adapter.
 
-  This file owns effect execution returned by `transitionSourcePlayback(...)`:
+  Final target: this file owns effect execution returned by `transitionSourcePlayback(...)`:
 
   - `ConfigureAudioSource`
   - `ProbeAudioMetadata`
@@ -552,6 +552,8 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - `PublishPlaybackState`
   - `ShowPlaybackStatus`
   - `LogPlaybackTelemetry`
+
+  Current source-start slice: it executes the ready/start/reject/failure effects reached by direct source playback, including `PlayAudio`, `StopAudio`, `PublishPlaybackState`, `ShowPlaybackStatus`, and `LogPlaybackTelemetry`. Audio `error` events during playback and start-time seek failures now dispatch through the controller. Metadata timer, repeat timer, full source configuration, and ended-boundary ownership remain deferred until the boundary/timer ownership checkpoint below.
 
   `PublishPlaybackState` may temporarily call the existing backend state-sync path (`sendPlaybackRequest` / `aqe:play`) only after successful HTML start/resume and pause transitions, and only with `engine: "html"`. It must not send `aqe:play` after `PlayRejected`, `MetadataTimeout`, `AudioError`, or `SeekFailed`.
 
@@ -579,21 +581,13 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   Remove native fallback dispatch from `startEditorHtmlPlayback()`. Browser failures should dispatch `PlayRejected` / `AudioError` / `SeekFailed`; the source controller should stop HTML playback state, publish a warning status, and log telemetry. Do not call `sendPlaybackRequest({ ...request, engine: "native" })` anywhere.
 
-- [ ] Update `settings_ui/src/editor-inline/actions-playback.ts`, `settings_ui/src/editor-inline/actions-selection.ts`, and `settings_ui/src/editor-inline/chorusing-controller.ts`.
-
-  These files currently build playback requests, restart playback after selection marker changes, and manage chorusing loops. Keep that domain-specific request construction, but route the resulting source playback request into `source-playback-controller.ts` instead of calling `startEditorHtmlPlayback()` or branching on `request.engine`.
-
-- [ ] Update `settings_ui/src/editor-inline/audio-clock.ts`.
-
-  Keep `mediaUrlForFilename()` as the shared URL encoder. Convert `loadedmetadata`, `error`, `ended`, and seek failure notifications into `SourcePlaybackEvent` dispatches through the source playback controller. Audio-clock helpers may expose low-level element access for the controller, but they should not own playback state transitions.
-
 - [x] Delete or inline `settings_ui/src/editor-inline/playback-html-fallback.ts` if it becomes unused.
 
   Its selected-repeat native fallback blocking logic becomes obsolete because all fallback to native is removed.
 
 - [x] Update `playbackEngineFor()` in `settings_ui/src/editor-inline/playback-actions.ts` so it always reports `"html"` for source playback and still logs the readiness reason.
 
-  No file outside `source-playback-controller.ts` should call source `audio.play()`, source `audio.pause()`, repeat timers, or metadata timeout timers after this phase.
+  After the boundary/timer ownership checkpoint completes, no file outside `source-playback-controller.ts` should call source `audio.play()`, source `audio.pause()`, repeat timers, or metadata timeout timers.
 
 - [x] Update frontend tests:
 
@@ -622,14 +616,29 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   Completed Phase 2 verification also included:
 
   ```bash
+  npm test -- editor-inline.post-edit-playback.integration.test.ts
+  npm run typecheck
+  npm test -- playback-engine-decision.test.ts editor-inline.playback.integration.test.ts editor-inline.playback.misc.integration.test.ts editor-inline.actions.playback.test.ts
   python3 scripts/dev.py check
   python3 scripts/dev.py test-e2e-parallel
   ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv" || true
   ```
 
+  The post-e2e playback-process check found one pre-existing Anki `mpv` process from the user Anki session. Its IPC state was idle (`idle-active=True`, no `path`, no `filename`, `playlist-count=0`), so the e2e run did not leave active playback or repeat playback behind.
+
 ### Phase 3: Collapse Frontend Playback Engine Types
 
-- [ ] Update playback engine types in:
+Status 2026-06-19: completed and verified. Frontend source playback request/state types can no longer construct `"native"`; stale or legacy dataset engine values normalize to `""`; source playback requests emitted by the editor use `"html"` or no active engine only.
+
+- [x] Update `settings_ui/src/editor-inline/actions-playback.ts`, `settings_ui/src/editor-inline/actions-selection.ts`, and `settings_ui/src/editor-inline/chorusing-controller.ts`.
+
+  These files currently build playback requests, restart playback after selection marker changes, and manage chorusing loops. Keep that domain-specific request construction, but route the resulting source playback request into `source-playback-controller.ts` instead of calling `startEditorHtmlPlayback()` or branching on `request.engine`.
+
+- [x] Route browser audio failure notifications through source playback events.
+
+  `actions-audio-clock.ts` now dispatches during-playback audio errors through the source playback controller, and `playback-controller.ts` reports start-time seek failures as `SeekFailed` rather than generic play rejection. `audio-clock.ts` remains the shared low-level element/URL adapter; `loadedmetadata` duration updates and `ended` repeat-boundary handling remain with the existing playback boundary path until the boundary/timer ownership checkpoint.
+
+- [x] Update playback engine types in:
 
   - `settings_ui/src/editor-inline/types.ts`
   - `settings_ui/src/editor-inline/editor-playback-types.ts`
@@ -641,7 +650,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - `settings_ui/src/editor-inline/actions-playback.ts`
   - `settings_ui/src/editor-inline/globals.d.ts`
 
-- [ ] Replace `"html" | "native" | ""` with source-playback state that cannot select native.
+- [x] Replace `"html" | "native" | ""` with source-playback state that cannot select native.
 
   Preferred target:
 
@@ -651,11 +660,11 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   If contract compatibility requires `engine?: "html" | "native" | ""` temporarily, parse `"native"` as `""` and never emit it from frontend code.
 
-- [ ] Remove native progress clock mode from `startProgressClock()` and related pass/runtime state.
+- [x] Remove native progress clock mode from `startProgressClock()` and related pass/runtime state.
 
   `manual` clock mode may remain only for non-playback cursor rendering or test utilities if still needed after inspecting current behavior. It must not represent active playback when browser audio is unavailable, and it must not run after `PlayRejected`, `AudioError`, or `SeekFailed`.
 
-- [ ] Update test-only graph state in `settings_ui/src/editor-inline/editor-playback-types.ts`.
+- [x] Update test-only graph state in `settings_ui/src/editor-inline/editor-playback-types.ts`.
 
   Target:
 
@@ -663,7 +672,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   playbackEngine: "html" | "";
   ```
 
-- [ ] Update frontend tests that currently construct or assert native engine state:
+- [x] Update frontend tests that currently construct or assert native engine state:
 
   - `settings_ui/tests/playback-model.test.ts`
   - `settings_ui/tests/editor-inline.denoise.integration.test.ts`
@@ -671,16 +680,55 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - `settings_ui/tests/editor-inline.actions.playback.test.ts`
   - `settings_ui/tests/playback-progress-clock.test.ts`
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   npm test -- playback-model.test.ts editor-inline.playback.integration.test.ts editor-inline.actions.playback.test.ts editor-inline.denoise.integration.test.ts
   npm run typecheck
   ```
 
+  Completed Phase 3 verification also included:
+
+  ```bash
+  npm test -- playback-model.test.ts playback-engine-decision.test.ts editor-inline.actions.playback.test.ts editor-inline.denoise.integration.test.ts editor-inline.post-edit-playback.integration.test.ts source-playback-machine.test.ts
+  npm test -- editor-inline.playback.integration.test.ts editor-inline.playback.misc.integration.test.ts editor-inline.selection-playback.integration.test.ts editor-inline.selection-marker-shift.playback.integration.test.ts editor-inline.cursor-selection-playback.integration.test.ts editor-inline.chorusing.integration.test.ts playback-progress-clock.test.ts playback-state.test.ts
+  npm test -- editor-inline.actions.playback.test.ts editor-inline.playback.integration.test.ts editor-inline.playback.misc.integration.test.ts source-playback-machine.test.ts playback-progress-clock.test.ts
+  python3 scripts/dev.py test tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv|test-e2e|pytest" || true
+  ```
+
+  The final post-e2e playback-process check again found only the pre-existing user Anki `mpv` process. Its IPC state was idle (`idle-active=True`, no `path`, no `filename`, `playlist-count=0`), so the e2e run did not leave active playback or repeat playback behind.
+
+### Source Boundary/Timer Ownership Checkpoint
+
+- [x] Move `loadedmetadata`, `ended`, repeat-delay timer, repeat-loop restart, and full-source reload handling from `playback-controller.ts` / `actions-audio-clock.ts` into `source-playback-controller.ts`.
+
+  Keep this as a dedicated checkpoint before reducing the Python backend further. It touches repeat pause, chorusing loop boundary consumption, `aqe:play-ended` synchronization, and full-source HTML reload behavior, so it should have its own targeted tests and full check/e2e gate rather than being hidden inside Phase 3's type collapse.
+
+  Completed checkpoint implementation:
+
+  - repeat-delay timer, repeat-loop restart, and full-source reload execution moved behind source playback state-machine effects;
+  - source repeat-loop effect execution split into `source-playback-repeat-loop.ts` to keep controller size within architecture limits;
+  - repeat-pause restart preserves the HTML engine marker while the element is paused, so delayed loops issue exactly the next required `audio.play()` and do not fall back to manual replay;
+  - architecture guardrails were updated narrowly to name `source-playback-repeat-loop.ts` as a source playback owner.
+
+  Completed checkpoint verification:
+
+  ```bash
+  npm run typecheck
+  npm test -- editor-inline.selection-repeat-pause.integration.test.ts
+  npm test -- editor-inline.playback.integration.test.ts editor-inline.playback.misc.integration.test.ts editor-inline.selection-playback.integration.test.ts editor-inline.selection-repeat-pause.integration.test.ts editor-inline.selection-marker-shift.playback.integration.test.ts editor-inline.cursor-selection-playback.integration.test.ts editor-inline.chorusing.integration.test.ts playback-progress-clock.test.ts editor-inline.actions.playback.test.ts source-playback-machine.test.ts
+  npm test -- frontend-architecture.test.ts editor-inline.selection-repeat-pause.integration.test.ts source-playback-machine.test.ts
+  python3 scripts/dev.py test tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ```
+
 ### Phase 4: Reduce Python Source Playback Backend to State and Stop Handling
 
-- [ ] Update `addon/anki_audio_quick_editor/editor_playback.py`.
+- [x] Update `addon/anki_audio_quick_editor/editor_playback.py`.
 
   Keep functions that manage editor playback state, status, cursor updates, post-edit readiness, and frontend responses.
 
@@ -691,7 +739,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - `playback_segment_failed()`
   - `toggle_native_pause_resume()`
 
-- [ ] Update `play_with_request()` in `addon/anki_audio_quick_editor/editor_playback.py`.
+- [x] Update `play_with_request()` in `addon/anki_audio_quick_editor/editor_playback.py`.
 
   Target behavior:
 
@@ -715,11 +763,11 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   apply_html_playback_request(editor, session, field_index, action, cursor_ms, source, deps)
   ```
 
-- [ ] Update `addon/anki_audio_quick_editor/editor_playback_request.py`.
+- [x] Update `addon/anki_audio_quick_editor/editor_playback_request.py`.
 
   Remove native pause/resume behavior and any `av_player.toggle_pause()` usage. Change `playback_request_values()` so non-dict requests and missing `engine` values default to `"html"` for state sync, not `"native"`.
 
-- [ ] Update dependency and callback wiring:
+- [x] Update dependency and callback wiring:
 
   - `addon/anki_audio_quick_editor/editor_callbacks.py`
   - `addon/anki_audio_quick_editor/editor_dependencies.py`
@@ -727,7 +775,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   Remove native playback callback exports and dependency protocol entries that are no longer called.
 
-- [ ] Update backend unit tests:
+- [x] Update backend unit tests:
 
   - `tests/test_editor_playback_state_playback.py`
   - `tests/test_editor_playback_state_cursor.py`
@@ -740,46 +788,96 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - cursor updates during HTML playback remain state-only.
   - stop request clears playback state and does not call native audio.
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   python3 scripts/dev.py test tests/test_editor_playback_state_playback.py tests/test_editor_playback_state_cursor.py tests/test_editor_chorusing_playback.py
   python3 scripts/dev.py test tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
   ```
 
+  Completed Phase 4 implementation:
+
+  - `play_with_request()` now treats bridge playback payloads as HTML state synchronization only;
+  - legacy native `engine` payloads are logged and ignored without marking backend playback active;
+  - `playback_request_values()` defaults non-dict and missing-engine requests to `"html"`;
+  - native pause/resume, native source playback start, and playback-segment ready/failed callbacks were removed from source playback wiring;
+  - stale broad-exception and native playback allowlist entries were tightened for the removed functions.
+
+  Completed targeted Phase 4 verification:
+
+  ```bash
+  python3 scripts/dev.py test tests/test_editor_playback_state_playback.py tests/test_editor_playback_state_cursor.py tests/test_editor_chorusing_playback.py tests/test_editor_playback_state.py tests/test_editor_playback_state_session.py tests/test_architecture/test_rule21_broad_exception_allowlist.py tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
+  python3 scripts/dev.py lint
+  ```
+
+  Completed Phase 4 full gate:
+
+  ```bash
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv|test-e2e|pytest" || true
+  ```
+
+  The post-e2e playback-process check found only the pre-existing user Anki `mpv` process. Its IPC state was idle (`idle-active=true`), with no `path`, no `filename`, and `playlist-count=0`.
+
 ### Phase 5: Remove Playback Segment Rendering Surface
 
-- [ ] Search all remaining production references:
+- [x] Search all remaining production references:
 
   ```bash
   rg -n "render_playback_segment|playback_segment_ready|playback_segment_failed|start_playback_from_cursor|toggle_native_pause_resume" addon tests e2e settings_ui
   ```
 
-- [ ] Remove playback-only segment rendering dependency entries from:
+- [x] Remove playback-only segment rendering dependency entries from:
 
   - `addon/anki_audio_quick_editor/editor_deps_protocols.py`
   - `addon/anki_audio_quick_editor/editor_dependencies.py`
   - `addon/anki_audio_quick_editor/editor_callbacks.py`
 
-- [ ] Keep audio rendering utilities only if another feature still uses them for non-playback workflows.
+- [x] Keep audio rendering utilities only if another feature still uses them for non-playback workflows.
 
   If a function exists only to render a temporary playback segment, delete it with its tests. If the same lower-level rendering utility is shared with edit/export flows, leave that lower-level utility in place and remove only the playback adapter.
 
-- [ ] Update or delete obsolete tests from:
+- [x] Update or delete obsolete tests from:
 
   - `tests/test_editor_playback_state_playback.py`
   - any test whose only assertion is temporary native playback segment rendering
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   python3 scripts/dev.py test tests/test_editor_playback_state_playback.py
   python3 scripts/dev.py test tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
   ```
 
+  Completed Phase 5 implementation:
+
+  - removed `render_playback_segment`, `make_playback_segment_filename`, `temp_playback_path`, and `build_playback_segment_filters` from production facade/runtime/rendering modules;
+  - removed the playback filename dependency seam from `AudioModuleDeps` and rendering dependency sync;
+  - deleted `tests/test_audio_playback_rendering.py` and trimmed playback-segment filter/seam tests;
+  - kept lower-level render/edit utilities such as `build_ffmpeg_command()`, `render_audio()`, region renderers, and `temp_final_path()`.
+
+  Completed targeted Phase 5 verification:
+
+  ```bash
+  rg -n "render_playback_segment|make_playback_segment_filename|temp_playback_path|build_playback_segment_filters|Playback segment rendering|temporary native playback segment|cursor playback segments" addon/anki_audio_quick_editor tests scripts -g'*.py' || true
+  python3 scripts/dev.py test tests/test_audio_noise_commands.py tests/test_audio_processor_injection_seam.py tests/test_audio_rendering.py tests/test_architecture/test_rule21_broad_exception_allowlist.py
+  python3 scripts/dev.py lint
+  ```
+
+  Completed Phase 5 full gate:
+
+  ```bash
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv|test-e2e|pytest" || true
+  ```
+
+  The post-e2e playback-process check found only the pre-existing user Anki `mpv` process. Its IPC state was idle (`idle-active=true`), with no `path`, no `filename`, and `playlist-count=0`.
+
 ### Phase 6: Move Learner Recording Playback to HTML State Machine
 
-- [ ] Update `settings_ui/src/editor-inline/recording-state-store.ts` and `settings_ui/tests/recording-state-store.test.ts`.
+- [x] Update `settings_ui/src/editor-inline/recording-state-store.ts` and `settings_ui/tests/recording-state-store.test.ts`.
 
   Extend `LearnerRecordingFieldState` with:
 
@@ -790,7 +888,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   Populate those values from `LearnerRecordingStatePayload.recordingDurationMs` and `targetDurationMs`. Keep `startCursorMs` as the alignment offset for visual cursor/rendering. Add tests that ready payloads preserve media filename, generation, recording duration, target duration, and start cursor; idle/failed payloads reset playback status to `stopped`.
 
-- [ ] Add `settings_ui/src/editor-inline/learner-recording-playback.ts`.
+- [x] Add `settings_ui/src/editor-inline/learner-recording-playback.ts`.
 
   Responsibilities:
 
@@ -813,7 +911,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   export function stopAllLearnerRecordingHtmlPlayback(): void;
   ```
 
-- [ ] Update `settings_ui/src/editor-inline/command-actions.ts`.
+- [x] Update `settings_ui/src/editor-inline/command-actions.ts`.
 
   Intercept learner recording playback before bridge dispatch:
 
@@ -824,11 +922,11 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   }
   ```
 
-- [ ] Reuse `mediaUrlForFilename()` from `settings_ui/src/editor-inline/audio-clock.ts`.
+- [x] Reuse `mediaUrlForFilename()` from `settings_ui/src/editor-inline/audio-clock.ts`.
 
   Do not pass absolute recording paths to JavaScript. The existing Python frontend payload publishes `mediaFilename`, which is the correct browser media URL input.
 
-- [ ] Update frontend recording state code as needed:
+- [x] Update frontend recording state code as needed:
 
   - `settings_ui/src/editor-inline/recording-actions-state.ts`
   - `settings_ui/src/editor-inline/recording-actions-sync.ts`
@@ -838,7 +936,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   Keep existing `window.__aqeSetLearnerRecordingState` as the Python-to-frontend state publication API.
   These files may project state-machine output into controls, but they must not decide play/pause/resume transitions directly.
 
-- [ ] Add frontend tests, preferably in a new file:
+- [x] Add frontend tests, preferably in a new file:
 
   - `settings_ui/tests/editor-inline.learner-recording-playback.test.ts`
   - `settings_ui/tests/learner-recording-playback-machine.test.ts`
@@ -853,7 +951,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - `ended` resets status to `stopped`.
   - `audio.play()` rejection sets status to `stopped`, logs failure, and does not call bridge.
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   npm test -- recording-state-store.test.ts learner-recording-playback-machine.test.ts editor-inline.learner-recording-playback.test.ts
@@ -861,9 +959,37 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   npm run typecheck
   ```
 
+  Completed Phase 6 implementation:
+
+  - added `learner-recording-playback.ts` as the HTML audio effect runner for "Play yours";
+  - extended the typed learner recording state store with `recordingDurationMs` and `targetDurationMs`;
+  - routed `aqe:play-recording` through the frontend learner playback state machine instead of the bridge;
+  - kept Python-to-frontend publication on `window.__aqeSetLearnerRecordingState` as the readiness/media metadata API;
+  - added integration coverage that asserts encoded learner media URLs, HTML play/pause/resume, ended cleanup, play rejection cleanup, and no bridge fallback;
+  - updated the voice-recording e2e to assert HTML learner playback and exact play/pause counts instead of native playback routing.
+
+  Completed targeted Phase 6 verification:
+
+  ```bash
+  npm test -- recording-state-store.test.ts learner-recording-playback-machine.test.ts editor-inline.learner-recording-playback.test.ts editor-inline.recording.integration.test.ts frontend-architecture.test.ts
+  npm run typecheck
+  python3 scripts/dev.py test-e2e-parallel e2e/test_editor_voice_recording_comparison_workflow.py
+  ```
+
+  Completed Phase 6 full gate:
+
+  ```bash
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv|test-e2e|pytest" || true
+  printf '{"command":["get_property","idle-active"]}\n{"command":["get_property","path"]}\n{"command":["get_property","filename"]}\n{"command":["get_property","playlist-count"]}\n' | nc -U -w 1 /var/folders/sd/kz30sp1d7l3f99k1nk6l8xnw0000gn/T/mpv.gk613h0e || true
+  ```
+
+  The post-e2e playback-process check found only the pre-existing user Anki `mpv` process. Its IPC state was idle (`idle-active=true`), with unavailable `path`/`filename`, and `playlist-count=0`.
+
 ### Phase 7: Delete Python Learner Recording Native Playback
 
-- [ ] Update `addon/anki_audio_quick_editor/editor_recording.py`.
+- [x] Update `addon/anki_audio_quick_editor/editor_recording.py`.
 
   Remove `play_learner_recording()` and private helpers that only support native playback:
 
@@ -872,14 +998,14 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   Keep recording capture, completion, analysis, and frontend state publication.
 
-- [ ] Update bridge and dependency contracts:
+- [x] Update bridge and dependency contracts:
 
   - Remove `CMD_PLAY_RECORDING` handler mapping from `addon/anki_audio_quick_editor/editor_bridge.py`.
   - Remove `play_learner_recording` from `addon/anki_audio_quick_editor/editor_deps_protocols.py`.
   - Remove `play_learner_recording=callbacks.play_learner_recording` from `addon/anki_audio_quick_editor/editor_dependencies.py`.
   - Remove `_play_learner_recording` and related exports from `addon/anki_audio_quick_editor/editor_callbacks.py`.
 
-- [ ] Keep `CMD_PLAY_RECORDING` in UI command definitions if it remains the frontend command identifier:
+- [x] Keep `CMD_PLAY_RECORDING` in UI command definitions if it remains the frontend command identifier:
 
   - `addon/anki_audio_quick_editor/editor_actions.py`
   - `settings_ui/src/lib/editor-toolbar-buttons.ts`
@@ -887,7 +1013,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   The command can remain visible and configurable while being handled entirely in frontend.
 
-- [ ] Update `tests/test_editor_recording.py`.
+- [x] Update `tests/test_editor_recording.py`.
 
   Replace native playback tests with backend state publication tests:
 
@@ -896,16 +1022,45 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - Python does not expose absolute paths in frontend state.
   - no test expects `av_player.play_tags()` or `av_player.toggle_pause()`.
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   python3 scripts/dev.py test tests/test_editor_recording.py
   python3 scripts/dev.py test tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
   ```
 
+  Completed Phase 7 implementation:
+
+  - removed `play_learner_recording()`, `_schedule_learner_playback_finished()`, and `_learner_playback_position_ms()` from Python recording code;
+  - removed the `aqe:play-recording` bridge dispatch handler and its dependency/callback protocol entries;
+  - kept `CMD_PLAY_RECORDING` as a UI/frontend command identifier;
+  - replaced Python native learner playback tests with frontend-state publication tests for ready and failed recording state;
+  - removed the stale broad-exception allowance for `play_learner_recording`.
+
+  Completed targeted Phase 7 verification:
+
+  ```bash
+  rg -n "play_learner_recording|_schedule_learner_playback_finished|_learner_playback_position_ms|CMD_PLAY_RECORDING:|av_player\.play_tags|av_player\.toggle_pause|from anki.sound import SoundOrVideoTag|SoundOrVideoTag\(" addon/anki_audio_quick_editor tests/test_editor_recording.py tests/test_architecture -g'*.py' || true
+  python3 scripts/dev.py test tests/test_editor_recording.py tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py tests/test_architecture/test_rule21_broad_exception_allowlist.py tests/test_architecture/test_rule29_editor_dependency_protocols.py
+  python3 scripts/dev.py lint
+  ```
+
+  The production/test symbol scan found no removed learner playback symbols outside the architecture rule's banned-pattern strings.
+
+  Completed Phase 7 full gate:
+
+  ```bash
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv|test-e2e|pytest" || true
+  printf '{"command":["get_property","idle-active"]}\n{"command":["get_property","path"]}\n{"command":["get_property","filename"]}\n{"command":["get_property","playlist-count"]}\n' | nc -U -w 1 /var/folders/sd/kz30sp1d7l3f99k1nk6l8xnw0000gn/T/mpv.gk613h0e || true
+  ```
+
+  The post-e2e playback-process check again found only the pre-existing user Anki `mpv` process. Its IPC state was idle (`idle-active=true`), with unavailable `path`/`filename`, and `playlist-count=0`.
+
 ### Phase 8: Update E2E Coverage to Assert HTML-Only Behavior
 
-- [ ] Update `e2e/test_editor_playback_workflow.py`.
+- [x] Update `e2e/test_editor_playback_workflow.py`.
 
   Replace native no-graph expectations with HTML readiness behavior:
 
@@ -913,7 +1068,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - Once metadata is ready, no-graph playback starts with `playbackEngine === "html"`.
   - No call to native playback recorder occurs.
 
-- [ ] Update `e2e/test_editor_region_loop_graph_repeat_workflow.py`.
+- [x] Update `e2e/test_editor_region_loop_graph_repeat_workflow.py`.
 
   Replace `test_aac_full_repeat_falls_back_to_native_when_browser_audio_rejects_after_graph` with:
 
@@ -921,7 +1076,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - no native fallback is recorded.
   - repeat remains available after a later successful HTML load.
 
-- [ ] Update `e2e/test_editor_region_loop_playback_one_shot_workflow.py`.
+- [x] Update `e2e/test_editor_region_loop_playback_one_shot_workflow.py`.
 
   Replace native selected-region rendering assertions with HTML seeking assertions:
 
@@ -929,7 +1084,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - playback stops at selected end.
   - no temporary rendered segment is requested.
 
-- [ ] Update `e2e/test_editor_voice_recording_comparison_workflow.py`.
+- [x] Update `e2e/test_editor_voice_recording_comparison_workflow.py`.
 
   Assert Play yours:
 
@@ -937,11 +1092,11 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - creates/uses browser audio with encoded `mediaFilename`.
   - toggles Play/Pause state through frontend learner playback state.
 
-- [ ] Update or delete native recorder helpers in `e2e/editor_playback_helpers.py`.
+- [x] Update or delete native recorder helpers in `e2e/editor_playback_helpers.py`.
 
   Keep a guard helper only if tests still need to assert that native playback was not called. Remove helper APIs that make native playback look like an accepted workflow.
 
-- [ ] Run targeted e2e first:
+- [x] Run targeted e2e first:
 
   ```bash
   python3 scripts/dev.py test-e2e-parallel e2e/test_editor_playback_workflow.py e2e/test_editor_region_loop_graph_repeat_workflow.py e2e/test_editor_region_loop_playback_one_shot_workflow.py e2e/test_editor_voice_recording_comparison_workflow.py
@@ -949,15 +1104,39 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   If `scripts/dev.py test-e2e-parallel` does not accept file arguments, run the closest supported pytest-backed e2e target or run the full command below.
 
-- [ ] Run full parallel e2e:
+- [x] Run full parallel e2e:
 
   ```bash
   python3 scripts/dev.py test-e2e-parallel
   ```
 
+  Completed Phase 8 implementation:
+
+  - updated voice-recording comparison e2e to assert frontend HTML learner audio with encoded media filename, play/pause/resume state, and exact browser `audio.play()` / `audio.pause()` counts;
+  - kept source playback e2e expectations on `playbackEngine === "html"` and browser-audio warnings for rejected playback;
+  - tightened `_assert_no_playback_leaks()` so zero native playback attempts is the default expectation;
+  - removed unused native playback interval/temporary-segment helper logic from `e2e/editor_playback_helpers.py`.
+
+  Completed targeted Phase 8 verification:
+
+  ```bash
+  python3 scripts/dev.py test-e2e-parallel e2e/test_editor_playback_workflow.py e2e/test_editor_region_loop_graph_repeat_workflow.py e2e/test_editor_region_loop_playback_one_shot_workflow.py e2e/test_editor_voice_recording_comparison_workflow.py
+  ```
+
+  Completed Phase 8 full gate:
+
+  ```bash
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv|test-e2e|pytest" || true
+  printf '{"command":["get_property","idle-active"]}\n{"command":["get_property","path"]}\n{"command":["get_property","filename"]}\n{"command":["get_property","playlist-count"]}\n' | nc -U -w 1 /var/folders/sd/kz30sp1d7l3f99k1nk6l8xnw0000gn/T/mpv.gk613h0e || true
+  ```
+
+  The post-e2e playback-process check found only the pre-existing user Anki `mpv` process. Its IPC state was idle (`idle-active=true`), with unavailable `path`/`filename`, and `playlist-count=0`.
+
 ### Phase 9: Remove Native Playback Contract Surface and Dead Code
 
-- [ ] Search for all remaining native playback references:
+- [x] Search for all remaining native playback references:
 
   ```bash
   rg -n "native|av_player|SoundOrVideoTag|play_tags|toggle_pause|stop_and_clear_queue|render_playback_segment|start_playback_from_cursor|playback_segment_ready|playback_segment_failed" addon settings_ui/src tests e2e
@@ -965,7 +1144,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
 
   Expected result before cleanup: only documentation strings inside guard tests/e2e fixtures and intentionally failing legacy test names. Do not include `docs/` in this audit because the implementation plan itself describes the removed native path.
 
-- [ ] Remove frontend references to native as a playback engine from:
+- [x] Remove frontend references to native as a playback engine from:
 
   - `settings_ui/src/editor-inline/playback-actions.ts`
   - `settings_ui/src/editor-inline/playback-controller.ts`
@@ -975,7 +1154,7 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - `settings_ui/src/editor-inline/types.ts`
   - `settings_ui/src/editor-inline/globals.d.ts`
 
-- [ ] Remove or rewrite telemetry keys that imply native fallback is expected:
+- [x] Remove or rewrite telemetry keys that imply native fallback is expected:
 
   - `playback.html_fallback_to_native`
   - `post-edit native playback request sent`
@@ -987,19 +1166,19 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   - `playback.html_unavailable`
   - `recording.playback.html_failed`
 
-- [ ] Update broad exception allowlist if needed:
+- [x] Update broad exception allowlist if needed:
 
   - `tests/test_architecture/broad_exception_allowlist_data.py`
 
   Native playback functions removed in this plan should not remain allowlisted.
 
-- [ ] Tighten the Phase 0 architecture guards to their final form.
+- [x] Tighten the Phase 0 architecture guards to their final form.
 
   - In `tests/test_architecture/test_rule37_no_native_editor_playback.py`, remove all entries from `LEGACY_NATIVE_PLAYBACK_ALLOWLIST`.
   - In `tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py`, remove migrated files from `LEGACY_FRONTEND_PLAYBACK_OWNER_ALLOWLIST` until only the final machine/controller files own playback operations and transitions.
   - Run the two architecture tests immediately after tightening the allowlists.
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   npm run typecheck
@@ -1007,42 +1186,98 @@ Status 2026-06-19: completed as a controlled adapter phase. Source playback engi
   python3 scripts/dev.py test tests/test_architecture
   ```
 
+  Completed Phase 9 implementation:
+
+  - removed the remaining production native playback stop call from `stop_audio_playback()`, leaving it as a no-op compatibility hook;
+  - renamed legacy native playback wording in source playback state tests and logs to unsupported playback engine wording;
+  - removed `native_playback_end_ms` and the stale native playback broad-exception allowance;
+  - tightened Rule 37 to a final no-native production playback API assertion with no legacy allowlist;
+  - narrowed Rule 38 frontend ownership allowlists to the remaining low-level audio/timer owner files and the explicit source/learner playback machine/controller files;
+  - reset `dpdfnet_attn_limit_db` in `e2e/test_processing_presets.py` so full e2e is deterministic after attenuation settings tests change the shared profile config.
+
+  Completed targeted Phase 9 verification:
+
+  ```bash
+  rg -n "from aqt.sound import av_player|from anki.sound import SoundOrVideoTag|av_player\\.play_tags|av_player\\.toggle_pause|av_player\\.stop_and_clear_queue|engine: \"native\"|engine === \"native\"|engine === 'native'|playback\\.html_fallback_to_native|post-edit native" addon/anki_audio_quick_editor settings_ui/src -g'*.py' -g'*.ts' -g'*.svelte' --glob '!user_files/**' || true
+  npm test -- playback-engine-decision.test.ts editor-inline.playback.integration.test.ts frontend-architecture.test.ts
+  python3 scripts/dev.py test tests/test_editor_playback_state_playback.py tests/test_editor_playback_state_cursor.py tests/test_editor_playback_state.py tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py tests/test_architecture/test_rule21_broad_exception_allowlist.py
+  python3 scripts/dev.py test tests/test_architecture
+  npm run typecheck
+  python3 scripts/dev.py test-e2e-parallel e2e/test_editor_playback_workflow.py e2e/test_editor_region_loop_playback_one_shot_workflow.py
+  python3 scripts/dev.py test-e2e-parallel e2e/test_processing_presets.py
+  ```
+
+  Completed Phase 9 full gate:
+
+  ```bash
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  ps -ef | rg -i "anki_audio/mpv|forvo_Vertrag|pytest-|ffplay|mpv|test-e2e|pytest" || true
+  printf '{"command":["get_property","idle-active"]}\n{"command":["get_property","path"]}\n{"command":["get_property","filename"]}\n{"command":["get_property","playlist-count"]}\n' | nc -U -w 1 /var/folders/sd/kz30sp1d7l3f99k1nk6l8xnw0000gn/T/mpv.gk613h0e || true
+  ```
+
+  The first full Phase 9 e2e run exposed the deterministic settings-preset setup gap above. After the reset was added, targeted `e2e/test_processing_presets.py` and full `test-e2e-parallel` both passed. The post-e2e playback-process check found no pytest/e2e process left. The only `mpv` process belonged to the user's long-running Anki process and was idle (`idle-active=true`) with unavailable `path`/`filename` and one unavailable playlist entry.
+
 ### Phase 10: Final Verification Gate
 
-- [ ] Run targeted frontend tests:
+- [x] Run targeted frontend tests:
 
   ```bash
   npm test -- source-playback-machine.test.ts learner-recording-playback-machine.test.ts recording-state-store.test.ts editor-inline.actions.playback.test.ts editor-inline.playback.integration.test.ts editor-inline.post-edit-playback.integration.test.ts editor-inline.selection-playback.integration.test.ts editor-inline.selection-marker-shift.playback.integration.test.ts editor-inline.learner-recording-playback.test.ts playback-model.test.ts playback-progress-clock.test.ts
   ```
 
-- [ ] Run frontend typecheck and lint:
+- [x] Run frontend typecheck and lint:
 
   ```bash
   npm run typecheck
   npm run lint
   ```
 
-- [ ] Run backend and architecture checks:
+- [x] Run backend and architecture checks:
 
   ```bash
   python3 scripts/dev.py test tests/test_editor_playback_state_playback.py tests/test_editor_playback_state_cursor.py tests/test_editor_recording.py tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
   python3 scripts/dev.py check
   ```
 
-- [ ] Run e2e:
+- [x] Run e2e:
 
   ```bash
   python3 scripts/dev.py test-e2e-parallel
   python3 scripts/dev.py test-e2e
   ```
 
-- [ ] Final no-native audit:
+- [x] Final no-native audit:
 
   ```bash
   rg -n "from aqt.sound import av_player|from anki.sound import SoundOrVideoTag|av_player\\.play_tags|av_player\\.toggle_pause|av_player\\.stop_and_clear_queue|engine: \"native\"|engine === \"native\"|engine === 'native'" addon/anki_audio_quick_editor settings_ui/src
   ```
 
   Expected result: no production references. A separate scan of `tests` and `e2e` may still show explicit guard fixtures and Anki test mocks; no behavioral test should expect native playback as an accepted path.
+
+  Completed Phase 10 final gate:
+
+  ```bash
+  (cd settings_ui && npm test -- source-playback-machine.test.ts learner-recording-playback-machine.test.ts recording-state-store.test.ts editor-inline.actions.playback.test.ts editor-inline.playback.integration.test.ts editor-inline.post-edit-playback.integration.test.ts editor-inline.selection-playback.integration.test.ts editor-inline.selection-marker-shift.playback.integration.test.ts editor-inline.learner-recording-playback.test.ts playback-model.test.ts playback-progress-clock.test.ts)
+  (cd settings_ui && npm run typecheck)
+  (cd settings_ui && npm run lint)
+  python3 scripts/dev.py test tests/test_editor_playback_state_playback.py tests/test_editor_playback_state_cursor.py tests/test_editor_recording.py tests/test_architecture/test_rule37_no_native_editor_playback.py tests/test_architecture/test_rule38_frontend_playback_state_machine_ownership.py
+  python3 scripts/dev.py check
+  python3 scripts/dev.py test-e2e-parallel
+  python3 scripts/dev.py test-e2e
+  rg -n "from aqt.sound import av_player|from anki.sound import SoundOrVideoTag|av_player\\.play_tags|av_player\\.toggle_pause|av_player\\.stop_and_clear_queue|engine: \"native\"|engine === \"native\"|engine === 'native'" addon/anki_audio_quick_editor settings_ui/src -g'*.py' -g'*.ts' -g'*.svelte' --glob '!user_files/**' || true
+  ```
+
+  Results:
+
+  - Targeted frontend playback suite passed: 11 files, 103 tests.
+  - Frontend typecheck passed.
+  - Frontend lint passed with existing max-line warnings in integration test files.
+  - Targeted backend playback/recording and architecture checks passed.
+  - Full `python3 scripts/dev.py check` passed with the known `e2e/test_editor_playback_workflow.py: 405` max-line warning.
+  - Full parallel e2e and serial e2e passed.
+  - Final production no-native audit returned no matches.
+  - Post-e2e process checks found no pytest/e2e process left. The only `mpv` process belonged to the user's long-running Anki process; after the final serial e2e it was idle (`idle-active=true`) with unavailable `path`/`filename` and one unavailable playlist entry.
 
 ## Commit Plan
 

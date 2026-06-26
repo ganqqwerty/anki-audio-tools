@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any
 
 from .editor_playback_bounds import requested_end_ms
@@ -13,8 +12,6 @@ from .prosody_types import clamp_cursor_ms
 if TYPE_CHECKING:
     from .editor_deps_protocols import PlaybackDeps
 
-logger = logging.getLogger(__name__)
-
 
 def playback_request_values(
     session: EditorSession,
@@ -24,9 +21,9 @@ def playback_request_values(
 ) -> tuple[str, str, int, int | None, str, str]:
     """Normalize action, engine, cursor, and selected-region end values from a playback payload."""
     if not isinstance(request, dict):
-        return "start", "native", session.cursor_ms, None, "full", "user"
+        return "start", "html", session.cursor_ms, None, "full", "user"
     action = str(request.get("action") or "start")
-    engine = str(request.get("engine") or "native")
+    engine = str(request.get("engine") or "html")
     duration_ms = deps.visualized_duration_for_field(session, field_index, session.current_filename)
     end_ms = requested_end_ms(request.get("endMs"), duration_ms)
     cursor_ms = clamp_cursor_ms(request.get("cursorMs"), end_ms if end_ms is not None else duration_ms)
@@ -34,32 +31,6 @@ def playback_request_values(
     raw_source = str(request.get("source") or "")
     source = raw_source if raw_source in {"chorusing", "post_edit"} else "user"
     return action, engine, cursor_ms, end_ms, region_mode, source
-
-
-def toggle_native_pause_resume(
-    editor: Any,
-    session: EditorSession,
-    field_index: int,
-    action: str,
-    cursor_ms: int,
-    deps: PlaybackDeps,
-) -> bool:
-    """Toggle native playback pause/resume when possible."""
-    if action not in {"pause", "resume"} or not session.playback.active:
-        return False
-    from aqt.sound import av_player
-
-    try:
-        av_player.toggle_pause()
-    except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
-        logger.info("audio pause/resume failed: %s", exc)
-        deps.eval_status(editor, t("editor.playback.pause_unavailable"), kind="warning")
-        return True
-    session.playback.paused = action == "pause"
-    state = "paused" if session.playback.paused else "playing"
-    deps.eval_playback_state(editor, field_index, state, cursor_ms)
-    deps.eval_status(editor, t("editor.playback.paused") if session.playback.paused else t("editor.playback.playing"))
-    return True
 
 
 def apply_html_playback_request(

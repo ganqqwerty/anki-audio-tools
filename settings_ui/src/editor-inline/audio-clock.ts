@@ -5,6 +5,7 @@ import {
   markHtmlAudioFailure,
   publishAudioReadinessChange,
 } from "./audio-readiness.js";
+import { logger } from "./logger.js";
 
 export interface AudioClockHandlerCallbacks {
   onEndedDuringPlayback?: (durationMs: number) => void;
@@ -20,13 +21,12 @@ export function audioClockFor(visualizer: VisualizerElement | null): AudioClockE
   return visualizer?.querySelector<AudioClockElement>(".aqe-audio-clock") ?? null;
 }
 
-export function setAudioClockLoop(visualizer: VisualizerElement, enabled: boolean): void {
-  const audio = audioClockFor(visualizer);
-  if (audio) audio.loop = enabled;
+export function fieldPlaybackUsesAudioClock(ord: number): boolean {
+  const field = readFieldState(ord);
+  return field.playback.clockMode === "audio" && field.playback.state === "playing";
 }
 
 export function resetAudioClockState(visualizer: VisualizerElement): void {
-  setAudioClockLoop(visualizer, false);
   visualizer.__aqeAudioClockAvailable = false;
   visualizer.__aqeAudioClockFallback = false;
   visualizer.__aqeAudioClockLastSeekedMs = 0;
@@ -35,67 +35,6 @@ export function resetAudioClockState(visualizer: VisualizerElement): void {
     ...state,
     playback: { ...state.playback, clockMode: "stopped" },
   }));
-  publishAudioReadinessChange(visualizer);
-}
-
-export function pauseAudioClock(visualizer: VisualizerElement): void {
-  const audio = audioClockFor(visualizer);
-  if (!audio || typeof audio.pause !== "function") return;
-  try {
-    audio.pause();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_pause_failed");
-  }
-}
-
-export function clearAudioClockSource(visualizer: VisualizerElement): void {
-  const audio = audioClockFor(visualizer);
-  resetAudioClockState(visualizer);
-  if (!audio) return;
-  pauseAudioClock(visualizer);
-  audio.removeAttribute("src");
-  audio.src = "";
-  try {
-    audio.load();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_load_failed");
-  }
-  publishAudioReadinessChange(visualizer);
-}
-
-export function reloadAudioClockSource(visualizer: VisualizerElement): boolean {
-  const audio = audioClockFor(visualizer);
-  if (!audio) return false;
-  setAudioClockLoop(visualizer, false);
-  try {
-    audio.load();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_load_failed");
-    return false;
-  }
-  publishAudioReadinessChange(visualizer);
-  return true;
-}
-
-export function configureAudioClock(visualizer: VisualizerElement, filename: string): void {
-  const audio = audioClockFor(visualizer);
-  resetAudioClockState(visualizer);
-  if (!audio) {
-    visualizer.__aqeAudioClockFallback = true;
-    return;
-  }
-  pauseAudioClock(visualizer);
-  if (!filename) {
-    clearAudioClockSource(visualizer);
-    return;
-  }
-  audio.setAttribute("src", mediaUrlForFilename(filename));
-  try {
-    audio.load();
-  } catch {
-    markHtmlAudioFailure(visualizer, "audio_load_failed");
-    return;
-  }
   publishAudioReadinessChange(visualizer);
 }
 
@@ -113,18 +52,42 @@ export function installAudioClockHandlers(
     visualizer.__aqeAudioClockFallback = false;
     clearHtmlAudioFailure(visualizer);
     const durationSeconds = Number(audio.duration);
+    logger.debug("audio_clock.loadedmetadata", {
+      durationMs: Number.isFinite(durationSeconds) ? Math.round(durationSeconds * 1000) : null,
+      ord,
+      readyState: audio.readyState,
+      src: audio.getAttribute("src") || "",
+    });
     if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
       callbacks.onLoadedMetadata?.(Math.round(durationSeconds * 1000));
     }
   });
   audio.addEventListener("error", () => {
     markHtmlAudioFailure(visualizer, "audio_error");
-    const state = readFieldState(ord);
-    if (state.playback.state === "playing" && state.playback.clockMode === "audio") {
-      callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio));
-    }
+    logger.debug("audio_clock.error", {
+      currentTimeMs: audioCurrentTimeMs(audio),
+      errorCode: audio.error?.code ?? null,
+      ord,
+      readyState: audio.readyState,
+      src: audio.getAttribute("src") || "",
+    });
+    callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio));
+  });
+  audio.addEventListener("play", () => {
+    logger.debug("audio_clock.play", audioClockEventContext(audio, ord));
+  });
+  audio.addEventListener("playing", () => {
+    logger.debug("audio_clock.playing", audioClockEventContext(audio, ord));
+  });
+  audio.addEventListener("pause", () => {
+    logger.debug("audio_clock.pause", audioClockEventContext(audio, ord));
   });
   audio.addEventListener("ended", () => {
+    logger.debug("audio_clock.ended", {
+      ...audioClockEventContext(audio, ord),
+      playbackState: readFieldState(ord).playback.state,
+      repeatEnabled: readFieldState(ord).playback.repeat,
+    });
     if (readFieldState(ord).playback.state === "playing") {
       callbacks.onEndedDuringPlayback?.(audioBoundaryDurationMs(audio));
     }
@@ -132,6 +95,18 @@ export function installAudioClockHandlers(
   audio.addEventListener("seeked", () => {
     visualizer.__aqeAudioClockLastSeekedMs = Math.round((Number(audio.currentTime) || 0) * 1000);
   });
+}
+
+function audioClockEventContext(audio: AudioClockElement, ord: number): Record<string, unknown> {
+  return {
+    currentTimeMs: audioCurrentTimeMs(audio),
+    durationMs: audioDurationMs(audio),
+    ended: audio.ended,
+    ord,
+    paused: audio.paused,
+    readyState: audio.readyState,
+    src: audio.getAttribute("src") || "",
+  };
 }
 
 function audioBoundaryDurationMs(audio: AudioClockElement): number {
@@ -157,7 +132,7 @@ export function audioClockReady(visualizer: VisualizerElement | null): boolean {
   return audio.readyState >= 1 || (audio.readyState === undefined && !!visualizer?.__aqeAudioClockAvailable);
 }
 
-export function seekAudioClock(visualizer: VisualizerElement, ms: number, durationMs: number): boolean {
+export function seekAudioElementForCursorPreview(visualizer: VisualizerElement, ms: number, durationMs: number): boolean {
   const audio = audioClockFor(visualizer);
   if (!audio) return false;
   const clamped = Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
