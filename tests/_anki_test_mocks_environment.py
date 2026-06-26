@@ -38,7 +38,6 @@ class _MockState:
     aqt_operations: types.ModuleType
     aqt_sound: types.ModuleType
     aqt_browser: types.ModuleType
-    aqt_operations: types.ModuleType
     anki_hooks: types.ModuleType
 
 
@@ -139,7 +138,6 @@ def _build_mock_modules() -> _MockState:
     _aqt.utils = _aqt_utils
     _aqt.webview = _webview
     _aqt.mediacheck = _aqt_mediacheck
-    _aqt.operations = _aqt_operations
     modules = {
         "aqt": _aqt,
         "aqt.addons": _aqt_addons,
@@ -180,7 +178,6 @@ def _build_mock_modules() -> _MockState:
         aqt_operations=_aqt_operations,
         aqt_sound=_aqt_sound,
         aqt_browser=_aqt_browser,
-        aqt_operations=_aqt_operations,
         anki_hooks=_anki_hooks,
     )
 
