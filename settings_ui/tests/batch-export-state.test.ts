@@ -29,6 +29,7 @@ function exportState(): AudioExportInitialState {
     defaults: {
       mode: AudioExportMode.Zip,
       silence_between_clips_seconds: 1.5,
+      normalize_volume: false,
     },
     locale: "en",
     direction: Direction.LTR,
@@ -43,6 +44,7 @@ describe("audio export state", () => {
     expect(form.mode).toBe(AudioExportMode.Zip);
     expect(form.destinationPath).toBe("");
     expect(form.silenceBetweenClipsSeconds).toBe(1.5);
+    expect(form.normalizeVolume).toBe(false);
     expect(form.selectedFields.Basic).toEqual(new Set(["Audio"]));
     expect(form.selectedFields.Cloze).toEqual(new Set(["SentenceAudio"]));
     expect(Object.keys(form.selectedFields)).toEqual(["Basic", "Cloze"]);
@@ -66,6 +68,7 @@ describe("audio export state", () => {
     form.mode = AudioExportMode.CombinedMp3;
     form.destinationPath = " /tmp/cards.mp3 ";
     form.silenceBetweenClipsSeconds = 45;
+    form.normalizeVolume = true;
     setAudioExportFieldSelected(form, "Basic", "Image", true);
     setAudioExportFieldSelected(form, "Cloze", "SentenceAudio", false);
 
@@ -76,6 +79,7 @@ describe("audio export state", () => {
         { notetype_name: "Basic", fields: ["Audio", "Image"] },
       ],
       silence_between_clips_seconds: 10,
+      normalize_volume: true,
     });
   });
 });

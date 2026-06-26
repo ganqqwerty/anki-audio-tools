@@ -61,6 +61,46 @@ def test_collect_audio_export_items_includes_all_sound_refs_in_selected_order(
     assert plan.failures == ()
 
 
+def test_collect_audio_export_items_deduplicates_repeated_media_files(
+    tmp_path: Path,
+) -> None:
+    for filename in ("vertrage.ogg", "other.mp3"):
+        (tmp_path / filename).write_bytes(b"audio")
+    notes = [
+        BatchNoteSnapshot(
+            10,
+            "Basic",
+            {"Front": "[sound:vertrage.ogg] [sound:vertrage.ogg]"},
+        ),
+        BatchNoteSnapshot(
+            11,
+            "Basic",
+            {"Front": "[sound:vertrage.ogg] [sound:other.mp3]"},
+        ),
+    ]
+
+    plan = collect_audio_export_items(
+        notes,
+        media_dir=tmp_path,
+        field_selections=(AudioExportFieldSelection("Basic", ("Front",)),),
+    )
+
+    assert [
+        (
+            item.sequence,
+            item.note_id,
+            item.field_sound_index,
+            item.original_filename,
+        )
+        for item in plan.items
+    ] == [
+        (1, 10, 1, "vertrage.ogg"),
+        (2, 11, 2, "other.mp3"),
+    ]
+    assert plan.skipped == ()
+    assert plan.failures == ()
+
+
 def test_collect_audio_export_items_reports_skips_and_missing_media(tmp_path: Path) -> None:
     notes = [
         BatchNoteSnapshot(10, "Basic", {"Front": "no audio", "Audio": "[sound:missing.mp3]"}),
@@ -95,4 +135,26 @@ def test_make_zip_entry_name_is_ordered_sanitized_and_collision_safe(tmp_path: P
     assert make_zip_entry_name(item, used_names=set()) == "0001__note-42__A_B__001__bad_name.mp3"
     assert make_zip_entry_name(item, used_names={"0001__note-42__A_B__001__bad_name.mp3"}) == (
         "0001__note-42__A_B__001__bad_name__2.mp3"
+    )
+    assert make_zip_entry_name(item, used_names=set(), forced_suffix=".mp3") == (
+        "0001__note-42__A_B__001__bad_name.mp3"
+    )
+    assert make_zip_entry_name(
+        item,
+        used_names={"0001__note-42__A_B__001__bad_name.mp3"},
+        forced_suffix="mp3",
+    ) == "0001__note-42__A_B__001__bad_name__2.mp3"
+
+
+def test_make_zip_entry_name_can_force_mp3_suffix_for_normalized_exports(tmp_path: Path) -> None:
+    (tmp_path / "voice.ogg").write_bytes(b"audio")
+    note = BatchNoteSnapshot(43, "Basic", {"Front": "[sound:voice.ogg]"})
+    plan = collect_audio_export_items(
+        [note],
+        media_dir=tmp_path,
+        field_selections=(AudioExportFieldSelection("Basic", ("Front",)),),
+    )
+
+    assert make_zip_entry_name(plan.items[0], used_names=set(), forced_suffix=".mp3") == (
+        "0001__note-43__Front__001__voice.mp3"
     )

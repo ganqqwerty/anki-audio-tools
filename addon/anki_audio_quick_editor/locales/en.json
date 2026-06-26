@@ -508,6 +508,7 @@
   "audio_export.destination": "Destination",
   "audio_export.fields": "Fields",
   "audio_export.silence_between_clips": "Silence between clips",
+  "audio_export.normalize_volume": "Normalize volume",
   "audio_export.no_audio": "No audio",
   "audio_export.starting": "Starting audio export.",
   "audio_export.progress": "Exported {processed}/{total} audio files. Current audio: {audio}. Failures: {failures}.",

@@ -435,6 +435,7 @@
   "audio_export.destination": "保存先",
   "audio_export.fields": "フィールド",
   "audio_export.silence_between_clips": "クリップ間の無音",
+  "audio_export.normalize_volume": "音量をノーマライズ",
   "audio_export.no_audio": "音声なし",
   "audio_export.starting": "音声の書き出しを開始しています。",
   "audio_export.progress": "{processed}/{total} 個の音声ファイルを書き出しました。現在の音声: {audio}。失敗: {failures}。",

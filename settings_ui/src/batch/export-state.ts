@@ -10,6 +10,7 @@ export interface AudioExportFormState {
   destinationPath: string;
   selectedFields: Record<string, Set<string>>;
   silenceBetweenClipsSeconds: number;
+  normalizeVolume: boolean;
 }
 
 export function initialAudioExportFormState(state: AudioExportInitialState): AudioExportFormState {
@@ -25,6 +26,7 @@ export function initialAudioExportFormState(state: AudioExportInitialState): Aud
     destinationPath: "",
     selectedFields,
     silenceBetweenClipsSeconds: clampSilenceSeconds(state.defaults.silence_between_clips_seconds),
+    normalizeVolume: state.defaults.normalize_volume,
   };
 }
 
@@ -38,6 +40,7 @@ export function audioExportStartRequest(form: AudioExportFormState): AudioExport
     destination_path: form.destinationPath.trim(),
     field_selections: audioExportFieldSelections(form),
     silence_between_clips_seconds: clampSilenceSeconds(form.silenceBetweenClipsSeconds),
+    normalize_volume: form.normalizeVolume,
   };
 }
 

@@ -93,6 +93,72 @@ def test_browser_audio_export_combined_mp3_leaves_note_fields_unchanged(
     assert front_field(anki_mw, int(note.id)) == original_html
 
 
+def test_browser_audio_export_normalized_zip_writes_mp3_entries_and_leaves_note_fields_unchanged(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "browser_export_normalized_zip_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.4)
+    note = add_basic_audio_note(anki_mw, (source.name,))
+    original_html = note["Front"]
+    output = tmp_path / "normalized-cards.zip"
+
+    dialog = _run_export_dialog_from_browser(
+        anki_mw,
+        note,
+        output,
+        monkeypatch=monkeypatch,
+        mode="zip",
+        normalize_volume=True,
+    )
+
+    wait_for_condition(
+        lambda: output.is_file(),
+        timeout=15.0,
+        message=f"normalized zip export was not written; log={dialog._log_lines!r}",
+    )
+    assert front_field(anki_mw, int(note.id)) == original_html
+    with zipfile.ZipFile(output) as archive:
+        assert archive.namelist() == [
+            f"0001__note-{int(note.id)}__Front__001__browser_export_normalized_zip_source.mp3",
+        ]
+        assert len(archive.read(archive.namelist()[0])) > 0
+
+
+def test_browser_audio_export_normalized_combined_mp3_leaves_note_fields_unchanged(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "browser_export_normalized_mp3_source.mp3"
+    generate_tone(ffmpeg_config, source, duration_s=0.4)
+    note = add_basic_audio_note(anki_mw, (source.name,))
+    original_html = note["Front"]
+    output = tmp_path / "normalized-cards.mp3"
+
+    dialog = _run_export_dialog_from_browser(
+        anki_mw,
+        note,
+        output,
+        monkeypatch=monkeypatch,
+        mode="combined_mp3",
+        silence_seconds=0,
+        normalize_volume=True,
+    )
+
+    wait_for_condition(
+        lambda: output.is_file() and output.stat().st_size > 0,
+        timeout=20.0,
+        message=f"normalized mp3 export was not written; log={dialog._log_lines!r}",
+    )
+    assert front_field(anki_mw, int(note.id)) == original_html
+
+
 def _run_export_dialog_from_browser(
     anki_mw,
     note,
@@ -101,6 +167,7 @@ def _run_export_dialog_from_browser(
     monkeypatch,
     mode: str,
     silence_seconds: float = 1.0,
+    normalize_volume: bool = False,
 ):
     export_dialog_module = import_runtime_addon_module(".browser_audio_export_dialog")
     from aqt.qt import QFileDialog
@@ -151,6 +218,20 @@ def _run_export_dialog_from_browser(
                     }})()
                     """,
                     lambda value: value == silence_seconds,
+                    timeout=5.0,
+                )
+            if normalize_volume:
+                wait_for_js_condition(
+                    dialog._webview,
+                    """
+                    (() => {
+                      const input = document.querySelector('[data-testid="audio-export-normalize-volume"]');
+                      if (!input) return false;
+                      input.click();
+                      return input.checked;
+                    })()
+                    """,
+                    lambda value: value is True,
                     timeout=5.0,
                 )
             click_selector(dialog._webview, "button", timeout=5.0)

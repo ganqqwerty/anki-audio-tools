@@ -93,6 +93,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "audio_export_planning",
             "audio_export_rendering",
             "audio_export_types",
+            "audio_export_zip_writer",
             "audio_external",
             "audio_processor",
             "batch_operation_types",
@@ -104,6 +105,16 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             SideEffect.SUBPROCESS_RUN,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
+    ),
+    "audio_export_zip_writer": contract(
+        "audio_export_zip_writer",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_export_planning",
+            "audio_export_rendering",
+            "audio_export_types",
+        ),
+        allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
     ),
     "browser_audio_export_dialog": contract(
         "browser_audio_export_dialog",

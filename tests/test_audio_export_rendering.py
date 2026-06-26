@@ -6,16 +6,19 @@ import pytest
 
 from anki_audio_quick_editor.audio_commands import conversion_codec_args
 from anki_audio_quick_editor.audio_export_rendering import (
+    LOUDNORM_EXPORT_FILTER,
     build_concat_list_text,
     build_final_mp3_command,
-    build_normalize_wav_command,
+    build_normalized_mp3_command,
+    build_normalized_wav_command,
     build_silence_wav_command,
+    build_stage_wav_command,
 )
 from anki_audio_quick_editor.errors import AudioProcessingError
 
 
-def test_build_normalize_wav_command_uses_stable_pcm_output() -> None:
-    command = build_normalize_wav_command(
+def test_build_stage_wav_command_uses_stable_pcm_output_without_loudness_filter() -> None:
+    command = build_stage_wav_command(
         ffmpeg_path=Path("/bin/ffmpeg"),
         source_path=Path("/media/source.mp3"),
         output_path=Path("/tmp/0001.wav"),
@@ -35,6 +38,62 @@ def test_build_normalize_wav_command_uses_stable_pcm_output() -> None:
         "pcm_s16le",
         "/tmp/0001.wav",
     )
+    assert LOUDNORM_EXPORT_FILTER not in command
+
+
+def test_build_normalized_wav_command_applies_loudnorm_and_stable_pcm_output() -> None:
+    command = build_normalized_wav_command(
+        ffmpeg_path=Path("/bin/ffmpeg"),
+        source_path=Path("/media/source.ogg"),
+        output_path=Path("/tmp/0001.wav"),
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        "/media/source.ogg",
+        "-vn",
+        "-filter:a",
+        LOUDNORM_EXPORT_FILTER,
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        "-c:a",
+        "pcm_s16le",
+        "/tmp/0001.wav",
+    )
+
+
+def test_build_normalized_mp3_command_applies_loudnorm_and_mp3_codec() -> None:
+    command = build_normalized_mp3_command(
+        ffmpeg_path=Path("/bin/ffmpeg"),
+        source_path=Path("/media/source.webm"),
+        output_path=Path("/tmp/0001.mp3"),
+    )
+
+    assert command[:7] == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        "/media/source.webm",
+        "-vn",
+        "-filter:a",
+        LOUDNORM_EXPORT_FILTER,
+    )
+    mp3_codec_args = conversion_codec_args("mp3")
+    assert command[-(len(mp3_codec_args) + 1) : -1] == mp3_codec_args
+    assert command[-1] == "/tmp/0001.mp3"
+
+
+def test_build_normalized_mp3_command_rejects_non_mp3_output_path() -> None:
+    with pytest.raises(AudioProcessingError, match="does not match ffmpeg audio codec"):
+        build_normalized_mp3_command(
+            ffmpeg_path=Path("/bin/ffmpeg"),
+            source_path=Path("/media/source.mp3"),
+            output_path=Path("/tmp/0001.wav"),
+        )
 
 
 def test_build_silence_wav_command_uses_anullsrc_duration() -> None:

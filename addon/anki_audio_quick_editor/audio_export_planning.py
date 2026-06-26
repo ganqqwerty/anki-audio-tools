@@ -55,6 +55,7 @@ def collect_audio_export_items(
     items: list[AudioExportItem] = []
     skipped: list[AudioExportNotice] = []
     failures: list[AudioExportNotice] = []
+    seen_source_paths: set[Path] = set()
     sequence = 1
 
     for note in notes:
@@ -65,6 +66,7 @@ def collect_audio_export_items(
             items=items,
             skipped=skipped,
             failures=failures,
+            seen_source_paths=seen_source_paths,
             sequence=sequence,
         )
 
@@ -79,6 +81,7 @@ def _collect_note_export_items(
     items: list[AudioExportItem],
     skipped: list[AudioExportNotice],
     failures: list[AudioExportNotice],
+    seen_source_paths: set[Path],
     sequence: int,
 ) -> int:
     if selected_fields is None:
@@ -91,6 +94,7 @@ def _collect_note_export_items(
             items=items,
             skipped=skipped,
             failures=failures,
+            seen_source_paths=seen_source_paths,
             sequence=sequence,
         )
     return sequence
@@ -104,6 +108,7 @@ def _collect_field_export_items(
     items: list[AudioExportItem],
     skipped: list[AudioExportNotice],
     failures: list[AudioExportNotice],
+    seen_source_paths: set[Path],
     sequence: int,
 ) -> int:
     if field_name not in note.fields:
@@ -121,6 +126,10 @@ def _collect_field_export_items(
         if source_path is None:
             failures.append(_notice(note, field_name, f"media file not found: {filename}", filename))
             continue
+        source_key = source_path.resolve()
+        if source_key in seen_source_paths:
+            continue
+        seen_source_paths.add(source_key)
         items.append(
             AudioExportItem(
                 sequence=sequence,
@@ -144,9 +153,16 @@ def _supported_sound_refs(field_html: str) -> tuple[SoundReference, ...]:
     )
 
 
-def make_zip_entry_name(item: AudioExportItem, *, used_names: set[str]) -> str:
+def make_zip_entry_name(
+    item: AudioExportItem,
+    *,
+    used_names: set[str],
+    forced_suffix: str | None = None,
+) -> str:
     stem = _safe_zip_fragment(Path(item.original_filename).stem) or "audio"
-    suffix = Path(item.original_filename).suffix.lower()
+    suffix = forced_suffix if forced_suffix is not None else Path(item.original_filename).suffix.lower()
+    if suffix and not suffix.startswith("."):
+        suffix = f".{suffix}"
     field_name = _safe_zip_fragment(item.field_name)
     base = (
         f"{item.sequence:04d}__note-{item.note_id}__"

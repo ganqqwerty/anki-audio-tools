@@ -435,6 +435,7 @@
   "audio_export.destination": "Nơi lưu",
   "audio_export.fields": "Trường",
   "audio_export.silence_between_clips": "Khoảng lặng giữa các đoạn",
+  "audio_export.normalize_volume": "Chuẩn hóa âm lượng",
   "audio_export.no_audio": "Không có âm thanh",
   "audio_export.starting": "Đang bắt đầu xuất âm thanh.",
   "audio_export.progress": "Đã xuất {processed}/{total} tệp âm thanh. Âm thanh hiện tại: {audio}. Lỗi: {failures}.",
