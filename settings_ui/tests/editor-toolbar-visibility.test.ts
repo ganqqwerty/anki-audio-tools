@@ -22,7 +22,6 @@ describe("editor toolbar visibility panels", () => {
       "aqe:faster",
       "aqe:volume-down",
       "aqe:volume-up",
-      "aqe:chorusing-practice",
       "aqe:chorusing-next",
       "aqe:chorusing-previous",
       "aqe:record-voice",
@@ -49,7 +48,6 @@ describe("editor toolbar visibility panels", () => {
       "aqe:faster",
       "aqe:volume-down",
       "aqe:volume-up",
-      "aqe:chorusing-practice",
       "aqe:chorusing-next",
       "aqe:chorusing-previous",
       "aqe:record-voice",
@@ -77,14 +75,13 @@ describe("editor toolbar visibility panels", () => {
     }))).toEqual([
       {
         commands: [
-          "aqe:chorusing-practice",
           "aqe:chorusing-next",
           "aqe:chorusing-previous",
         ],
         descriptionKey: "editor.chorusing.panel_description",
         labelKey: "editor.chorusing.title",
         slug: "chorusing",
-        titleKey: "editor.command.chorusing_practice.title",
+        titleKey: "editor.command.chorusing_next.title",
       },
       {
         commands: [
@@ -103,7 +100,7 @@ describe("editor toolbar visibility panels", () => {
 
   it("matches shared panel definitions against consecutive toolbar buttons", () => {
     const buttons = toolbarButtons();
-    const chorusingIndex = buttons.findIndex((button) => button.command === "aqe:chorusing-practice");
+    const chorusingIndex = buttons.findIndex((button) => button.command === "aqe:chorusing-next");
     const recordingIndex = buttons.findIndex((button) => button.command === "aqe:record-voice");
 
     expect(toolbarPanelDefinitionAt(buttons, chorusingIndex)?.definition.slug).toBe("chorusing");
@@ -116,7 +113,6 @@ describe("editor toolbar visibility panels", () => {
     const chorusingPanel = panels.find((panel) => panel.slug === "chorusing");
 
     expect(chorusingPanel?.commands).toEqual([
-      "aqe:chorusing-practice",
       "aqe:chorusing-next",
       "aqe:chorusing-previous",
     ]);

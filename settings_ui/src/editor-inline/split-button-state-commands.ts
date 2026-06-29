@@ -153,10 +153,6 @@ export function buildSplitDefaultSaveRequestFromState(
     request.defaults.sizeReductionChannels = state.sizeReductionChannels;
   } else if (command === "aqe:share") {
     request.defaults.shareTarget = state.shareTarget;
-  } else if (command === "aqe:chorusing-practice") {
-    request.defaults.chorusingPauseSeconds = state.chorusingPauseSeconds;
-    request.defaults.chorusingAutoAdvanceByDefault = state.chorusingAutoAdvance;
-    request.defaults.chorusingAutoAdvanceRepeats = state.chorusingRepeatCount;
   } else if (command === "aqe:record-voice") {
     request.defaults.voiceRecordingCountdownSeconds = state.voiceRecordingCountdownSeconds;
   }

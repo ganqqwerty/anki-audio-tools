@@ -1,70 +1,53 @@
-import { visualizerForOrd } from "./dom-selectors.js";
-import { focusAndSendCommand } from "./bridge.js";
 import { markerClickFromEvent } from "./graph-overlay-geometry.js";
-import { readFieldState, updateFieldState } from "./field-state-store.js";
-import {
-  pauseProgressClock as pauseProgressClockFromController,
-  stopProgressClock as stopProgressClockFromController,
-} from "./playback-controller.js";
-import { playbackControllerDependencies } from "./playback-controller-dependencies.js";
-import { sendPlaybackRequest } from "./playback-request-dispatch.js";
-import type { PlaybackRequest, VisualizerElement } from "./types.js";
-import { setSelection as setSelectionFromController } from "./selection-controller.js";
+import { visualizerForOrd } from "./dom-selectors.js";
+import { readFieldState } from "./field-state-store.js";
+import { selectionForVisualizer, setSelection as setSelectionFromController } from "./selection-controller.js";
 import { SELECTION_CHANGED_EVENT, notifySelectionChanged } from "./selection-events.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
+import { startSourcePlaybackAction } from "./source-playback-actions.js";
 import {
   chorusingMarkerControlsVisible,
-  renderChorusingMarkerRow,
   chorusingStateForVisualizer,
+  renderChorusingMarkerRow,
   writeChorusingState,
 } from "./chorusing-dom.js";
 import { syncChorusingToolbarButtons } from "./chorusing-toolbar.js";
-import { getSplitButtonState, splitButtonDefaults } from "./split-button-state.js";
+import { splitButtonDefaults } from "./split-button-state.js";
 import {
-  activeMarkerIndexAfterMarkerToggle,
-  chooseInitialActiveMarkerIndex,
   clampChorusingMarkerIntervalMs,
   defaultChorusingMarkers,
-  deriveActiveSuffix,
   emptyChorusingState,
-  moveActiveMarkerIndex,
-  resolveChorusingLoopBoundary,
+  markerIndexForExactStart,
+  moveActiveMarkerIndexForSuffix,
+  toggleChorusingMarker,
   type ChorusingMarkerDirection,
   type ChorusingState,
-  toggleChorusingMarker,
 } from "./chorusing-state";
-import type { PlaybackPass } from "./playback-model.js";
-import { startSourcePlaybackAction } from "./source-playback-actions.js";
+import type { PlaybackRegion } from "./playback-model.js";
+import type { PlaybackRequest, VisualizerElement } from "./types.js";
 import {
-  readVisualizerCursorMs,
   readVisualizerTargetDurationMs,
   readVisualizerTimeViewport,
 } from "./visualizer-state.js";
-import { setPlaybackLoopRuntime } from "./visualizer-runtime-state.js";
 
 const MARKER_HIT_TOLERANCE_MS = 35;
-
-function playbackDependencies() {
-  return playbackControllerDependencies({ handleLoopBoundary: handleChorusingLoopBoundary });
-}
 
 export function installChorusingHandlers(visualizer: VisualizerElement): () => void {
   writeState(visualizer, chorusingStateForVisualizer(visualizer));
   const onSelectionChanged = (event: Event): void => {
     const origin = event instanceof CustomEvent ? (event.detail?.origin ?? "user") : "user";
     if (origin === "user") {
-      renderChorusingMarkerRow(visualizer);
-      syncChorusingToolbarButtons(visualizer);
-    } else {
-      renderChorusingMarkerRow(visualizer);
+      scheduleUserSelectionChorusingSync(visualizer);
     }
+    renderChorusingMarkerRow(visualizer);
+    syncChorusingToolbarButtons(visualizer);
   };
   const onViewportChanged = (): void => renderChorusingMarkerRow(visualizer);
   const observer = new MutationObserver(() => {
     const state = chorusingStateForVisualizer(visualizer);
     const fieldState = readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
     if (!fieldState.graph.hasTrack && state.baseRegion) {
-      clearChorusing(visualizer, { restoreRepeat: true });
+      clearChorusing(visualizer);
       return;
     }
     if (!fieldState.graph.hasTrack) return;
@@ -84,23 +67,6 @@ export function installChorusingHandlers(visualizer: VisualizerElement): () => v
   };
 }
 
-function ensureCurrentTrackChorusingBase(visualizer: VisualizerElement, state: ChorusingState): void {
-  const sourceFilename = readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).sourceFilename;
-  let currentState = state;
-  if (state.sourceFilename && state.sourceFilename !== sourceFilename) {
-    clearChorusing(visualizer, { restoreRepeat: true });
-    currentState = chorusingStateForVisualizer(visualizer);
-  }
-  if (ensureChorusingBase(visualizer, currentState) === null) {
-    writeState(visualizer, emptyChorusingState());
-  }
-}
-
-export function toggleChorusingForOrd(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  return visualizer ? toggleChorusing(visualizer) : false;
-}
-
 export function moveChorusingForOrd(ord: number, direction: ChorusingMarkerDirection): boolean {
   const visualizer = visualizerForOrd(ord);
   return visualizer ? moveChorusing(visualizer, direction) : false;
@@ -118,63 +84,33 @@ export function handleChorusingMarkerPointerDown(event: PointerEvent, ord: numbe
   event.stopPropagation();
   const click = markerClickFromEvent(event, svg, readVisualizerTimeViewport(visualizer), readyState.baseRegion);
   if (!click.insideVisibleBaseRegion) return;
-  const previousSuffix = deriveActiveSuffix(
-    readyState.baseRegion,
-    readyState.markersMs,
-    readyState.activeMarkerIndex,
-  );
   const toggled = toggleChorusingMarker(
     readyState.markersMs,
     click.ms,
     readyState.baseRegion,
     MARKER_HIT_TOLERANCE_MS,
   );
-  const activeMarkerIndex = activeMarkerIndexAfterMarkerToggle(
-    readyState.markersMs,
-    toggled.markersMs,
-    readyState.activeMarkerIndex,
-  );
-  const nextState = {
+  writeState(visualizer, {
     ...readyState,
-    activeMarkerIndex,
     markersMs: toggled.markersMs,
-    practiceState: toggled.markersMs.length ? readyState.practiceState : "stopped",
-  };
-  const nextSuffix = deriveActiveSuffix(nextState.baseRegion, nextState.markersMs, nextState.activeMarkerIndex);
-  writeState(visualizer, nextState);
-  if (readyState.practiceState !== "playing") return;
-  if (!nextSuffix) {
-    stopProgressClock(visualizer);
-    focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
-    restoreOrdinaryRepeat(visualizer, readyState);
-    return;
-  }
-  if (previousSuffix?.startMs !== nextSuffix.startMs || previousSuffix?.endMs !== nextSuffix.endMs) {
-    startPracticePlayback(visualizer, nextState);
-  }
+  });
 }
 
-export function pauseChorusingForNormalPlay(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return false;
-  const state = chorusingStateForVisualizer(visualizer);
-  if (state.practiceState !== "playing") return false;
-  pauseChorusing(visualizer, state);
-  return true;
-}
-
-export function clearChorusing(
-  visualizer: VisualizerElement,
-  options: { restoreRepeat?: boolean } = {},
-): void {
-  const state = chorusingStateForVisualizer(visualizer);
-  if (state.practiceState !== "stopped") {
-    stopProgressClock(visualizer);
-    focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
-  }
-  if (options.restoreRepeat !== false) restoreOrdinaryRepeat(visualizer, state);
+export function clearChorusing(visualizer: VisualizerElement): void {
   writeState(visualizer, emptyChorusingState());
   syncSelectionToolbar(visualizer);
+}
+
+function ensureCurrentTrackChorusingBase(visualizer: VisualizerElement, state: ChorusingState): void {
+  const sourceFilename = readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).sourceFilename;
+  let currentState = state;
+  if (state.sourceFilename && state.sourceFilename !== sourceFilename) {
+    clearChorusing(visualizer);
+    currentState = chorusingStateForVisualizer(visualizer);
+  }
+  if (ensureChorusingBase(visualizer, currentState) === null) {
+    writeState(visualizer, emptyChorusingState());
+  }
 }
 
 function ensureChorusingBase(
@@ -189,7 +125,6 @@ function ensureChorusingBase(
     : state.markersMs;
   const nextState = {
     ...state,
-    activeMarkerIndex: newBaseRegion ? chooseInitialActiveMarkerIndex(markersMs) : state.activeMarkerIndex,
     baseRegion,
     markersMs,
     sourceFilename: readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).sourceFilename,
@@ -204,26 +139,14 @@ function chorusingMarkerIntervalMs(): number {
   return clampChorusingMarkerIntervalMs(splitButtonDefaults().chorusingMarkerIntervalMs);
 }
 
-function wholeFileChorusingRegion(visualizer: VisualizerElement) {
+function wholeFileChorusingRegion(visualizer: VisualizerElement): PlaybackRegion | null {
   const durationMs = readVisualizerTargetDurationMs(visualizer);
   if (!readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).graph.hasTrack || durationMs <= 0) return null;
   return {
     endMs: durationMs,
-    mode: "selection" as const,
+    mode: "selection",
     startMs: 0,
   };
-}
-
-function toggleChorusing(visualizer: VisualizerElement): boolean {
-  const state = chorusingStateForVisualizer(visualizer);
-  if (state.practiceState === "playing") {
-    pauseChorusing(visualizer, state);
-    return true;
-  }
-  const readyState = ensurePracticeReady(visualizer, state);
-  if (!readyState) return false;
-  startPracticePlayback(visualizer, readyState);
-  return true;
 }
 
 function moveChorusing(
@@ -231,158 +154,122 @@ function moveChorusing(
   direction: ChorusingMarkerDirection,
   options: { resetRepeatPasses?: boolean } = {},
 ): boolean {
-  const state = chorusingStateForVisualizer(visualizer);
-  if (!state.baseRegion || !state.markersMs.length) return false;
-  const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, direction);
-  const nextState = {
-    ...state,
-    activeMarkerIndex: nextIndex,
-    repeatPassesCompleted: options.resetRepeatPasses === false ? state.repeatPassesCompleted : 0,
-  };
-  writeState(visualizer, nextState);
-  setSelectionToActiveSuffix(visualizer, nextState);
-  if (nextState.practiceState === "playing") {
-    startPracticePlayback(visualizer, nextState);
-  }
+  const readyState = ensureChorusingBase(visualizer, chorusingStateForVisualizer(visualizer));
+  if (!readyState?.baseRegion || !readyState.markersMs.length) return false;
+  const selection = activeMarkerSelection(readyState, selectionForVisualizer(visualizer));
+  const nextSelection = selection
+    ? selectionAfterMarkerNavigation(selection, readyState.markersMs, direction, readyState.baseRegion.endMs)
+    : rightmostSuffixSelection(readyState);
+  if (!nextSelection) return false;
+  writeState(visualizer, {
+    ...readyState,
+    fullBaseSelectionActive: isBaseSelection(readyState, nextSelection),
+    repeatPassesCompleted: options.resetRepeatPasses === false ? readyState.repeatPassesCompleted : 0,
+  });
+  setSelectedSuffix(visualizer, nextSelection);
+  restartSelectedPlaybackIfPlaying(visualizer, nextSelection);
   return true;
 }
 
-function ensurePracticeReady(
-  visualizer: VisualizerElement,
+function scheduleUserSelectionChorusingSync(visualizer: VisualizerElement): void {
+  queueMicrotask(() => {
+    const state = chorusingStateForVisualizer(visualizer);
+    writeState(visualizer, {
+      ...state,
+      fullBaseSelectionActive: false,
+      repeatPassesCompleted: 0,
+    });
+    const selection = activeMarkerSelection(state, selectionForVisualizer(visualizer));
+    if (selection) {
+      restartSelectedPlaybackIfPlaying(visualizer, selection);
+    }
+  });
+}
+
+function rightmostSuffixSelection(state: ChorusingState): { startMs: number; endMs: number } | null {
+  if (!state.baseRegion || !state.markersMs.length) return null;
+  const startMs = state.markersMs[state.markersMs.length - 1];
+  if (typeof startMs !== "number" || !Number.isFinite(startMs)) return null;
+  return {
+    endMs: state.baseRegion.endMs,
+    startMs,
+  };
+}
+
+function activeMarkerSelection(
   state: ChorusingState,
-): ChorusingState | null {
-  const baseState = ensureChorusingBase(visualizer, state);
-  if (!baseState?.baseRegion || !baseState.markersMs.length) return null;
-  const activeMarkerIndex = baseState.activeMarkerIndex ?? chooseInitialActiveMarkerIndex(baseState.markersMs);
-  if (activeMarkerIndex === null) return null;
-  const readyState = {
-    ...baseState,
-    activeMarkerIndex,
-    ordinaryRepeatEnabled: baseState.ordinaryRepeatEnabled ?? readOrdinaryRepeat(visualizer),
-    sourceFilename: readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).sourceFilename,
-  };
-  writeState(visualizer, readyState);
-  return readyState;
+  selection: PlaybackRegion | null,
+): PlaybackRegion | null {
+  if (!selection || !state.baseRegion) return selection;
+  const coversBase = Math.round(selection.startMs) <= Math.round(state.baseRegion.startMs)
+    && Math.round(selection.endMs) >= Math.round(state.baseRegion.endMs);
+  return coversBase && !state.fullBaseSelectionActive ? null : selection;
 }
 
-function startPracticePlayback(visualizer: VisualizerElement, state: ChorusingState): void {
-  const suffix = setSelectionToActiveSuffix(visualizer, state);
-  if (!suffix) return;
-  stopProgressClock(visualizer, { clearEngine: false });
-  writeRepeatForPractice(visualizer, true);
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const request: PlaybackRequest = {
-    action: "start",
-    cursorMs: Math.round(suffix.startMs),
-    endMs: Math.round(suffix.endMs),
-    engine: "html",
-    loop: true,
-    ord,
-    regionMode: "selection",
-    source: "chorusing",
-  };
-  writeState(visualizer, {
-    ...state,
-    practiceState: "playing",
-    repeatPassesCompleted: 0,
-  });
-  startSourcePlaybackAction(visualizer, request);
-}
-
-function pauseChorusing(visualizer: VisualizerElement, state: ChorusingState): void {
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  pauseProgressClock(visualizer);
-  sendPlaybackRequest({
-    action: "pause",
-    cursorMs: readVisualizerCursorMs(visualizer),
-    engine: "html",
-    loop: true,
-    ord,
-    regionMode: "selection",
-    source: "chorusing",
-  });
-  restoreOrdinaryRepeat(visualizer, state);
-  writeState(visualizer, {
-    ...state,
-    practiceState: "paused",
-  });
-}
-
-function pauseProgressClock(visualizer: VisualizerElement): void {
-  pauseProgressClockFromController(visualizer, playbackDependencies());
-}
-
-function stopProgressClock(
-  visualizer: VisualizerElement,
-  options: { clearAudio?: boolean; clearEngine?: boolean } = {},
-): void {
-  stopProgressClockFromController(visualizer, playbackDependencies(), options);
-}
-
-export function handleChorusingLoopBoundary(
-  visualizer: VisualizerElement,
-  pass: PlaybackPass,
+function isBaseSelection(
+  state: ChorusingState,
+  selection: { startMs: number; endMs: number },
 ): boolean {
-  const state = chorusingStateForVisualizer(visualizer);
-  if (!chorusingPassMatchesActiveSuffix(state, pass)) {
-    return false;
-  }
-  const splitState = getSplitButtonState(Number(visualizer.dataset.aqeFieldOrd || "0"));
-  const decision = resolveChorusingLoopBoundary(state, {
-    autoAdvance: splitState.chorusingAutoAdvance,
-    repeatCount: splitState.chorusingRepeatCount,
-  });
-  if (decision.action === "ignore") {
-    return false;
-  }
-  if (decision.action === "repeat") {
-    writeState(visualizer, decision.nextState);
-    return false;
-  }
-  if (decision.action === "pause") {
-    pauseChorusing(visualizer, decision.nextState);
-    return true;
-  }
-  writeState(visualizer, decision.nextState);
-  setSelectionToActiveSuffix(visualizer, decision.nextState);
-  startPracticePlayback(visualizer, decision.nextState);
-  return decision.consumed;
-}
-
-function chorusingPassMatchesActiveSuffix(state: ChorusingState, pass: PlaybackPass): boolean {
-  const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
   return Boolean(
-    suffix
-    && pass.regionMode === suffix.mode
-    && pass.startMs === Math.round(suffix.startMs)
-    && pass.endMs === Math.round(suffix.endMs),
+    state.baseRegion
+    && Math.round(selection.startMs) <= Math.round(state.baseRegion.startMs)
+    && Math.round(selection.endMs) >= Math.round(state.baseRegion.endMs),
   );
 }
 
-function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: ChorusingState) {
-  const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
-  if (!suffix) return null;
-  setSelectionFromController(visualizer, suffix.startMs, suffix.endMs, { setCursor: () => undefined }, { updateCursor: false });
+function selectionAfterMarkerNavigation(
+  selection: { startMs: number; endMs: number },
+  markersMs: readonly number[],
+  direction: ChorusingMarkerDirection,
+  durationMs: number,
+): { startMs: number; endMs: number } | null {
+  const targetIndex = moveActiveMarkerIndexForSuffix(
+    markersMs,
+    markerIndexForExactStart(markersMs, selection.startMs),
+    direction,
+    selection.startMs,
+    selection.endMs,
+  );
+  const startMs = targetIndex === null ? null : markersMs[targetIndex];
+  if (typeof startMs !== "number" || !Number.isFinite(startMs)) return null;
+  const endMs = Math.min(selection.endMs, durationMs);
+  if (Math.round(startMs) >= Math.round(endMs)) return null;
+  return { startMs, endMs };
+}
+
+function setSelectedSuffix(
+  visualizer: VisualizerElement,
+  selection: { startMs: number; endMs: number },
+): void {
+  setSelectionFromController(
+    visualizer,
+    selection.startMs,
+    selection.endMs,
+    { setCursor: () => undefined },
+    { updateCursor: false },
+  );
   syncSelectionToolbar(visualizer);
   notifySelectionChanged(visualizer, "chorusing");
-  return suffix;
 }
 
-function readOrdinaryRepeat(visualizer: VisualizerElement): boolean {
-  return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).playback.repeat;
-}
-
-function writeRepeatForPractice(visualizer: VisualizerElement, enabled: boolean): void {
-  updateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"), (state) => ({
-    ...state,
-    playback: { ...state.playback, repeat: enabled },
-  }));
-  setPlaybackLoopRuntime(visualizer, enabled);
-}
-
-function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: ChorusingState): void {
-  if (state.ordinaryRepeatEnabled === null) return;
-  writeRepeatForPractice(visualizer, state.ordinaryRepeatEnabled);
+function restartSelectedPlaybackIfPlaying(
+  visualizer: VisualizerElement,
+  selection: { startMs: number; endMs: number },
+): void {
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const fieldState = readFieldState(ord);
+  if (fieldState.playback.state !== "playing") return;
+  const request: PlaybackRequest = {
+    action: "start",
+    cursorMs: Math.round(selection.startMs),
+    endMs: Math.round(selection.endMs),
+    engine: "html",
+    loop: fieldState.playback.repeat,
+    ord,
+    regionMode: "selection",
+    source: "user",
+  };
+  startSourcePlaybackAction(visualizer, request);
 }
 
 function writeState(visualizer: VisualizerElement, state: ChorusingState): void {

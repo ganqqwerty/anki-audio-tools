@@ -222,14 +222,12 @@ def assert_reviewer_tooltip_css_isolated(reviewer) -> None:
 
 def assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord: int) -> None:
     """Assert chorusing toolbar controls and marker row keep isolated styling."""
-    practice_selector = _button_selector("aqe:chorusing-practice", field_ord)
     previous_selector = _button_selector("aqe:chorusing-previous", field_ord)
     next_selector = _button_selector("aqe:chorusing-next", field_ord)
     chorusing_style = wait_for_js_condition(
         reviewer.web,
         f"""
         (() => {{
-          const practice = document.querySelector({practice_selector!r});
           const previous = document.querySelector({previous_selector!r});
           const next = document.querySelector({next_selector!r});
           const panel = document.querySelector('[data-testid="aqe-chorusing-toolbar-panel-{field_ord}"]');
@@ -237,7 +235,7 @@ def assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord: int) 
           const row = document.querySelector('[data-testid="aqe-chorusing-marker-row-{field_ord}"]');
           const hitbox = document.querySelector('.aqe-chorusing-marker-hitbox');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-{field_ord}"]');
-          if (!practice || !previous || !next || !panel || oldEntry || !row || !hitbox || !svg) return null;
+          if (!previous || !next || !panel || oldEntry || !row || !hitbox || !svg) return null;
           if (row.getAttribute("aria-hidden") === "true") {{
             const rect = svg.getBoundingClientRect();
             const EventCtor = window.PointerEvent || window.MouseEvent;
@@ -255,7 +253,6 @@ def assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord: int) 
           const track = row.querySelector('.aqe-chorusing-marker-track');
           const marker = row.querySelector('.aqe-chorusing-marker');
           if (row.getAttribute("aria-hidden") === "true" || !track || !marker) return null;
-          const practiceStyle = getComputedStyle(practice);
           const previousStyle = getComputedStyle(previous);
           const nextStyle = getComputedStyle(next);
           const panelStyle = getComputedStyle(panel);
@@ -271,7 +268,6 @@ def assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord: int) 
             panelDisplay: panelStyle.display,
             panelLabel: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
             previousFontSize: previousStyle.fontSize,
-            practiceFontSize: practiceStyle.fontSize,
             rowOpacity: rowStyle.opacity,
             trackFill: trackStyle.fill,
             trackStrokeWidth: trackStyle.strokeWidth,
@@ -287,9 +283,8 @@ def assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord: int) 
     assert chorusing_style["panelBorderTopWidth"] == "0px"
     assert chorusing_style["panelContainer"] == "true"
     assert chorusing_style["panelDisplay"] in {"flex", "inline-flex"}
-    assert chorusing_style["panelLabel"] == "Chorusing"
+    assert chorusing_style["panelLabel"] == "Markers"
     assert chorusing_style["previousFontSize"] == "12px"
-    assert chorusing_style["practiceFontSize"] == "12px"
     assert chorusing_style["rowOpacity"] == "1"
     assert chorusing_style["trackFill"] in {"rgb(255, 255, 255)", "rgb(255 255 255)"}
     assert chorusing_style["trackStrokeWidth"] == "1px"

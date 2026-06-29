@@ -4,12 +4,13 @@ import {
 } from "./graph-overlay-geometry.js";
 import { PLOT, plotGeometryForSvg, plotWidth } from "./plot.js";
 import {
-  deriveActiveSuffix,
   emptyChorusingState,
   chorusingControlAvailability,
+  markerIndexForExactStart,
   type ChorusingState,
 } from "./chorusing-state";
 import { controlsForRawOrd } from "./dom-selectors.js";
+import { selectionForVisualizer } from "./selection-controller.js";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTimeViewport } from "./visualizer-state.js";
 
@@ -26,7 +27,7 @@ export interface ChorusingControlsState {
   canPrevious: boolean;
   canPractice: boolean;
   markersMs: number[];
-  practiceState: "paused" | "playing" | "stopped";
+  practiceState: "stopped";
   visibleActiveRange: { endX: number; startX: number } | null;
   visibleMarkers: Array<{ ms: number; x: number }>;
 }
@@ -37,11 +38,13 @@ export function chorusingStateForVisualizer(visualizer: VisualizerElement): Chor
 
 export function writeChorusingState(visualizer: VisualizerElement, state: ChorusingState): void {
   visualizer.__aqeChorusingState = state;
-  visualizer.dataset.chorusingState = state.practiceState;
+  visualizer.dataset.chorusingState = "stopped";
   visualizer.dataset.chorusingBaseStartMs = state.baseRegion ? String(Math.round(state.baseRegion.startMs)) : "";
   visualizer.dataset.chorusingBaseEndMs = state.baseRegion ? String(Math.round(state.baseRegion.endMs)) : "";
   visualizer.dataset.chorusingMarkersMs = state.markersMs.join(",");
-  visualizer.dataset.chorusingActiveMarkerIndex = state.activeMarkerIndex === null ? "" : String(state.activeMarkerIndex);
+  const selection = activeMarkerSelection(state, selectionForVisualizer(visualizer));
+  const activeMarkerIndex = selection ? markerIndexForExactStart(state.markersMs, selection.startMs) : null;
+  visualizer.dataset.chorusingActiveMarkerIndex = activeMarkerIndex === null ? "" : String(activeMarkerIndex);
   renderChorusingMarkerRow(visualizer);
 }
 
@@ -82,8 +85,8 @@ function controlsSnapshot(
   state: ChorusingState,
   visualizer: VisualizerElement | null,
 ): ChorusingControlsState {
-  const availability = chorusingControlAvailability(state);
-  const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
+  const selection = activeMarkerSelection(state, selectionForVisualizer(visualizer));
+  const availability = chorusingControlAvailability(state, selection);
   const viewport = visualizer ? readVisualizerTimeViewport(visualizer) : null;
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
   const plot = svg ? plotGeometryForSvg(svg) : PLOT;
@@ -92,25 +95,35 @@ function controlsSnapshot(
       .filter((marker) => marker.visible)
       .map(({ ms, x }) => ({ ms, x }))
     : [];
-  const visibleActiveRange = suffix && viewport
-    ? visibleRangeProjection(suffix, viewport, plot)
+  const visibleActiveRange = selection && viewport
+    ? visibleRangeProjection(selection, viewport, plot)
     : null;
   return {
-    activeMarkerIndex: state.activeMarkerIndex,
-    activeSuffixEndMs: suffix?.endMs ?? null,
-    activeSuffixStartMs: suffix?.startMs ?? null,
+    activeMarkerIndex: selection ? markerIndexForExactStart(state.markersMs, selection.startMs) : null,
+    activeSuffixEndMs: selection?.endMs ?? null,
+    activeSuffixStartMs: selection?.startMs ?? null,
     baseEndMs: state.baseRegion?.endMs ?? null,
     baseStartMs: state.baseRegion?.startMs ?? null,
     canNext: availability.canNext,
     canPrevious: availability.canPrevious,
     canPractice: availability.canPractice,
     markersMs: state.markersMs,
-    practiceState: state.practiceState,
+    practiceState: "stopped",
     visibleActiveRange: visibleActiveRange
       ? { endX: visibleActiveRange.endX, startX: visibleActiveRange.startX }
       : null,
     visibleMarkers,
   };
+}
+
+function activeMarkerSelection(
+  state: ChorusingState,
+  selection: ReturnType<typeof selectionForVisualizer>,
+): ReturnType<typeof selectionForVisualizer> {
+  if (!selection || !state.baseRegion) return selection;
+  const coversBase = Math.round(selection.startMs) <= Math.round(state.baseRegion.startMs)
+    && Math.round(selection.endMs) >= Math.round(state.baseRegion.endMs);
+  return coversBase && !state.fullBaseSelectionActive ? null : selection;
 }
 
 function appendEndBoundaryMarker(

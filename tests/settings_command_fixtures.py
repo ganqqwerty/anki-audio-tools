@@ -52,7 +52,6 @@ def _full_config() -> dict[str, object]:
         "visible_editor_buttons": [
             "aqe:play",
             "aqe:analyze",
-            "aqe:chorusing-practice",
             "aqe:chorusing-previous",
             "aqe:chorusing-next",
             "aqe:show-file",
@@ -72,7 +71,6 @@ def _full_config() -> dict[str, object]:
         "editor_button_modes": {
             "aqe:play": "icon",
             "aqe:analyze": "icon",
-            "aqe:chorusing-practice": "icon",
             "aqe:chorusing-previous": "icon",
             "aqe:chorusing-next": "icon",
             "aqe:record-voice": "icon",

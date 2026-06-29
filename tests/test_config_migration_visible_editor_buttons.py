@@ -14,7 +14,6 @@ def _defaults() -> dict[str, object]:
         "visible_editor_buttons": ["aqe:play", "aqe:settings"],
         "editor_button_modes": {
             "aqe:play": "icon",
-            "aqe:chorusing-practice": "icon",
             "aqe:chorusing-previous": "icon",
             "aqe:chorusing-next": "icon",
             "aqe:record-voice": "icon",

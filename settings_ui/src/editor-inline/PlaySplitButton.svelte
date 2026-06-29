@@ -4,10 +4,9 @@
   import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { buttonTooltipContent } from "../lib/disabled-tooltip.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import PlayAutoAdvanceControls from "./PlayAutoAdvanceControls.svelte";
   import { openEditorExternalLink } from "./external-links.js";
   import { PRODUCT_LINKS } from "../lib/product-links.js";
-  import UnitNumberInput from "../lib/UnitNumberInput.svelte";
-  import ValueSlider from "../lib/ValueSlider.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
@@ -18,6 +17,8 @@
     getSplitButtonState,
     promoteSplitDefaultsForField,
     REPEAT_PAUSE_STATE_CHANGED_EVENT,
+    setChorusingAutoAdvanceForField,
+    setChorusingRepeatCountForField,
     type RepeatPauseStateChangedDetail,
     setRepeatPauseSecondsForField,
   } from "./split-button-state.js";
@@ -26,7 +27,7 @@
   import { EditorButtonMode } from "../lib/types.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
   import { readFieldState } from "./field-state-store.js";
-  const PRESETS = [0, 0.5, 2, 10] as const;
+  import PlayRepeatControls from "./PlayRepeatControls.svelte";
   const { button, displayMode, repeatDefault, target }: {
     button: ButtonSpec;
     displayMode: EditorButtonDisplayMode;
@@ -36,6 +37,8 @@
   let open = $state(false);
   let pressed = $state(false);
   let repeatPauseSeconds = $state(0);
+  let autoAdvance = $state(false);
+  let autoAdvanceRepeats = $state(3);
   let defaultSaved = $state(false);
   let defaultSavedTimer: number | undefined;
   let playSelection = $state(false);
@@ -49,6 +52,8 @@
   const primaryTooltip = $derived(buttonTooltipContent(button.label, title));
   const repeatTooltip = $derived(buttonTooltipContent(t("editor.repeat.label"), t("editor.repeat.title")));
   const playRunTooltip = $derived(buttonTooltipContent(t("editor.play.play_audio"), t("editor.command.play.title")));
+  const autoAdvanceDisabled = $derived(!pressed);
+  const effectiveAutoAdvance = $derived(pressed && autoAdvance);
   function close(): void {
     open = false;
   }
@@ -56,6 +61,8 @@
     pressed = visualizerForOrd(target.ord) ? readFieldState(target.ord).playback.repeat : repeatDefault;
     const state = getSplitButtonState(target.ord);
     repeatPauseSeconds = state.repeatPauseSeconds;
+    autoAdvance = state.chorusingAutoAdvance;
+    autoAdvanceRepeats = state.chorusingRepeatCount;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
   }
   function toggleRepeat(event: MouseEvent): void {
@@ -70,6 +77,16 @@
     const state = setRepeatPauseSecondsForField(target.ord, value);
     repeatPauseSeconds = state.repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
+  }
+  function applyAutoAdvance(value: boolean): void {
+    if (!pressed) return;
+    defaultSaved = false;
+    autoAdvance = setChorusingAutoAdvanceForField(target.ord, value).chorusingAutoAdvance;
+  }
+  function applyAutoAdvanceRepeats(value: number): void {
+    if (!pressed) return;
+    defaultSaved = false;
+    autoAdvanceRepeats = setChorusingRepeatCountForField(target.ord, value).chorusingRepeatCount;
   }
   function dispatchPrimary(): void {
     close();
@@ -86,6 +103,8 @@
   function saveCurrentDefaults(): void {
     const request = {
       defaults: {
+        chorusingAutoAdvanceByDefault: effectiveAutoAdvance,
+        chorusingAutoAdvanceRepeats: autoAdvanceRepeats,
         repeatPauseSeconds,
         repeatPlaybackByDefault: pressed,
       },
@@ -93,7 +112,10 @@
     };
     sendSplitDefaultSaveRequest(request);
     updateEditorRuntimeConfig({ repeatPlaybackByDefault: pressed });
-    repeatPauseSeconds = promoteSplitDefaultsForField(target.ord, request.defaults).repeatPauseSeconds;
+    const promoted = promoteSplitDefaultsForField(target.ord, request.defaults);
+    repeatPauseSeconds = promoted.repeatPauseSeconds;
+    autoAdvance = promoted.chorusingAutoAdvance;
+    autoAdvanceRepeats = promoted.chorusingRepeatCount;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
     showDefaultSaved();
   }
@@ -225,47 +247,19 @@
           </button>
         {/snippet}
       </AqeTooltip>
-      <div class="aqe-split-popover-header">
-        <strong>{t("editor.repeat.pause_seconds")}</strong>
-        <UnitNumberInput
-          inputClass="aqe-split-value-input"
-          testId={`aqe-split-${target.ord}-repeat-value`}
-          min="0"
-          max="10"
-          step="0.1"
-          value={repeatPauseSeconds}
-          unit="s"
-          ariaLabel={t("editor.repeat.pause_seconds")}
-          onValueInput={applyValue}
-        />
-      </div>
-      <ValueSlider
-        testId={`aqe-split-${target.ord}-repeat-slider`}
-        min="0"
-        max="10"
-        step="0.1"
-        value={repeatPauseSeconds}
-        ariaLabel={t("editor.repeat.pause_seconds")}
-        formatValue={formatRepeatPauseSeconds}
+      <PlayRepeatControls
         onValueInput={applyValue}
+        {repeatPauseSeconds}
+        targetOrd={target.ord}
       />
-      <div class="aqe-split-range-labels">
-        <span>0 s</span>
-        <span>10 s</span>
-      </div>
-      <div class="aqe-split-presets">
-        {#each PRESETS as preset}
-          <button
-            type="button"
-            class="aqe-button aqe-split-preset"
-            data-testid={`aqe-split-${target.ord}-repeat-preset-${preset}`}
-            aria-pressed={repeatPauseSeconds === preset ? "true" : "false"}
-            onclick={() => applyValue(preset)}
-          >
-            {formatRepeatPauseSeconds(preset)}
-          </button>
-        {/each}
-      </div>
+      <PlayAutoAdvanceControls
+        autoAdvance={effectiveAutoAdvance}
+        {autoAdvanceRepeats}
+        disabled={autoAdvanceDisabled}
+        onAutoAdvanceChange={applyAutoAdvance}
+        onRepeatsInput={applyAutoAdvanceRepeats}
+        targetOrd={target.ord}
+      />
       <div class="aqe-split-popover-footer">
         <AqeTooltip>
           {#snippet trigger({ props })}

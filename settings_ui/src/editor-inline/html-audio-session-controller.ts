@@ -37,16 +37,24 @@ import { clearRepeatPauseCountdownOverlay, startRepeatPauseCountdownOverlay } fr
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
 import { renderPlaybackCursor } from "./visualizer-renderer.js";
 import type { PlaybackPass } from "./playback-model.js";
+import type { VisualizerElement } from "./types.js";
 
 const sessionStates = new Map<number, HtmlAudioSessionState>();
 const progressFrames = new Map<number, number | null>();
 const progressClocks = new Map<number, HtmlAudioProgressClock>();
 const metadataTimers = new Map<number, number>();
 const repeatTimers = new Map<number, number>();
+let sourceBoundaryHandler: ((visualizer: VisualizerElement, request: HtmlAudioStartRequest) => boolean) | null = null;
 const audioElementOperations = createHtmlAudioElementOperations(
   readHtmlAudioSessionState,
   dispatchHtmlAudioSessionEvent,
 );
+
+export function setHtmlAudioSourceBoundaryHandler(
+  handler: ((visualizer: VisualizerElement, request: HtmlAudioStartRequest) => boolean) | null,
+): void {
+  sourceBoundaryHandler = handler;
+}
 
 export function readHtmlAudioSessionState(ord: number): HtmlAudioSessionState {
   return sessionStates.get(ord) ?? initialHtmlAudioSessionState(ord);
@@ -373,6 +381,13 @@ function startProgressFrame(ord: number, cursorMs: number, endMs: number): void 
         renderPlaybackCursor(currentVisualizer, decision.progressMs, graphDurationMs, nowMs);
       }
       if (decision.kind === "boundary") {
+        if (
+          currentVisualizer
+          && state.source.kind === "source"
+          && sourceBoundaryHandler?.(currentVisualizer, state.request)
+        ) {
+          return;
+        }
         dispatchHtmlAudioSessionEvent(ord, decision.event);
         return;
       }

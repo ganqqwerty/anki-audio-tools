@@ -14,7 +14,6 @@ export { DEFAULT_EDITOR_BUTTON_MODES, DEFAULT_VISIBLE_EDITOR_BUTTONS };
 export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
-  | "aqe:chorusing-practice"
   | "aqe:chorusing-previous"
   | "aqe:chorusing-next"
   | "aqe:record-voice"
@@ -152,14 +151,6 @@ export function commandButtons(config: EditorToolbarRuntimeConfig = {}): readonl
       iconOnly: true,
       label: t("editor.command.volume_up.label"),
       title: t("editor.command.volume_up.title"),
-    },
-    {
-      activeIcon: "pause",
-      command: "aqe:chorusing-practice",
-      icon: "bug-play",
-      iconOnly: true,
-      label: t("editor.command.chorusing_practice.label"),
-      title: t("editor.command.chorusing_practice.title"),
     },
     {
       command: "aqe:chorusing-next",

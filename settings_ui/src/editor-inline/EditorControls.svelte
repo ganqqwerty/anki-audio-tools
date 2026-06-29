@@ -11,7 +11,6 @@
   import EditorToolbarPanel from "./EditorToolbarPanel.svelte";
   import GraphVisualizer from "./GraphVisualizer.svelte";
   import HistorySplitButton from "./HistorySplitButton.svelte";
-  import ChorusingSplitButton from "./ChorusingSplitButton.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import PresetSplitButton from "./PresetSplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
@@ -79,7 +78,6 @@
   function disabledTitle(command: string): string | undefined {
     if (command === "aqe:undo") return t("editor.command.undo.disabled_title");
     if (command === "aqe:redo") return t("editor.command.redo.disabled_title");
-    if (command === "aqe:chorusing-practice") return t("editor.command.chorusing_practice.disabled_title");
     if (command === "aqe:chorusing-previous") return t("editor.command.chorusing_previous.disabled_title");
     if (command === "aqe:chorusing-next") return t("editor.command.chorusing_next.disabled_title");
     return undefined;
@@ -206,21 +204,13 @@
             {/if}
           {:else}
             {#each item.buttons as button (button.command)}
-              {#if item.definition.slug === "chorusing" && button.command === "aqe:chorusing-practice"}
-                <ChorusingSplitButton
-                  {button}
-                  displayMode={buttonDisplayMode(button.command, buttonModes)}
-                  {target}
-                />
-              {:else}
-                <EditorToolbarButton
-                  {button}
-                  displayMode={buttonDisplayMode(button.command, buttonModes)}
-                  disabled={initialButtonDisabled(button.command)}
-                  disabledTitle={disabledTitle(button.command)}
-                  {target}
-                />
-              {/if}
+              <EditorToolbarButton
+                {button}
+                displayMode={buttonDisplayMode(button.command, buttonModes)}
+                disabled={initialButtonDisabled(button.command)}
+                disabledTitle={disabledTitle(button.command)}
+                {target}
+              />
             {/each}
           {/if}
         </EditorToolbarPanel>

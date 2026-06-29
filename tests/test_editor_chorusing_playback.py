@@ -1,4 +1,4 @@
-"""Chorusing playback status tests."""
+"""Marker-guided playback status tests."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from anki_audio_quick_editor.editor_session import (
 )
 
 
-def test_chorusing_html_playback_status_includes_practice_guidance(tmp_path: Path, monkeypatch) -> None:
+def test_marker_guided_html_playback_status_uses_plain_playback_message(tmp_path: Path, monkeypatch) -> None:
     class Editor:
         pass
 
@@ -39,10 +39,7 @@ def test_chorusing_html_playback_status_includes_practice_guidance(tmp_path: Pat
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
-    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700, "source": "chorusing"})
+    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700, "source": "user"})
 
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
-    assert any(
-        "Playing from 0.70s. Practice mode. Use the toolbar buttons for chorusing." in call
-        for call in evals
-    )
+    assert any("Playing from 0.70s" in call for call in evals)

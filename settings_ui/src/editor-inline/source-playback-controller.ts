@@ -21,7 +21,7 @@ interface SourcePlaybackRequest {
   ord: number;
   regionMode: "full" | "selection";
   resetCursorMs: number;
-  source: "user" | "post_edit" | "chorusing";
+  source: "user" | "post_edit";
 }
 
 export function startSourceHtmlPlayback(

@@ -12,10 +12,10 @@ describe("toolbar settings descriptions", () => {
 
     const chorusingPanel = screen.getByTestId("button-settings-chorusing");
     expect(within(chorusingPanel).getByTestId("button-settings-chorusing-description")).toHaveTextContent(
-      "Practice the audio from the end, word by word, until you can repeat the whole sentence.",
+      "Move the selected region between practice markers.",
     );
-    expect(within(chorusingPanel).getByText("Move to the next longer chorusing suffix.")).toBeInTheDocument();
-    expect(within(chorusingPanel).getByText("Move to the next shorter chorusing suffix.")).toBeInTheDocument();
+    expect(within(chorusingPanel).getByText("Move the selection start to the previous marker.")).toBeInTheDocument();
+    expect(within(chorusingPanel).getByText("Move the selection start to the next marker.")).toBeInTheDocument();
 
     const recordingPanel = screen.getByTestId("button-settings-record-play-yours");
     expect(within(recordingPanel).getByTestId("button-settings-record-play-yours-description")).toHaveTextContent(

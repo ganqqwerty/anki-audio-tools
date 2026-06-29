@@ -15,7 +15,7 @@ export interface HtmlAudioStartRequest {
   loop: boolean;
   regionMode: "full" | "selection";
   resetCursorMs?: number;
-  source: "user" | "post_edit" | "chorusing" | "learner_recording";
+  source: "user" | "post_edit" | "learner_recording";
 }
 
 export interface PostEditAutoplayIntent {

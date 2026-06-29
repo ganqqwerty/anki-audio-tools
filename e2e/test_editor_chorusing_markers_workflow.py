@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from e2e.editor_chorusing_helpers import (
     _click_chorusing_marker,
-    _click_chorusing_practice,
 )
 from e2e.editor_region_loop_helpers import (
     _open_tone_editor,
@@ -92,26 +91,39 @@ def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
             })()
             """,
             lambda value: value is not None
-            and value["ariaLabel"] == "Chorusing"
+            and value["ariaLabel"] == "Markers"
             and value["borderRadius"] == "9px"
             and value["borderTopWidth"] == "0px"
             and value["commands"] == [
-                "aqe:chorusing-practice",
                 "aqe:chorusing-next",
                 "aqe:chorusing-previous",
             ]
             and value["container"] == "true"
             and value["display"] in {"flex", "inline-flex"}
-            and value["label"] == "Chorusing"
+            and value["label"] == "Markers"
             and value["role"] == "group",
             timeout=5.0,
         )
 
         inserted = _click_chorusing_marker(editor, 0.625, expected_count=5)
-        _click_chorusing_practice(editor)
-        playing = _state(
+        selected = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const button = document.querySelector('[data-testid="aqe-button-0-chorusing-next"]');
+              if (!button || button.disabled) return null;
+              button.click();
+              return window.__aqeGraphStateForTest?.(0) || null;
+            })()
+            """,
+            lambda state: state is not None
+            and state["chorusingActiveMarkerIndex"] == 4
+            and state["chorusingActiveStartMs"] == 1500,
+            timeout=5.0,
+        )
+        _state(
             editor,
-            lambda state: state["chorusingState"] == "playing"
+            lambda state: state["chorusingState"] == "stopped"
             and state["chorusingActiveStartMs"] == 1500
             and state["chorusingMarkersMs"] == [0, 500, 1000, 1250, 1500],
         )
@@ -119,12 +131,11 @@ def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
         assert initial["chorusingCanPractice"] is True
         assert rail["hidden"] == "false"
         assert toolbar_panel["commands"] == [
-            "aqe:chorusing-practice",
             "aqe:chorusing-next",
             "aqe:chorusing-previous",
         ]
-        assert inserted["chorusingActiveStartMs"] == 1500
-        assert playing["selectionStartMs"] == 1500
+        assert inserted["chorusingActiveStartMs"] is None
+        assert selected["selectionStartMs"] == 1500
     finally:
         editor.set_note(None)
         parent.close()

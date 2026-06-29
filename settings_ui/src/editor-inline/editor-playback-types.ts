@@ -42,7 +42,7 @@ export interface PlaybackRequest {
   loop?: boolean;
   ord: number;
   regionMode?: "selection" | "full";
-  source?: "chorusing" | "post_edit" | "user";
+  source?: "post_edit" | "user";
 }
 
 export interface PostEditPlaybackIntent {
@@ -155,11 +155,13 @@ export interface GraphStateForTest {
   chorusingActiveStartMs: number | null;
   chorusingBaseEndMs: number | null;
   chorusingBaseStartMs: number | null;
+  chorusingAutoAdvance: boolean;
   chorusingCanNext: boolean;
   chorusingCanPrevious: boolean;
   chorusingCanPractice: boolean;
   chorusingMarkerVisibleXs: number[];
   chorusingMarkersMs: number[];
+  chorusingRepeatCount: number;
   chorusingRepeatPassesCompleted: number;
   chorusingState: "paused" | "playing" | "stopped";
   chorusingVisibleActiveRangeEndX: number | null;

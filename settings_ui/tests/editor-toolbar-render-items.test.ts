@@ -17,12 +17,11 @@ describe("editor toolbar render items", () => {
     }))).toEqual([
       {
         commands: [
-          "aqe:chorusing-practice",
           "aqe:chorusing-next",
           "aqe:chorusing-previous",
         ],
-        description: "Practice the audio from the end, word by word, until you can repeat the whole sentence.",
-        label: "Chorusing",
+        description: "Move the selected region between practice markers.",
+        label: "Markers",
         slug: "chorusing",
       },
       {
@@ -61,7 +60,6 @@ describe("editor toolbar render items", () => {
     const items = buildEditorToolbarRenderItems(
       visibleToolbarButtons(toolbarButtons(), [
         "aqe:play",
-        "aqe:chorusing-practice",
         "aqe:chorusing-next",
         "aqe:settings",
       ]),
@@ -71,14 +69,12 @@ describe("editor toolbar render items", () => {
     expect(panels).toEqual([
       expect.objectContaining({
         buttons: expect.arrayContaining([
-          expect.objectContaining({ command: "aqe:chorusing-practice" }),
           expect.objectContaining({ command: "aqe:chorusing-next" }),
         ]),
         definition: expect.objectContaining({ slug: "chorusing" }),
       }),
     ]);
     expect(panels[0]?.buttons.map((button) => button.command)).toEqual([
-      "aqe:chorusing-practice",
       "aqe:chorusing-next",
     ]);
   });
