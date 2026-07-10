@@ -19,6 +19,7 @@ import {
 import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js";
 import { chorusingControlsForVisualizer, chorusingStateForVisualizer } from "./chorusing-dom.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
+import { getSplitButtonState } from "./split-button-state.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
 import { readLearnerRecordingState } from "./recording-state-store.js";
@@ -210,6 +211,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const viewport = readVisualizerTimeViewport(visualizer);
   const chorusing = chorusingControlsForVisualizer(visualizer);
+  const splitState = getSplitButtonState(ord);
   const learnerRecording = readLearnerRecordingState(ord);
   return {
     active: visualizer.dataset.graphActive === "true",
@@ -269,6 +271,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     chorusingActiveEndMs: chorusing.activeSuffixEndMs,
     chorusingActiveMarkerIndex: chorusing.activeMarkerIndex,
     chorusingActiveStartMs: chorusing.activeSuffixStartMs,
+    chorusingAutoAdvance: splitState.chorusingAutoAdvance,
     chorusingBaseEndMs: chorusing.baseEndMs,
     chorusingBaseStartMs: chorusing.baseStartMs,
     chorusingCanNext: chorusing.canNext,
@@ -276,6 +279,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     chorusingCanPractice: chorusing.canPractice,
     chorusingMarkerVisibleXs: chorusing.visibleMarkers.map((marker) => marker.x),
     chorusingMarkersMs: chorusing.markersMs,
+    chorusingRepeatCount: splitState.chorusingRepeatCount,
     chorusingRepeatPassesCompleted: chorusingStateForVisualizer(visualizer).repeatPassesCompleted,
     chorusingState: chorusing.practiceState,
     chorusingVisibleActiveRangeEndX: chorusing.visibleActiveRange?.endX ?? null,

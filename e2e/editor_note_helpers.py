@@ -17,7 +17,6 @@ ADDON_NUMERIC_ID = "1000000002"
 DEFAULT_VISIBLE_EDITOR_BUTTONS = (
     "aqe:play",
     "aqe:analyze",
-    "aqe:chorusing-practice",
     "aqe:chorusing-previous",
     "aqe:chorusing-next",
     "aqe:show-file",
@@ -42,7 +41,6 @@ DEFAULT_VISIBLE_EDITOR_BUTTONS = (
 DEFAULT_EDITOR_BUTTON_MODES = {
     "aqe:play": "text",
     "aqe:analyze": "text",
-    "aqe:chorusing-practice": "text",
     "aqe:chorusing-previous": "text",
     "aqe:chorusing-next": "text",
     "aqe:record-voice": "icon",

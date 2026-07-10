@@ -213,10 +213,8 @@ describe("App settings behavior", () => {
     expect(screen.queryByTestId("button-settings-chorusing-next")).not.toBeInTheDocument();
     expect(within(chorusingPanel).getByTestId("button-settings-chorusing-panel-controls")).toBeInTheDocument();
     expect(within(chorusingPanel).getByRole("checkbox", { name: "Show panel" })).toBeChecked();
-    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-practice-visibility-show")).toBeEnabled();
     expect(within(chorusingPanel).getByTestId("button-settings-chorusing-previous-visibility-show")).toBeEnabled();
     expect(within(chorusingPanel).getByTestId("button-settings-chorusing-next-visibility-show")).toBeEnabled();
-    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-practice-mode-icon")).toBeEnabled();
     expect(within(chorusingPanel).getByTestId("button-settings-chorusing-previous-mode-icon")).toBeEnabled();
     expect(within(chorusingPanel).getByTestId("button-settings-chorusing-next-mode-icon")).toBeEnabled();
 
@@ -224,7 +222,6 @@ describe("App settings behavior", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
-    expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-practice");
     expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-previous");
     expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-next");
   });
@@ -243,7 +240,6 @@ describe("App settings behavior", () => {
       editor_button_modes: Record<string, string>;
       visible_editor_buttons: string[];
     }>("settings.save");
-    expect(config.visible_editor_buttons).toContain("aqe:chorusing-practice");
     expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-previous");
     expect(config.visible_editor_buttons).toContain("aqe:chorusing-next");
     expect(config.editor_button_modes["aqe:chorusing-next"]).toBe("text");

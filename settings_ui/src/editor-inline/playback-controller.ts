@@ -88,11 +88,13 @@ export interface ProgressClockOptions {
   onAudioStarted?: () => void;
 }
 
+export type LoopBoundaryResult = "complete" | "handled" | false;
+
 export interface PlaybackControllerDependencies {
   clearStatus: (ord: number) => void;
   effectivePlaybackRegion: (visualizer: VisualizerElement) => PlaybackRegion;
   focusAndSendCommand: (ord: number, command: string) => void;
-  handleLoopBoundary?: (visualizer: VisualizerElement, pass: PlaybackPass) => boolean;
+  handleLoopBoundary?: (visualizer: VisualizerElement, pass: PlaybackPass) => LoopBoundaryResult;
   playbackEngineFor: (visualizer: VisualizerElement | null) => "html";
   repeatEnabledFor: (visualizer: VisualizerElement) => boolean;
   restoreStatus: (ord: number) => void;
@@ -124,7 +126,12 @@ export function handlePlaybackBoundary(
   });
   if (boundary.kind === "continue") return false;
   if (boundary.kind === "loop") {
-    if (deps.handleLoopBoundary?.(visualizer, boundary.pass) === true) {
+    const loopBoundary = deps.handleLoopBoundary?.(visualizer, boundary.pass) ?? false;
+    if (loopBoundary === "complete") {
+      completePlayback(visualizer, deps);
+      return true;
+    }
+    if (loopBoundary === "handled") {
       return true;
     }
     if (boundary.repeatPauseMs > 0) {

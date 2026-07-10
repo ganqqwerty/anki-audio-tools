@@ -31,7 +31,6 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqeFaster,
   VisibleEditorButton.AqeVolumeDown,
   VisibleEditorButton.AqeVolumeUp,
-  VisibleEditorButton.AqeChorusingPractice,
   VisibleEditorButton.AqeChorusingNext,
   VisibleEditorButton.AqeChorusingPrevious,
   VisibleEditorButton.AqePitchHum,

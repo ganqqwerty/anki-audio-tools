@@ -3,7 +3,6 @@ import type { EditorCommand } from "./editor-toolbar-buttons.js";
 export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:play": "play",
   "aqe:analyze": "graph",
-  "aqe:chorusing-practice": "chorusing-practice",
   "aqe:chorusing-previous": "chorusing-previous",
   "aqe:chorusing-next": "chorusing-next",
   "aqe:record-voice": "record-voice",

@@ -3,9 +3,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildSplitCommandPayload,
   buildSplitDefaultSaveRequest,
-  setChorusingAutoAdvanceForField,
-  setChorusingPauseSecondsForField,
-  setChorusingRepeatCountForField,
   setDenoiseAlgorithmForField,
   setDpdfnetAttnLimitDbForField,
   setOutputFormatForField,
@@ -149,21 +146,6 @@ describe("split button payloads", () => {
     expect(buildSplitDefaultSaveRequest("aqe:share", 0)).toEqual({
       defaults: {
         shareTarget: "catbox",
-      },
-      fieldOrd: 0,
-    });
-  });
-
-  it("builds chorusing default save requests from local field state", () => {
-    setChorusingPauseSecondsForField(0, 1.5);
-    setChorusingAutoAdvanceForField(0, true);
-    setChorusingRepeatCountForField(0, 6);
-
-    expect(buildSplitDefaultSaveRequest("aqe:chorusing-practice", 0)).toEqual({
-      defaults: {
-        chorusingPauseSeconds: 1.5,
-        chorusingAutoAdvanceByDefault: true,
-        chorusingAutoAdvanceRepeats: 6,
       },
       fieldOrd: 0,
     });

@@ -51,7 +51,6 @@ const config = {
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
-    VisibleEditorButton.AqeChorusingPractice,
     VisibleEditorButton.AqeChorusingNext,
     VisibleEditorButton.AqeChorusingPrevious,
     VisibleEditorButton.AqeShowFile,

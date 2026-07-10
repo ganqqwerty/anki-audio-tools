@@ -11,9 +11,10 @@ import { logger } from "./logger.js";
 import {
   dispatchHtmlAudioSessionEvent,
   readHtmlAudioSessionState,
+  setHtmlAudioSourceBoundaryHandler,
 } from "./html-audio-session-controller.js";
 import type { HtmlAudioStartRequest } from "./html-audio-session-machine.js";
-import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
+import { handleSelectedRepeatAutoAdvanceBoundary } from "./selection-auto-advance-controller.js";
 import { completePlayback, playbackStateFor, startProgressClock, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
@@ -74,6 +75,7 @@ export function configureAudioClock(visualizer: VisualizerElement, filename: str
 }
 
 export function installAudioClockHandlers(visualizer: VisualizerElement): void {
+  setHtmlAudioSourceBoundaryHandler(handleHtmlAudioSourceBoundary);
   installAudioClockElementHandlers(visualizer, {
     onLoadedMetadata(durationMs) {
       if (readFieldState(fieldOrd(visualizer)).graph.hasTrack) return;
@@ -105,16 +107,8 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
       const session = readHtmlAudioSessionState(ord);
       if (session.kind !== "empty" && session.kind !== "failed" && session.source.kind === "source") {
         if (
-          session.kind === "starting" &&
-          session.request.source === "chorusing" &&
-          handleChorusingLoopBoundary(visualizer, playbackPassForSessionRequest(session.request))
-        ) {
-          return;
-        }
-        if (
-          session.kind === "playing" &&
-          session.request.source === "chorusing" &&
-          handleChorusingLoopBoundary(visualizer, playbackPassForSessionRequest(session.request))
+          (session.kind === "starting" || session.kind === "playing") &&
+          handleSelectedRepeatAutoAdvanceBoundary(visualizer, playbackPassForSessionRequest(session.request))
         ) {
           return;
         }
@@ -134,6 +128,16 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
       handleLegacyAudioPlaybackEnded(visualizer, durationMs);
     },
   });
+}
+
+function handleHtmlAudioSourceBoundary(
+  visualizer: VisualizerElement,
+  request: HtmlAudioStartRequest,
+): boolean {
+  return handleSelectedRepeatAutoAdvanceBoundary(
+    visualizer,
+    playbackPassForSessionRequest(request),
+  ) !== false;
 }
 
 function fieldPlaybackEngineIsHtml(ord: number): boolean {

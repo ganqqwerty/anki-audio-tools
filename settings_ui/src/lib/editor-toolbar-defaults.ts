@@ -13,7 +13,6 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:faster",
   "aqe:volume-down",
   "aqe:volume-up",
-  "aqe:chorusing-practice",
   "aqe:chorusing-next",
   "aqe:chorusing-previous",
   "aqe:pitch-hum",
@@ -29,7 +28,6 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:play": EditorButtonMode.Icon,
   "aqe:analyze": EditorButtonMode.Icon,
-  "aqe:chorusing-practice": EditorButtonMode.Icon,
   "aqe:chorusing-previous": EditorButtonMode.Icon,
   "aqe:chorusing-next": EditorButtonMode.Icon,
   "aqe:record-voice": EditorButtonMode.Icon,

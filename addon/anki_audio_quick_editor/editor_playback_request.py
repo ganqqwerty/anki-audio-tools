@@ -29,7 +29,7 @@ def playback_request_values(
     cursor_ms = clamp_cursor_ms(request.get("cursorMs"), end_ms if end_ms is not None else duration_ms)
     region_mode = "selection" if request.get("regionMode") == "selection" else "full"
     raw_source = str(request.get("source") or "")
-    source = raw_source if raw_source in {"chorusing", "post_edit"} else "user"
+    source = raw_source if raw_source == "post_edit" else "user"
     return action, engine, cursor_ms, end_ms, region_mode, source
 
 
@@ -64,13 +64,10 @@ def apply_html_playback_request(
     if session.playback.preserve_status:
         return
     if cursor_ms > 0 and action == "start":
-        deps.eval_status(editor, playback_started_from_message(cursor_ms, source))
+        deps.eval_status(editor, playback_started_from_message(cursor_ms))
     else:
         deps.eval_status(editor, t("editor.playback.playing"))
 
 
-def playback_started_from_message(cursor_ms: int, source: str) -> str:
-    message = t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"})
-    if source == "chorusing":
-        return f"{message}. {t('editor.playback.chorusing_guidance')}"
-    return message
+def playback_started_from_message(cursor_ms: int) -> str:
+    return t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"})

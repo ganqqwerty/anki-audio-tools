@@ -149,26 +149,23 @@ describe("editor inline toolbar controls", () => {
     scan({ audioFieldIndices: [0] });
 
     const panel = document.querySelector<HTMLElement>('[data-testid="aqe-chorusing-toolbar-panel-0"]')!;
-    const practiceButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-practice"]')!;
     const previousButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-previous"]')!;
     const nextButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-next"]')!;
 
     expect(panel).toHaveClass("aqe-toolbar-panel", "aqe-chorusing-toolbar-panel");
     expect(panel).toHaveAttribute("role", "group");
-    expect(panel).toHaveAttribute("aria-label", "Chorusing");
+    expect(panel).toHaveAttribute("aria-label", "Markers");
     expect(panel).toHaveAttribute("data-aqe-toolbar-button-container", "true");
     const panelLabel = panel.querySelector<HTMLElement>(".aqe-toolbar-panel-label");
-    expect(panelLabel).toHaveTextContent("Chorusing");
+    expect(panelLabel).toHaveTextContent("Markers");
     expect(panelLabel).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Practice the audio from the end, word by word, until you can repeat the whole sentence.",
+      "Move the selected region between practice markers.",
     );
     expect(Array.from(panel.querySelectorAll<HTMLButtonElement>("[data-aqe-command]")).map((button) => button.dataset.aqeCommand)).toEqual([
-      "aqe:chorusing-practice",
       "aqe:chorusing-next",
       "aqe:chorusing-previous",
     ]);
-    expect(panel).toContainElement(practiceButton);
     expect(panel).toContainElement(previousButton);
     expect(panel).toContainElement(nextButton);
     expect(previousButton).toBeDisabled();

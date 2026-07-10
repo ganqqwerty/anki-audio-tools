@@ -1,5 +1,5 @@
 import { popPendingPlaybackRequest } from "./bridge.js";
-import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
+import { handleSelectedRepeatAutoAdvanceBoundary } from "./selection-auto-advance-controller.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import {
   logPlaybackReadinessDecision,
@@ -39,7 +39,7 @@ function fieldState(visualizer: VisualizerElement): EditorFieldState {
 }
 
 function playbackActionDependencies() {
-  return playbackControllerDependencies({ handleLoopBoundary: handleChorusingLoopBoundary });
+  return playbackControllerDependencies({ handleLoopBoundary: handleSelectedRepeatAutoAdvanceBoundary });
 }
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {

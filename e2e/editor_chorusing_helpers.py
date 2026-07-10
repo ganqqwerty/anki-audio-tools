@@ -34,19 +34,3 @@ def _click_chorusing_marker(editor, ratio: float, *, expected_count: int):
         lambda state: state is not None and len(state["chorusingMarkersMs"]) == expected_count,
         timeout=5.0,
     )
-
-
-def _click_chorusing_practice(editor) -> None:
-    wait_for_js_condition(
-        editor.web,
-        """
-        (() => {
-          const button = document.querySelector('[data-testid="aqe-button-0-chorusing-practice"]');
-          if (!button || button.disabled) return null;
-          button.click();
-          return window.__aqeGraphStateForTest?.(0) || null;
-        })()
-        """,
-        lambda state: state is not None and state["chorusingState"] == "playing",
-        timeout=5.0,
-    )

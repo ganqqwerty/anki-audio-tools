@@ -325,8 +325,7 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
     return;
   }
   if (
-    command === "aqe:chorusing-practice"
-    || command === "aqe:chorusing-next"
+    command === "aqe:chorusing-next"
     || command === "aqe:chorusing-previous"
   ) {
     updateChorusingButtonDisabledState(button, ord, command, busy);
@@ -338,7 +337,7 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
 function updateChorusingButtonDisabledState(
   button: HTMLButtonElement,
   ord: number,
-  command: "aqe:chorusing-practice" | "aqe:chorusing-next" | "aqe:chorusing-previous",
+  command: "aqe:chorusing-next" | "aqe:chorusing-previous",
   busy: boolean,
 ): void {
   const visualizer = visualizerForOrd(ord);
@@ -347,15 +346,11 @@ function updateChorusingButtonDisabledState(
     return;
   }
   const controls = chorusingControlsForVisualizer(visualizer);
-  if (command === "aqe:chorusing-next") {
-    button.disabled = busy || !controls.canNext;
-    return;
-  }
-  if (command === "aqe:chorusing-previous") {
-    button.disabled = busy || !controls.canPrevious;
-    return;
-  }
   const hasPlayableTrack = readFieldState(ord).graph.hasTrack && readVisualizerTargetDurationMs(visualizer) > 0;
-  const canInitialize = controls.baseStartMs === null && hasPlayableTrack;
-  button.disabled = busy || !(controls.canPractice || canInitialize);
+  if (command === "aqe:chorusing-next") {
+    const canInitializeSuffix = controls.activeSuffixStartMs === null && controls.markersMs.length > 0 && hasPlayableTrack;
+    button.disabled = busy || !(controls.canNext || canInitializeSuffix);
+    return;
+  }
+  button.disabled = busy || !controls.canPrevious;
 }

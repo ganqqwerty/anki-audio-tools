@@ -33,12 +33,11 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
     expect(commandSlugsForTest()["aqe:preset"]).toBe("preset");
     expect(commandSlugsForTest()["aqe:convert"]).toBe("convert");
-    expect(commandSlugsForTest()["aqe:chorusing-practice"]).toBe("chorusing-practice");
     expect(commandSlugsForTest()["aqe:chorusing-previous"]).toBe("chorusing-previous");
     expect(commandSlugsForTest()["aqe:chorusing-next"]).toBe("chorusing-next");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
-    expect(commandButtons().find((button) => button.command === "aqe:chorusing-practice")?.icon).toBe("bug-play");
+    expect(commandButtons().find((button) => button.command === "aqe:chorusing-next")?.icon).toBe("skip-back");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:dpdfnet")).toBe("Denoising with DPDFNet...");

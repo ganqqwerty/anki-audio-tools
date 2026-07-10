@@ -21,15 +21,14 @@ export const TOOLBAR_PANEL_DEFINITIONS = [
   {
     atomicVisibility: false,
     commands: [
-      "aqe:chorusing-practice",
       "aqe:chorusing-next",
       "aqe:chorusing-previous",
     ],
     descriptionKey: "editor.chorusing.panel_description",
     labelKey: "editor.chorusing.title",
-    primaryCommand: "aqe:chorusing-practice",
+    primaryCommand: "aqe:chorusing-next",
     slug: "chorusing",
-    titleKey: "editor.command.chorusing_practice.title",
+    titleKey: "editor.command.chorusing_next.title",
   },
   {
     atomicVisibility: true,

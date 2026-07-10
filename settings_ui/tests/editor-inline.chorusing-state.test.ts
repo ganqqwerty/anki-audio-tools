@@ -11,7 +11,6 @@ import {
   markerNavigationAvailability,
   moveActiveMarkerIndex,
   normalizeChorusingMarkers,
-  resolveChorusingLoopBoundary,
   toggleChorusingMarker,
 } from "../src/editor-inline/chorusing-state";
 
@@ -120,7 +119,7 @@ describe("editor inline chorusing state", () => {
     expect(activeMarkerIndexAfterMarkerToggle([500], [], 0)).toBeNull();
   });
 
-  it("reports whole-file practice and navigation availability", () => {
+  it("reports whole-file marker and navigation availability", () => {
     const stopped = emptyChorusingState();
     expect(chorusingControlAvailability(stopped)).toEqual({
       canNext: false,
@@ -130,11 +129,14 @@ describe("editor inline chorusing state", () => {
 
     const ready = {
       ...stopped,
-      activeMarkerIndex: 2,
       baseRegion,
       markersMs: [1200, 1500, 1900],
     };
-    expect(chorusingControlAvailability(ready)).toEqual({
+    expect(chorusingControlAvailability(ready, {
+      endMs: 2200,
+      mode: "selection",
+      startMs: 1900,
+    })).toEqual({
       canNext: true,
       canPrevious: false,
       canPractice: true,
@@ -142,66 +144,6 @@ describe("editor inline chorusing state", () => {
     expect(markerNavigationAvailability([1200, 1500, 1900], 0)).toEqual({
       canNext: false,
       canPrevious: true,
-    });
-  });
-
-  it("counts repeat passes until the auto-advance threshold", () => {
-    const state = {
-      ...emptyChorusingState(),
-      activeMarkerIndex: 2,
-      baseRegion,
-      markersMs: [1200, 1500, 1900],
-      practiceState: "playing" as const,
-    };
-
-    expect(resolveChorusingLoopBoundary(state, { autoAdvance: true, repeatCount: 2 })).toEqual({
-      action: "repeat",
-      consumed: false,
-      nextState: {
-        ...state,
-        repeatPassesCompleted: 1,
-      },
-    });
-  });
-
-  it("advances to the next suffix after the threshold is reached", () => {
-    const state = {
-      ...emptyChorusingState(),
-      activeMarkerIndex: 2,
-      baseRegion,
-      markersMs: [1200, 1500, 1900],
-      practiceState: "playing" as const,
-      repeatPassesCompleted: 1,
-    };
-
-    expect(resolveChorusingLoopBoundary(state, { autoAdvance: true, repeatCount: 2 })).toEqual({
-      action: "advance",
-      consumed: true,
-      nextState: {
-        ...state,
-        activeMarkerIndex: 1,
-        repeatPassesCompleted: 0,
-      },
-    });
-  });
-
-  it("pauses instead of advancing when already at the longest suffix", () => {
-    const state = {
-      ...emptyChorusingState(),
-      activeMarkerIndex: 0,
-      baseRegion,
-      markersMs: [1200, 1500, 1900],
-      practiceState: "playing" as const,
-      repeatPassesCompleted: 1,
-    };
-
-    expect(resolveChorusingLoopBoundary(state, { autoAdvance: true, repeatCount: 2 })).toEqual({
-      action: "pause",
-      consumed: true,
-      nextState: {
-        ...state,
-        repeatPassesCompleted: 2,
-      },
     });
   });
 });

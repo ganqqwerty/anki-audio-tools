@@ -1,6 +1,5 @@
 import type { PlaybackRegion } from "./playback-model.js";
 
-export type ChorusingStatus = "paused" | "playing" | "stopped";
 export type ChorusingMarkerDirection = "next" | "previous";
 
 export const DEFAULT_CHORUSING_MARKER_INTERVAL_MS = 500;
@@ -8,11 +7,9 @@ export const CHORUSING_MARKER_INTERVAL_MIN_MS = 50;
 export const CHORUSING_MARKER_INTERVAL_MAX_MS = 10000;
 
 export interface ChorusingState {
-  activeMarkerIndex: number | null;
   baseRegion: PlaybackRegion | null;
+  fullBaseSelectionActive: boolean;
   markersMs: number[];
-  ordinaryRepeatEnabled: boolean | null;
-  practiceState: ChorusingStatus;
   repeatPassesCompleted: number;
   sourceFilename: string;
 }
@@ -33,24 +30,11 @@ export interface ToggleChorusingMarkerResult {
   removed: boolean;
 }
 
-export interface ChorusingLoopBoundaryConfig {
-  autoAdvance: boolean;
-  repeatCount: number;
-}
-
-export interface ChorusingLoopBoundaryDecision {
-  action: "advance" | "ignore" | "pause" | "repeat";
-  consumed: boolean;
-  nextState: ChorusingState;
-}
-
 export function emptyChorusingState(): ChorusingState {
   return {
-    activeMarkerIndex: null,
     baseRegion: null,
+    fullBaseSelectionActive: false,
     markersMs: [],
-    ordinaryRepeatEnabled: null,
-    practiceState: "stopped",
     repeatPassesCompleted: 0,
     sourceFilename: "",
   };
@@ -149,40 +133,70 @@ export function deriveActiveSuffix(
   baseRegion: PlaybackRegion | null,
   markersMs: readonly number[],
   activeMarkerIndex: number | null,
+  activeStartMs: number | null = null,
+  activeEndMs: number | null = null,
 ): PlaybackRegion | null {
-  if (!baseRegion || activeMarkerIndex === null) return null;
-  const marker = markersMs[activeMarkerIndex];
-  if (typeof marker !== "number" || !Number.isFinite(marker)) return null;
-  const startMs = Math.max(baseRegion.startMs, Math.min(Math.round(marker), baseRegion.endMs));
-  if (startMs >= baseRegion.endMs) return null;
+  if (!baseRegion) return null;
+  const endMs = activeChorusingEndMs(baseRegion, activeEndMs);
+  if (endMs === null) return null;
+  const startMs = activeChorusingStartMs(
+    baseRegion,
+    markersMs,
+    activeMarkerIndex,
+    activeStartMs,
+    endMs,
+  );
+  if (startMs === null || startMs >= endMs) return null;
   return {
-    endMs: baseRegion.endMs,
+    endMs,
     mode: "selection",
     startMs,
   };
 }
 
+export function markerIndexForExactStart(markersMs: readonly number[], startMs: number): number | null {
+  const rounded = Math.round(startMs);
+  const index = markersMs.findIndex((marker) => Math.round(marker) === rounded);
+  return index >= 0 ? index : null;
+}
+
 export function markerNavigationAvailability(
   markersMs: readonly number[],
   activeMarkerIndex: number | null,
+  activeStartMs: number | null = null,
+  activeEndMs: number | null = null,
 ): ChorusingNavigationAvailability {
-  if (!markersMs.length || activeMarkerIndex === null) {
+  if (!markersMs.length) {
     return {
       canNext: false,
       canPrevious: false,
     };
   }
-  const active = normalizeActiveMarkerIndex(markersMs, activeMarkerIndex);
+  const currentStart = currentChorusingStartForNavigation(markersMs, activeMarkerIndex, activeStartMs);
+  if (currentStart === null) {
+    return {
+      canNext: false,
+      canPrevious: false,
+    };
+  }
   return {
-    canNext: active > 0,
-    canPrevious: active < markersMs.length - 1,
+    canNext: markerIndexInDirection(markersMs, currentStart, activeEndMs, "next") !== null,
+    canPrevious: markerIndexInDirection(markersMs, currentStart, activeEndMs, "previous") !== null,
   };
 }
 
-export function chorusingControlAvailability(state: ChorusingState): ChorusingControlAvailability {
+export function chorusingControlAvailability(
+  state: ChorusingState,
+  selection: PlaybackRegion | null = null,
+): ChorusingControlAvailability {
   const hasBaseRegion = state.baseRegion !== null;
   const hasMarkers = state.markersMs.length > 0;
-  const navigation = markerNavigationAvailability(state.markersMs, state.activeMarkerIndex);
+  const navigation = markerNavigationAvailability(
+    state.markersMs,
+    markerIndexForExactStart(state.markersMs, selection?.startMs ?? Number.NaN),
+    selection?.startMs ?? null,
+    selection?.endMs ?? null,
+  );
   return {
     canNext: navigation.canNext,
     canPrevious: navigation.canPrevious,
@@ -190,51 +204,16 @@ export function chorusingControlAvailability(state: ChorusingState): ChorusingCo
   };
 }
 
-export function resolveChorusingLoopBoundary(
-  state: ChorusingState,
-  config: ChorusingLoopBoundaryConfig,
-): ChorusingLoopBoundaryDecision {
-  if (state.practiceState !== "playing" || state.activeMarkerIndex === null || !config.autoAdvance) {
-    return {
-      action: "ignore",
-      consumed: false,
-      nextState: state,
-    };
-  }
-
-  const completed = state.repeatPassesCompleted + 1;
-  if (completed < config.repeatCount) {
-    return {
-      action: "repeat",
-      consumed: false,
-      nextState: {
-        ...state,
-        repeatPassesCompleted: completed,
-      },
-    };
-  }
-
-  const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, "next");
-  if (nextIndex === state.activeMarkerIndex) {
-    return {
-      action: "pause",
-      consumed: true,
-      nextState: {
-        ...state,
-        repeatPassesCompleted: completed,
-      },
-    };
-  }
-
-  return {
-    action: "advance",
-    consumed: true,
-    nextState: {
-      ...state,
-      activeMarkerIndex: nextIndex,
-      repeatPassesCompleted: 0,
-    },
-  };
+export function moveActiveMarkerIndexForSuffix(
+  markersMs: readonly number[],
+  activeMarkerIndex: number | null,
+  direction: ChorusingMarkerDirection,
+  activeStartMs: number | null = null,
+  activeEndMs: number | null = null,
+): number | null {
+  const currentStart = currentChorusingStartForNavigation(markersMs, activeMarkerIndex, activeStartMs);
+  if (currentStart === null) return moveActiveMarkerIndex(markersMs, activeMarkerIndex, direction);
+  return markerIndexInDirection(markersMs, currentStart, activeEndMs, direction);
 }
 
 function normalizeActiveMarkerIndex(markersMs: readonly number[], activeMarkerIndex: number | null): number {
@@ -246,4 +225,64 @@ function normalizeActiveMarkerIndex(markersMs: readonly number[], activeMarkerIn
 function clampMarkerMs(markerMs: number, baseRegion: PlaybackRegion): number {
   const finite = Number.isFinite(markerMs) ? markerMs : baseRegion.startMs;
   return Math.max(baseRegion.startMs, Math.min(finite, baseRegion.endMs));
+}
+
+function activeChorusingEndMs(baseRegion: PlaybackRegion, activeEndMs: number | null): number | null {
+  const rawEnd = activeEndMs ?? baseRegion.endMs;
+  if (!Number.isFinite(rawEnd)) return null;
+  return Math.max(baseRegion.startMs, Math.min(Math.round(rawEnd), baseRegion.endMs));
+}
+
+function activeChorusingStartMs(
+  baseRegion: PlaybackRegion,
+  markersMs: readonly number[],
+  activeMarkerIndex: number | null,
+  activeStartMs: number | null,
+  endMs: number,
+): number | null {
+  if (activeStartMs !== null && Number.isFinite(activeStartMs)) {
+    return Math.max(baseRegion.startMs, Math.min(Math.round(activeStartMs), endMs));
+  }
+  if (activeMarkerIndex === null) return null;
+  const marker = markersMs[activeMarkerIndex];
+  if (typeof marker !== "number" || !Number.isFinite(marker)) return null;
+  return Math.max(baseRegion.startMs, Math.min(Math.round(marker), endMs));
+}
+
+function currentChorusingStartForNavigation(
+  markersMs: readonly number[],
+  activeMarkerIndex: number | null,
+  activeStartMs: number | null,
+): number | null {
+  if (activeStartMs !== null && Number.isFinite(activeStartMs)) return Math.round(activeStartMs);
+  if (!markersMs.length || activeMarkerIndex === null) return null;
+  const active = normalizeActiveMarkerIndex(markersMs, activeMarkerIndex);
+  const marker = markersMs[active];
+  return typeof marker === "number" && Number.isFinite(marker) ? Math.round(marker) : null;
+}
+
+function markerIndexInDirection(
+  markersMs: readonly number[],
+  currentStartMs: number,
+  activeEndMs: number | null,
+  direction: ChorusingMarkerDirection,
+): number | null {
+  const roundedStart = Math.round(currentStartMs);
+  const roundedEnd = activeEndMs !== null && Number.isFinite(activeEndMs)
+    ? Math.round(activeEndMs)
+    : null;
+  if (direction === "next") {
+    for (let index = markersMs.length - 1; index >= 0; index -= 1) {
+      const marker = markersMs[index];
+      if (typeof marker === "number" && Math.round(marker) < roundedStart) return index;
+    }
+    return null;
+  }
+  for (let index = 0; index < markersMs.length; index += 1) {
+    const rawMarker = markersMs[index];
+    if (typeof rawMarker !== "number") continue;
+    const marker = Math.round(rawMarker);
+    if (marker > roundedStart && (roundedEnd === null || marker < roundedEnd)) return index;
+  }
+  return null;
 }

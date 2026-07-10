@@ -14,26 +14,6 @@ export function syncChorusingToolbarButtons(visualizer: VisualizerElement): void
   const fieldState = readFieldState(ord);
   const hasPlayableTrack = fieldState.graph.hasTrack && readVisualizerTargetDurationMs(visualizer) > 0;
   const busy = isEditorBusy() || fieldState.graph.busy;
-  const practiceButton = buttonFor(ord, "aqe:chorusing-practice");
-  if (practiceButton) {
-    const playing = controls.practiceState === "playing";
-    const canInitialize = controls.baseStartMs === null && hasPlayableTrack;
-    practiceButton.disabled = busy || !(controls.canPractice || canInitialize);
-    practiceButton.dataset.aqeButtonState = playing ? "pause" : "default";
-    practiceButton.setAttribute("aria-pressed", playing ? "true" : "false");
-    practiceButton.setAttribute("aria-disabled", practiceButton.disabled ? "true" : "false");
-    const title = playing
-      ? t("editor.command.chorusing_practice.pause_title")
-      : t("editor.command.chorusing_practice.title");
-    const tooltip = tooltipWithDisabledClarification(
-      title,
-      practiceButton.disabled
-        ? (busy ? t("tooltip.disabled.editor_busy") : t("editor.command.chorusing_practice.disabled_title"))
-        : undefined,
-    );
-    practiceButton.setAttribute("aria-label", tooltip);
-    setButtonTooltipContent(practiceButton, tooltip);
-  }
   syncChorusingNavButton(
     buttonFor(ord, "aqe:chorusing-previous"),
     controls.canPrevious,
@@ -41,9 +21,10 @@ export function syncChorusingToolbarButtons(visualizer: VisualizerElement): void
     t("editor.command.chorusing_previous.title"),
     t("editor.command.chorusing_previous.disabled_title"),
   );
+  const canInitializeSuffix = controls.activeSuffixStartMs === null && controls.markersMs.length > 0 && hasPlayableTrack;
   syncChorusingNavButton(
     buttonFor(ord, "aqe:chorusing-next"),
-    controls.canNext,
+    controls.canNext || canInitializeSuffix,
     busy,
     t("editor.command.chorusing_next.title"),
     t("editor.command.chorusing_next.disabled_title"),

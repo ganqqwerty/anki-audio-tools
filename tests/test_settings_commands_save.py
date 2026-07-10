@@ -90,7 +90,6 @@ def test_settings_save_drops_stale_visible_editor_buttons() -> None:
     saved_config = mw.addonManager.writeConfig.call_args.args[1]
     assert saved_config["visible_editor_buttons"] == [
         "aqe:play",
-        "aqe:chorusing-practice",
         "aqe:chorusing-previous",
         "aqe:chorusing-next",
         "aqe:settings",
