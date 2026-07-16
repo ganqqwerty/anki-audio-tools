@@ -15,6 +15,7 @@ from tests.release_archive_fixtures import (
     complete_embedded_manifest_names,
     complete_executable_names,
     complete_manifest_names,
+    expected_runtime_names_from_raw_lock,
     external_ffmpeg_executable_names,
     external_ffmpeg_manifest_names,
     lock_with_binary_hashes,
@@ -109,9 +110,7 @@ def test_release_archive_includes_all_locked_runtime_assets(tmp_path: Path, monk
     expected = {
         "release_info.json",
         "bin/runtime_manifest.json",
-        *release.release_runtime_shared_files(lock),
-        *release.release_runtime_executables(lock),
-        *release.release_runtime_support_files(lock),
+        *expected_runtime_names_from_raw_lock(lock),
     }
     assert expected <= names
 
@@ -139,11 +138,7 @@ def test_release_archive_includes_latest_commit_info(tmp_path: Path, monkeypatch
 
 def test_release_validation_requires_every_locked_runtime_asset(tmp_path, capsys) -> None:
     lock = lock_with_binary_hashes()
-    required_runtime_names = [
-        *release.release_runtime_shared_files(lock),
-        *release.release_runtime_executables(lock),
-        *release.release_runtime_support_files(lock),
-    ]
+    required_runtime_names = sorted(expected_runtime_names_from_raw_lock(lock))
 
     for missing_name in required_runtime_names:
         archive = tmp_path / f"{missing_name.replace('/', '_')}.ankiaddon"

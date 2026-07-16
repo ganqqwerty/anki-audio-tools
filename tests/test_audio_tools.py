@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 
 import pytest
@@ -40,12 +39,6 @@ def test_find_ffmpeg_uses_default_path_lookup_when_unconfigured(monkeypatch) -> 
 
     assert find_ffmpeg() == Path("/usr/local/bin/ffmpeg")
     assert calls == ["ffmpeg"]
-
-
-def test_find_ffmpeg_default_override_stays_empty_string() -> None:
-    audio_processor_module = importlib.import_module("anki_audio_quick_editor.audio_processor")
-
-    assert audio_processor_module.find_ffmpeg.__defaults__ == ("",)
 
 
 def test_find_ffmpeg_raises_exact_message_when_missing_and_unconfigured(monkeypatch) -> None:
@@ -384,10 +377,14 @@ def test_bundle_finders_reentrant(
     def fake_path_2(tool_name: str) -> Path | None:
         return bundled_2 if tool_name == "rnnoise-cli" else None
 
-    result_1 = audio_tools.find_rnnoise_bundle(expected_bundled_tool_path=fake_path_1)
+    result_1 = audio_tools.find_rnnoise_bundle(
+        get_expected_bundled_tool_path=fake_path_1
+    )
     assert result_1 == bundled_1, f"Expected {bundled_1}, got {result_1}"
 
-    result_2 = audio_tools.find_rnnoise_bundle(expected_bundled_tool_path=fake_path_2)
+    result_2 = audio_tools.find_rnnoise_bundle(
+        get_expected_bundled_tool_path=fake_path_2
+    )
     assert result_2 == bundled_2, f"Expected {bundled_2}, got {result_2}"
 
     assert audio_tools.expected_bundled_tool_path is original_func, (

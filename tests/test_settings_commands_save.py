@@ -15,14 +15,6 @@ from tests.settings_command_fixtures import (
 )
 
 
-class _ImmediateThread:
-    def __init__(self, target, daemon=True):
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
-
-
 def test_settings_save_writes_config_and_accepts() -> None:
     from aqt import mw
 

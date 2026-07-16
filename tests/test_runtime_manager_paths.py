@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from anki_audio_quick_editor import runtime_manager
-from tests.test_runtime_manager import _write_manifest, _write_runtime_pack
+from tests.runtime_manager_fixtures import _write_manifest, _write_runtime_pack
 
 
 def test_managed_silero_vad_model_path_uses_installed_runtime(
@@ -29,4 +29,3 @@ def test_managed_silero_vad_model_path_uses_installed_runtime(
     assert runtime_manager.managed_silero_vad_model_path(addon_dir) == (
         root / "models" / "silero-vad" / "silero_vad.onnx"
     )
-

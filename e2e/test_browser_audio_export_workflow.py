@@ -3,6 +3,9 @@
 import zipfile
 from pathlib import Path
 
+import pytest
+from tests.media_oracles import decode_mono_f32, probe_audio, window_rms
+
 from e2e.browser_workflow_helpers import (
     add_basic_audio_note,
     click_batch_start,
@@ -21,11 +24,17 @@ from e2e.helpers import (
 )
 
 
+def _oracle_tools(ffmpeg_config) -> tuple[Path, Path]:
+    ffmpeg = Path(ffmpeg_config.ffmpeg_path)
+    ffprobe = ffmpeg.with_name("ffprobe")
+    assert ffprobe.is_file()
+    return ffmpeg, ffprobe
+
+
 def test_browser_audio_export_zip_leaves_note_fields_unchanged(
     anki_mw,
     ffmpeg_config,
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     sources = (
@@ -42,7 +51,6 @@ def test_browser_audio_export_zip_leaves_note_fields_unchanged(
         anki_mw,
         note,
         output,
-        monkeypatch=monkeypatch,
         mode="zip",
     )
 
@@ -53,17 +61,23 @@ def test_browser_audio_export_zip_leaves_note_fields_unchanged(
     )
     assert front_field(anki_mw, int(note.id)) == original_html
     with zipfile.ZipFile(output) as archive:
-        assert archive.namelist() == [
+        names = [
             f"0001__note-{int(note.id)}__Front__001__{sources[0].name}",
             f"0002__note-{int(note.id)}__Front__002__{sources[1].name}",
         ]
+        assert archive.namelist() == names
+        extracted = [Path(archive.extract(name, tmp_path / "decoded-zip")) for name in names]
+    _ffmpeg, ffprobe = _oracle_tools(ffmpeg_config)
+    for media_path in extracted:
+        probe = probe_audio(ffprobe, media_path)
+        assert probe.codec == "mp3"
+        assert probe.duration_s == pytest.approx(0.4, abs=0.08)
 
 
 def test_browser_audio_export_combined_mp3_leaves_note_fields_unchanged(
     anki_mw,
     ffmpeg_config,
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     sources = (
@@ -80,7 +94,6 @@ def test_browser_audio_export_combined_mp3_leaves_note_fields_unchanged(
         anki_mw,
         note,
         output,
-        monkeypatch=monkeypatch,
         mode="combined_mp3",
         silence_seconds=0.2,
     )
@@ -91,13 +104,21 @@ def test_browser_audio_export_combined_mp3_leaves_note_fields_unchanged(
         message=f"mp3 export was not written; log={dialog._log_lines!r}",
     )
     assert front_field(anki_mw, int(note.id)) == original_html
+    ffmpeg, ffprobe = _oracle_tools(ffmpeg_config)
+    probe = probe_audio(ffprobe, output)
+    assert probe.codec == "mp3"
+    assert probe.duration_s == pytest.approx(1.0, abs=0.12)
+    samples = decode_mono_f32(ffmpeg, output)
+    first_tone = window_rms(samples, start_s=0.08, end_s=0.32)
+    silence = window_rms(samples, start_s=0.44, end_s=0.56)
+    second_tone = window_rms(samples, start_s=0.68, end_s=0.92)
+    assert silence < min(first_tone, second_tone) * 0.08
 
 
 def test_browser_audio_export_normalized_zip_writes_mp3_entries_and_leaves_note_fields_unchanged(
     anki_mw,
     ffmpeg_config,
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "browser_export_normalized_zip_source.wav"
@@ -110,7 +131,6 @@ def test_browser_audio_export_normalized_zip_writes_mp3_entries_and_leaves_note_
         anki_mw,
         note,
         output,
-        monkeypatch=monkeypatch,
         mode="zip",
         normalize_volume=True,
     )
@@ -125,14 +145,18 @@ def test_browser_audio_export_normalized_zip_writes_mp3_entries_and_leaves_note_
         assert archive.namelist() == [
             f"0001__note-{int(note.id)}__Front__001__browser_export_normalized_zip_source.mp3",
         ]
-        assert len(archive.read(archive.namelist()[0])) > 0
+        extracted = Path(archive.extract(archive.namelist()[0], tmp_path / "decoded-normalized"))
+    ffmpeg, ffprobe = _oracle_tools(ffmpeg_config)
+    probe = probe_audio(ffprobe, extracted)
+    assert probe.codec == "mp3"
+    assert probe.duration_s == pytest.approx(0.4, abs=0.08)
+    assert window_rms(decode_mono_f32(ffmpeg, extracted), start_s=0.05, end_s=0.35) > 0.01
 
 
 def test_browser_audio_export_normalized_combined_mp3_leaves_note_fields_unchanged(
     anki_mw,
     ffmpeg_config,
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "browser_export_normalized_mp3_source.mp3"
@@ -145,7 +169,6 @@ def test_browser_audio_export_normalized_combined_mp3_leaves_note_fields_unchang
         anki_mw,
         note,
         output,
-        monkeypatch=monkeypatch,
         mode="combined_mp3",
         silence_seconds=0,
         normalize_volume=True,
@@ -157,6 +180,11 @@ def test_browser_audio_export_normalized_combined_mp3_leaves_note_fields_unchang
         message=f"normalized mp3 export was not written; log={dialog._log_lines!r}",
     )
     assert front_field(anki_mw, int(note.id)) == original_html
+    ffmpeg, ffprobe = _oracle_tools(ffmpeg_config)
+    probe = probe_audio(ffprobe, output)
+    assert probe.codec == "mp3"
+    assert probe.duration_s == pytest.approx(0.4, abs=0.08)
+    assert window_rms(decode_mono_f32(ffmpeg, output), start_s=0.05, end_s=0.35) > 0.01
 
 
 def _run_export_dialog_from_browser(
@@ -164,7 +192,6 @@ def _run_export_dialog_from_browser(
     note,
     output: Path,
     *,
-    monkeypatch,
     mode: str,
     silence_seconds: float = 1.0,
     normalize_volume: bool = False,
@@ -234,7 +261,11 @@ def _run_export_dialog_from_browser(
                     lambda value: value is True,
                     timeout=5.0,
                 )
-            click_selector(dialog._webview, "button", timeout=5.0)
+            click_selector(
+                dialog._webview,
+                '[data-testid="audio-export-choose-destination"]',
+                timeout=5.0,
+            )
             wait_for_js_condition(
                 dialog._webview,
                 "document.querySelector('[data-testid=\"audio-export-destination\"]')?.value",
@@ -246,3 +277,4 @@ def _run_export_dialog_from_browser(
             return dialog
     finally:
         QFileDialog.getSaveFileName = original_get_save_file_name
+        browser.close()

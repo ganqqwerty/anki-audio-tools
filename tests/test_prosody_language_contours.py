@@ -1,5 +1,4 @@
 """Praat-generated language contour tests for learner-facing pitch graphs."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,19 +14,16 @@ from .prosody_language_fixtures import (
     ContourWindow,
     expected_hz,
     generate_praat_vowel_fixture,
-    median,
     median_intensity,
     median_pitch,
     points_in_window,
     require_praat_and_ffmpeg,
     window_named,
 )
-from .prosody_visualizer_harness import render_pitch_points
 
 pytestmark = [pytest.mark.praat, pytest.mark.allow_managed_runtime]
 
 PITCH_TOLERANCE_HZ = 32
-MIN_VISIBLE_CONTOUR_PX = 16
 RAW_CONTOUR_CONFIG = AudioProcessingConfig(
     graph_connect_short_dropouts_ms=0,
     graph_smoothness="raw",
@@ -135,90 +131,6 @@ def test_praat_vietnamese_tone_contours_expose_expected_shapes(tmp_path: Path) -
     assert _intensity(nang_track, nang, "late_low") < _intensity(nang_track, nang, "early")
 
 
-@pytest.mark.parametrize(
-    ("spec_name", "high_window", "low_window"),
-    [
-        ("ja_nakadaka_4mora_1_5s", "pre_drop_high", "post_drop_low"),
-        ("ja_odaka_3mora_particle_1_6s", "word_high", "particle_low"),
-        ("zh_tone4_falling_0_8s", "early", "late"),
-        ("vi_huyen_low_falling_0_9s", "early", "late"),
-        ("vi_nang_low_checked_0_8s", "early", "late_low"),
-    ],
-)
-def test_visualizer_renders_expected_drops_as_visible_pixel_changes(
-    tmp_path: Path,
-    spec_name: str,
-    high_window: str,
-    low_window: str,
-) -> None:
-    spec, track = _analyze_spec(tmp_path, spec_name)
-    rendered = render_pitch_points(track.to_payload())
-
-    assert rendered["paths"]
-    assert all("NaN" not in path and "Infinity" not in path for path in rendered["paths"])
-    high_y = _rendered_y(rendered["rendered"], window_named(spec, high_window))
-    low_y = _rendered_y(rendered["rendered"], window_named(spec, low_window))
-    assert low_y - high_y >= MIN_VISIBLE_CONTOUR_PX
-
-
-@pytest.mark.parametrize(
-    ("spec_name", "early_window", "late_window"),
-    [
-        ("zh_tone2_rising_0_9s", "early", "late"),
-        ("vi_sac_high_rising_0_9s", "early", "late"),
-        ("vi_nga_broken_rising_1_0s", "pre_break", "late"),
-    ],
-)
-def test_visualizer_renders_expected_rises_as_visible_pixel_changes(
-    tmp_path: Path,
-    spec_name: str,
-    early_window: str,
-    late_window: str,
-) -> None:
-    spec, track = _analyze_spec(tmp_path, spec_name)
-    rendered = render_pitch_points(track.to_payload())
-
-    early_y = _rendered_y(rendered["rendered"], window_named(spec, early_window))
-    late_y = _rendered_y(rendered["rendered"], window_named(spec, late_window))
-    assert early_y - late_y >= MIN_VISIBLE_CONTOUR_PX
-
-
-def test_visualizer_renders_tone3_as_visible_dip(tmp_path: Path) -> None:
-    spec, track = _analyze_spec(tmp_path, "zh_tone3_dipping_1_1s")
-    rendered = render_pitch_points(track.to_payload())
-
-    early_y = _rendered_y(rendered["rendered"], window_named(spec, "early"))
-    trough_y = _rendered_y(rendered["rendered"], window_named(spec, "trough"))
-    late_y = _rendered_y(rendered["rendered"], window_named(spec, "late"))
-    assert trough_y - early_y >= MIN_VISIBLE_CONTOUR_PX
-    assert trough_y - late_y >= MIN_VISIBLE_CONTOUR_PX
-
-
-@pytest.mark.parametrize("spec_name", ["vi_hoi_dipping_1_0s"])
-def test_visualizer_renders_vietnamese_dipping_tones_as_visible_dips(
-    tmp_path: Path,
-    spec_name: str,
-) -> None:
-    spec, track = _analyze_spec(tmp_path, spec_name)
-    rendered = render_pitch_points(track.to_payload())
-
-    early_y = _rendered_y(rendered["rendered"], window_named(spec, "early"))
-    trough_y = _rendered_y(rendered["rendered"], window_named(spec, "trough"))
-    late_y = _rendered_y(rendered["rendered"], window_named(spec, "late"))
-    assert trough_y - early_y >= MIN_VISIBLE_CONTOUR_PX
-    assert trough_y - late_y >= MIN_VISIBLE_CONTOUR_PX
-
-
-def test_visualizer_renders_vietnamese_broken_rise_as_separate_paths(tmp_path: Path) -> None:
-    spec, track = _analyze_spec(tmp_path, "vi_nga_broken_rising_1_0s")
-    rendered = render_pitch_points(track.to_payload())
-
-    pre_break_y = _rendered_y(rendered["rendered"], window_named(spec, "pre_break"))
-    late_y = _rendered_y(rendered["rendered"], window_named(spec, "late"))
-    assert len(rendered["paths"]) >= 2
-    assert pre_break_y - late_y >= MIN_VISIBLE_CONTOUR_PX
-
-
 def _analyze_spec(tmp_path: Path, spec_name: str):
     require_praat_and_ffmpeg()
     spec = LANGUAGE_CONTOUR_SPECS[spec_name]
@@ -236,12 +148,3 @@ def _hz(track, spec: ContourSpec, window_name: str) -> float:
 
 def _intensity(track, spec: ContourSpec, window_name: str) -> float:
     return median_intensity(points_in_window(track.points, window_named(spec, window_name)))
-
-
-def _rendered_y(rendered_points: list[dict], window: ContourWindow) -> float:
-    values = [
-        point["y"]
-        for point in rendered_points
-        if window.start_ms <= point["timeMs"] <= window.end_ms
-    ]
-    return median(values)

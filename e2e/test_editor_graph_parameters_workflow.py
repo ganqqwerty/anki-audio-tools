@@ -19,7 +19,14 @@ from e2e.editor_note_helpers import (
     _configure_ffmpeg,
     _open_editor,
 )
-from e2e.helpers import click_selector, wait_for_js_condition, wait_for_selector
+from e2e.helpers import (
+    click_selector,
+    wait_for_js,
+    wait_for_js_condition,
+    wait_for_selector,
+)
+
+pytestmark = [pytest.mark.shared_desktop, pytest.mark.in_anki_component]
 
 
 @pytest.mark.praat
@@ -122,10 +129,27 @@ def test_graph_smoothness_changes_real_ffmpeg_pcm_rendered_pitch_density(
 
 
 def _set_graph_range_option(editor, option_slug: str, value: int) -> None:
-    click_selector(editor.web, '[data-testid="aqe-split-0-graph-menu"]', timeout=5.0)
+    menu_selector = '[data-testid="aqe-split-0-graph-menu"]'
+    click_selector(editor.web, menu_selector, timeout=5.0)
     selector = _graph_option_selector(option_slug, value)
     wait_for_selector(editor.web, selector, timeout=5.0)
-    click_selector(editor.web, selector, timeout=5.0)
+    activation = wait_for_js(
+        editor.web,
+        """
+        (() => {
+          const nodes = document.querySelectorAll(__SELECTOR__);
+          if (nodes.length === 1 && nodes[0] instanceof HTMLButtonElement) {
+            nodes[0].click();
+          }
+          return {
+            count: nodes.length,
+            isButton: nodes.length === 1 && nodes[0] instanceof HTMLButtonElement,
+          };
+        })()
+        """.replace("__SELECTOR__", json.dumps(selector)),
+        timeout=1.0,
+    )
+    assert activation == {"count": 1, "isButton": True}
     state_key, expected = _expected_graph_state(option_slug, value)
     wait_for_js_condition(
         editor.web,

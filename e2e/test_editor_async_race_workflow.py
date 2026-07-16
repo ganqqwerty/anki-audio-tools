@@ -25,7 +25,6 @@ from .race_helpers import (
     DelayedRenderer,
     assert_note_field,
     generated_aqe_files,
-    pump_events_for,
 )
 
 
@@ -58,7 +57,13 @@ def test_stale_standard_render_does_not_mutate_new_note_or_write_media(
         editor.set_note(note_b, hide=False, focusTo=0)
         wait_for_selector(editor.web, _button_selector("aqe:faster"))
         delayed.allow_completion()
-        pump_events_for(1.0)
+        delayed.wait_completed()
+        wait_for_js_condition(
+            editor.web,
+            f"document.querySelector('{_button_selector('aqe:faster')}')?.disabled === false",
+            lambda value: value is True,
+            timeout=5.0,
+        )
 
         assert _sound_filename(note_a.fields[0]) == first_audio.name
         assert _sound_filename(note_b.fields[0]) == second_audio.name
@@ -107,7 +112,13 @@ def test_stale_region_delete_does_not_mutate_new_field_or_write_media(
         delayed.wait_started()
         editor.currentField = 1
         delayed.allow_completion()
-        pump_events_for(1.0)
+        delayed.wait_completed()
+        wait_for_js_condition(
+            editor.web,
+            f"document.querySelector('{_button_selector('aqe:delete-selection', ord_=0)}')?.disabled === false",
+            lambda value: value is True,
+            timeout=5.0,
+        )
 
         assert list(note.fields) == original_fields
         assert_note_field(note, 1, original_fields[1])

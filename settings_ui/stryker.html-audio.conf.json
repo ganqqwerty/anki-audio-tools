@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "mutate": [
+    "src/editor-inline/html-audio-session-machine.ts"
+  ],
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts",
+    "related": true
+  },
+  "testFiles": [
+    "tests/html-audio-session-failures.test.ts",
+    "tests/html-audio-session-machine.test.ts",
+    "tests/html-audio-session-post-edit-repeat.test.ts",
+    "tests/html-audio-session-transition-matrix.test.ts"
+  ],
+  "coverageAnalysis": "perTest",
+  "concurrency": 2,
+  "reporters": [
+    "clear-text",
+    "progress",
+    "json"
+  ],
+  "jsonReporter": {
+    "fileName": "reports/mutation/html-audio.json"
+  },
+  "thresholds": {
+    "high": 95,
+    "low": 90,
+    "break": 90
+  }
+}

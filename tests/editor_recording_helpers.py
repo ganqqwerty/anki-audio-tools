@@ -12,6 +12,7 @@ from anki_audio_quick_editor.editor_session import (
     GraphVisualizationState,
 )
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, build_prosody_track
+from tests.thread_fakes import ImmediateThread as _ImmediateThread
 
 
 class _Web:
@@ -20,15 +21,6 @@ class _Web:
 
     def eval(self, script: str) -> None:
         self.eval_calls.append(script)
-
-
-class _ImmediateThread:
-    def __init__(self, target: Callable[[], None], daemon: bool = False) -> None:
-        del daemon
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
 
 
 class _FakeRecorder:

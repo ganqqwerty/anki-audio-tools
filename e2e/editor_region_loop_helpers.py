@@ -193,7 +193,10 @@ def _set_repeat(editor, enabled: bool, ord_: int = 0) -> None:
           const requested = {str(enabled).lower()};
           const current = toggle.getAttribute("aria-pressed") === "true";
           if (current !== requested) toggle.click();
-          return toggle.getAttribute("aria-pressed") === "true";
+          const result = toggle.getAttribute("aria-pressed") === "true";
+          const menu = document.querySelector('[data-testid="aqe-split-{ord_}-play-menu"]');
+          if (menu?.getAttribute("aria-expanded") === "true") menu.click();
+          return result;
         }})()
         """,
         lambda value: value is enabled,

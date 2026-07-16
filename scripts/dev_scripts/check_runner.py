@@ -136,11 +136,13 @@ def _check_post_preflight_groups(
     )
     if contracts_prepared:
         parallel_steps.append(("test", run_test_targets))
-    parallel_steps.append(("coverage", cmd_coverage))
     tail_steps = (
-        [("qodana", cmd_qodana), ("test-svelte", cmd_test_svelte)]
+        [("coverage", cmd_coverage), ("qodana", cmd_qodana), ("test-svelte", cmd_test_svelte)]
         if contracts_prepared
-        else [("typecheck", cmd_typecheck), ("test", cmd_test), ("qodana", cmd_qodana), ("test-svelte", cmd_test_svelte)]
+        else [
+            ("typecheck", cmd_typecheck), ("test", cmd_test), ("coverage", cmd_coverage),
+            ("qodana", cmd_qodana), ("test-svelte", cmd_test_svelte),
+        ]
     )
     return [("parallel", parallel_steps), ("tail", tail_steps)]
 

@@ -145,14 +145,26 @@ def _button_selector(command: str, ord_: int = 0) -> str:
     return f'.aqe-controls[data-aqe-field-ord="{ord_}"] [data-aqe-command="{command}"]'
 
 
+class _EditorTestParent(QWidget):
+    editor: Any | None = None
+
+    # noinspection PyPep8Naming
+    def closeEvent(self, event) -> None:
+        if self.editor is not None:
+            self.editor.cleanup()
+            self.editor = None
+        super().closeEvent(event)
+
+
 def _open_editor(anki_mw, note):
     from aqt.editor import Editor, EditorMode
 
-    parent = QWidget()
+    parent = _EditorTestParent()
     container = QWidget(parent)
     parent.resize(1400, 900)
     parent.show()
     editor = Editor(anki_mw, container, parent, editor_mode=EditorMode.BROWSER)
+    parent.editor = editor
     editor.set_note(note, hide=False, focusTo=0)
     return editor, parent
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import pytest
+
 from e2e.editor_audio_generation_helpers import _render_direct_deep_filter_reference
 from e2e.editor_note_helpers import (
     _basic_audio_note,
@@ -64,6 +66,11 @@ def test_standard_denoise_menu_matches_direct_deep_filter_output(
         parent.close()
 
 
+@pytest.mark.allow_error_log(
+    r"^(?:1000000002\.editor_transform_failure_support: standard denoise failed:|"
+    r"1000000002\.editor_special_transform_worker: boundary failed: editor\.worker\.standard denoise failed|"
+    r"1000000002\.editor_frontend\.status: editor status displayed error: AQE-AUDIO-001:)"
+)
 def test_standard_denoise_failure_leaves_note_unchanged(
     anki_mw,
     ffmpeg_config,

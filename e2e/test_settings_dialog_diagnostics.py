@@ -5,12 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from e2e.conftest import import_runtime_addon_module
 from e2e.helpers import click_selector, wait_for_condition
 from e2e.settings_dialog_helpers import open_settings_dialog
 
+pytestmark = pytest.mark.shared_desktop
 
-def test_diagnostics_can_reveal_support_report_and_open_log_file(anki_mw) -> None:
+
+def test_diagnostics_can_reveal_support_report_and_open_log_file(anki_mw, qtbot) -> None:
     support = import_runtime_addon_module(".support")
     file_reveal = import_runtime_addon_module(".file_reveal")
 
@@ -23,6 +27,7 @@ def test_diagnostics_can_reveal_support_report_and_open_log_file(anki_mw) -> Non
         exception_type="AudioProcessingError",
     )
     dialog = open_settings_dialog(anki_mw)
+    qtbot.addWidget(dialog)
 
     click_selector(dialog, '[data-testid="settings-tab-diagnostics"]', timeout=5.0)
 
@@ -49,8 +54,9 @@ def test_diagnostics_can_reveal_support_report_and_open_log_file(anki_mw) -> Non
     assert revealed_logs[0].endswith("anki_audio_quick_editor.log")
 
 
-def test_diagnostics_can_open_check_media(anki_mw) -> None:
+def test_diagnostics_can_open_check_media(anki_mw, qtbot) -> None:
     dialog = open_settings_dialog(anki_mw)
+    qtbot.addWidget(dialog)
 
     with patch("aqt.mediacheck.check_media_db") as check_media_db:
         click_selector(dialog, '[data-testid="settings-tab-diagnostics"]', timeout=5.0)

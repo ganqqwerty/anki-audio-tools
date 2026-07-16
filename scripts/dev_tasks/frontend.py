@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -12,6 +14,13 @@ from scripts.dev_tasks.python_env import _die, _warn_if_addon_symlink_mismatch
 
 ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_UI_DIR = ROOT / "settings_ui"
+
+
+def _frontend_validation_env() -> dict[str, str] | None:
+    if os.environ.get("AQE_E2E_FFMPEG"):
+        return None
+    ffmpeg = shutil.which("ffmpeg")
+    return {"AQE_E2E_FFMPEG": ffmpeg} if ffmpeg else None
 
 
 def cmd_build_ui() -> int:
@@ -52,4 +61,9 @@ def cmd_test_svelte() -> int:
     lint_fix_rc = _run(lint_fix, cwd=SETTINGS_UI_DIR, label="frontend UI lint autofix")
     if lint_fix_rc != 0:
         return lint_fix_rc
-    return _run(npm, cwd=SETTINGS_UI_DIR, label="frontend UI validation")
+    return _run(
+        npm,
+        env=_frontend_validation_env(),
+        cwd=SETTINGS_UI_DIR,
+        label="frontend UI validation",
+    )

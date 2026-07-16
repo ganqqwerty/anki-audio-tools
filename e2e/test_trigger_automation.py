@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from e2e.editor_note_helpers import (
     _button_selector,
     _configure_ffmpeg,
@@ -23,6 +25,7 @@ from e2e.helpers import (
 from e2e.settings_dialog_helpers import open_settings_dialog
 
 
+@pytest.mark.allow_native_playback("stop")
 def test_user_created_add_trigger_converts_audio_on_added_card(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "trigger_ui_convert_source.wav"
@@ -102,6 +105,7 @@ def _create_convert_on_add_trigger_through_settings_ui(anki_mw) -> None:
 
 def _add_audio_note_through_add_cards_ui(anki_mw, audio_filename: str) -> int:
     from aqt.addcards import AddCards
+    from PyQt6.QtWidgets import QApplication
 
     add_cards = AddCards(anki_mw)
     try:
@@ -120,7 +124,16 @@ def _add_audio_note_through_add_cards_ui(anki_mw, audio_filename: str) -> int:
             message="Add Cards UI did not add the note",
         )
         assert add_cards._last_added_note is not None
-        return int(add_cards._last_added_note.id)
+        note_id = int(add_cards._last_added_note.id)
+        wait_for_condition(
+            lambda: not any(
+                type(widget).__name__ == "CustomLabel" and widget.isVisible()
+                for widget in QApplication.topLevelWidgets()
+            ),
+            timeout=5.0,
+            message="Add Cards success tooltip did not close",
+        )
+        return note_id
     finally:
         add_cards.close()
 

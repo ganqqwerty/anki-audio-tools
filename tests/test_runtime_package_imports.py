@@ -43,8 +43,10 @@ def test_runtime_helpers_import_siblings_under_numeric_package(tmp_path: Path) -
         textwrap.dedent(
             """
             from pathlib import Path
+            import sys
+            from . import audio_processor_rendering_portal
 
-            def _sync_rendering_dependencies():
+            def install_audio_dependencies():
                 pass
 
             def render_dpdfnet_audio(*args, **kwargs):
@@ -69,6 +71,7 @@ def test_runtime_helpers_import_siblings_under_numeric_package(tmp_path: Path) -
             _audio_pitch_hum = object()
             uuid = object()
             _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = lambda source_filename, start_ms, token=None: source_filename
+            audio_processor_rendering_portal.configure_facade_provider(lambda: sys.modules[__name__])
             """
         ),
         encoding="utf-8",
@@ -113,6 +116,7 @@ def test_runtime_helpers_import_siblings_under_numeric_package(tmp_path: Path) -
         assert "anki_audio_quick_editor" not in sys.modules
         assert importlib.util.find_spec("anki_audio_quick_editor") is None
 
+        processor = importlib.import_module("123456789.audio_processor")
         portal = importlib.import_module("123456789.audio_processor_rendering_portal")
         assert portal._facade().__name__ == "123456789.audio_processor"
         assert portal.make_output_filename("clip", output_format="mp3") == "clip.mp3"

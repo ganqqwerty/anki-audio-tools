@@ -4,10 +4,20 @@ from __future__ import annotations
 
 import json
 
-from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
+import pytest
+
+from e2e.helpers import (
+    click_selector,
+    trusted_pointer_to_selector,
+    wait_for_condition,
+    wait_for_js_condition,
+)
 from e2e.settings_dialog_helpers import open_settings_dialog
 
+pytestmark = pytest.mark.shared_desktop
 
+
+@pytest.mark.trusted_input
 def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw) -> None:
     config = anki_mw.addonManager.getConfig("1000000002") or {}
     config["show_graph_by_default"] = False
@@ -41,7 +51,7 @@ def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw
     )
     click_selector(dialog, checkbox_selector, timeout=5.0)
 
-    click_selector(dialog, save_selector, timeout=5.0)
+    trusted_pointer_to_selector(dialog, save_selector, click=True)
     wait_for_condition(
         lambda: not dialog.isVisible(),
         timeout=5.0,
@@ -49,6 +59,17 @@ def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw
     )
     saved_config = anki_mw.addonManager.getConfig("1000000002") or {}
     assert saved_config["show_graph_by_default"] is True
+
+    reopened = open_settings_dialog(anki_mw)
+    try:
+        assert wait_for_js_condition(
+            reopened,
+            f"document.querySelector({json.dumps(checkbox_selector)})?.checked",
+            lambda value: value is True,
+            timeout=5.0,
+        ) is True
+    finally:
+        reopened.close()
 
 
 def test_pitch_hum_default_mode_select_saves_in_one_session(anki_mw) -> None:

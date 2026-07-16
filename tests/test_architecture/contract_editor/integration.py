@@ -18,12 +18,9 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
         "editor_integration",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
-            "editor_actions",
             "editor_bridge_hooks",
             "editor_note_load_hooks",
             "editor_runtime",
-            "editor_session",
-            "editor_webview_injection",
         ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,

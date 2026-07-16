@@ -261,6 +261,21 @@ def test_processing_history_split_buttons_jump_multiple_steps(anki_mw, ffmpeg_co
             timeout=5.0,
             message="Redo history jump did not restore the latest generated reference",
         )
+        wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const controls = document.querySelector('[data-testid="aqe-controls-0"]');
+              return {
+                busy: document.body?.dataset.aqeProcessingBusy || "",
+                sourceFilename: controls?.dataset.aqeSourceFilename || "",
+              };
+            })()
+            """,
+            lambda value: value["busy"] in {"", "false"}
+            and value["sourceFilename"] == third_generated,
+            timeout=10.0,
+        )
     finally:
         editor.set_note(None)
         parent.close()

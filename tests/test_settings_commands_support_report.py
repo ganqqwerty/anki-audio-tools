@@ -22,14 +22,7 @@ from tests.settings_command_fixtures import (
     _make_dialog,
     _parse_callback,
 )
-
-
-class _ImmediateThread:
-    def __init__(self, target, daemon=True):
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
+from tests.thread_fakes import ImmediateThread as _ImmediateThread
 
 
 def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> None:

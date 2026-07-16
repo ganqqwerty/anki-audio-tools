@@ -24,6 +24,7 @@ from anki_audio_quick_editor.prosody_types import (
     ProsodyPoint,
     ProsodyTrack,
 )
+from tests.thread_fakes import ImmediateThread
 
 
 def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
@@ -122,13 +123,6 @@ def test_field_addressed_analysis_preserves_edit_session_history(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     (media_dir / "field-one.mp3").write_bytes(b"one")
@@ -208,13 +202,6 @@ def test_field_addressed_analysis_preserves_edit_session_history(
 
 
 def test_manual_analysis_uses_read_only_field_path(tmp_path: Path, monkeypatch) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     (media_dir / "field-one.mp3").write_bytes(b"one")
@@ -269,13 +256,6 @@ def test_manual_analysis_uses_read_only_field_path(tmp_path: Path, monkeypatch) 
 
 
 def test_manual_analysis_payload_applies_graph_settings(tmp_path: Path, monkeypatch) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     (media_dir / "field-one.mp3").write_bytes(b"one")

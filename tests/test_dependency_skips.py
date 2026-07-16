@@ -5,8 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOTS = (ROOT / "e2e", ROOT / "tests")
-FORBIDDEN_PYTEST_CALLS = {"skip", "importorskip"}
-FORBIDDEN_MARKS = {"skipif"}
+FORBIDDEN_PYTEST_CALLS = {"skip", "xfail", "importorskip"}
+FORBIDDEN_MARKS = {"skip", "skipif", "xfail"}
 
 
 def test_dependency_tests_do_not_silently_skip_missing_requirements() -> None:
@@ -34,9 +34,7 @@ def _is_forbidden_pytest_call(node: ast.AST) -> bool:
 
 
 def _is_forbidden_pytest_mark(node: ast.AST) -> bool:
-    if not isinstance(node, ast.Call):
-        return False
-    func = node.func
+    func = node.func if isinstance(node, ast.Call) else node
     return (
         isinstance(func, ast.Attribute)
         and func.attr in FORBIDDEN_MARKS

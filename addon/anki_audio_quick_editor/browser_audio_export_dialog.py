@@ -54,6 +54,7 @@ class AudioExportDialog:
         self.cancel_event = threading.Event()
         self._running = False
         self._finished = False
+        self._cleaned_up = False
         self._log_lines: list[str] = []
         self._dialog = QDialog(browser)
         self._dialog.setWindowTitle(self.tr("audio_export.window_title"))
@@ -235,7 +236,14 @@ class AudioExportDialog:
         finished = getattr(self._dialog, "finished", None)
         connect = getattr(finished, "connect", None)
         if callable(connect):
-            connect(lambda _result: self._cancel_running(mark_not_running=True))
+            connect(lambda _result: self._cleanup_dialog())
+
+    def _cleanup_dialog(self) -> None:
+        if self._cleaned_up:
+            return
+        self._cleaned_up = True
+        self._cancel_running(mark_not_running=True)
+        self._webview.cleanup()
 
     def _cancel_running(self, *, mark_not_running: bool = False) -> bool:
         if not self._running:

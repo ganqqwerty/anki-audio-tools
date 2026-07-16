@@ -116,6 +116,7 @@ def test_run_batch_stops_after_current_note_when_cancel_requested(monkeypatch, t
     assert report.processed == 1
     assert report.written == 1
     assert col.updated == [1]
+    assert col.custom_undo_entries == ["Audio Quick Editor batch operation"]
     assert col.merged == [42]
     assert progress_calls == [1]
 
@@ -149,6 +150,8 @@ def test_run_batch_uses_source_field_for_transform_updates(monkeypatch, tmp_path
 
     assert report.written == 1
     assert col.notes[1].fields["Audio"] == "[sound:clip__aqe.mp3]"
+    assert col.custom_undo_entries == ["Audio Quick Editor batch operation"]
+    assert col.merged == [42]
 
 
 def test_run_batch_logs_transform_parameters(monkeypatch, tmp_path: Path) -> None:

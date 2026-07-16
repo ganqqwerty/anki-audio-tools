@@ -15,6 +15,7 @@ class DelayedRenderer:
     def __init__(self) -> None:
         self.started = threading.Event()
         self.release = threading.Event()
+        self.completed = threading.Event()
         self.calls: list[dict[str, Any]] = []
 
     def wait_started(self, timeout: float = 5.0) -> None:
@@ -27,6 +28,14 @@ class DelayedRenderer:
 
     def allow_completion(self) -> None:
         self.release.set()
+
+    def wait_completed(self, timeout: float = 5.0) -> None:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            QApplication.processEvents()
+            if self.completed.wait(0.01):
+                return
+        assert self.completed.is_set(), "renderer did not complete"
 
     def render_audio(
         self,
@@ -43,6 +52,7 @@ class DelayedRenderer:
         self.started.set()
         assert self.release.wait(10.0), "renderer was not released"
         shutil.copyfile(source_path, output_path)
+        self.completed.set()
         return audio_processing_result(
             output_path=output_path,
             command=("delayed-render", str(source_path)),
@@ -56,6 +66,7 @@ class DelayedRenderer:
         self.started.set()
         assert self.release.wait(10.0), "region renderer was not released"
         shutil.copyfile(source_path, output_path)
+        self.completed.set()
         return audio_processing_result(
             output_path=output_path,
             command=("delayed-region-render", str(source_path)),

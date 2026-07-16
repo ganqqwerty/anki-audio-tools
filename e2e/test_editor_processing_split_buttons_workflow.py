@@ -118,7 +118,8 @@ def test_volume_split_button_uses_settings_default_and_local_value(
         )
         status = _wait_for_status_flow(
             editor,
-            lambda status: status["text"] == "Increased volume by 6.5 dB.",
+            lambda observed_status: observed_status["text"]
+            == "Increased volume by 6.5 dB.",
         )
         assert status["text"] == "Increased volume by 6.5 dB."
         assert (media_dir / generated_name).is_file()

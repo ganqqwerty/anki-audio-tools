@@ -161,6 +161,8 @@ def test_paused_full_playback_uses_new_selection_start_after_shift_drag(
                 and state["playbackEndMs"] == 1300,
                 timeout=5.0,
             )
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            _state(editor, lambda state: state["playbackState"] == "paused")
 
         assert playback.attempts == []
         assert selected["cursorMs"] == 500

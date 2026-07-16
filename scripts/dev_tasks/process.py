@@ -131,6 +131,7 @@ def _wait_for_process_completion(
     process: subprocess.Popen[str],
     idle_warning_s: float,
     idle_timeout_s: float,
+    absolute_timeout_s: float,
     terminate_grace_s: float,
     buffered_output: list[str] | None,
 ) -> bool:
@@ -150,6 +151,7 @@ def _wait_for_process_completion(
             stream_closed=stream_closed,
             idle_warning_s=idle_warning_s,
             idle_timeout_s=idle_timeout_s,
+            absolute_timeout_s=absolute_timeout_s,
             terminate_grace_s=terminate_grace_s,
             stream_output=is_verbose(),
             buffered_output=buffered_output,
@@ -168,6 +170,7 @@ def _run(
     label: str | None = None,
     idle_warning_s: float | None = None,
     idle_timeout_s: float | None = None,
+    absolute_timeout_s: float | None = None,
     show_output_on_failure: bool = False,
 ) -> int:
     quiet_mode = is_quiet_test_output() and not is_verbose()
@@ -198,22 +201,27 @@ def _run(
         encoding="utf-8",
         errors="replace",
         bufsize=1,
+        start_new_session=os.name == "posix",
     )
     output_queue: queue.Queue[str | None] = queue.Queue()
     buffered_output: list[str] | None = [] if (quiet_mode or show_output_on_failure) and not is_verbose() else None
-    reader = start_output_reader(process, output_queue)
+    start_output_reader(process, output_queue)
     start = time.monotonic()
     interrupted_for_idle = _wait_for_process_completion(
         output_queue=output_queue,
         process=process,
         idle_warning_s=resolved_idle_warning,
         idle_timeout_s=resolved_idle_timeout,
+        absolute_timeout_s=(
+            _read_seconds_env("DEV_ABSOLUTE_TIMEOUT_SECS", 3600.0)
+            if absolute_timeout_s is None
+            else absolute_timeout_s
+        ),
         terminate_grace_s=terminate_grace_s,
         buffered_output=buffered_output,
     )
 
     rc = process.wait()
-    reader.join(timeout=1)
     elapsed = time.monotonic() - start
     failure_output_available = False
     if rc != 0 and buffered_output is not None:
@@ -242,6 +250,7 @@ def _run_capture(
     *,
     label: str | None = None,
     show_output_on_failure: bool = False,
+    absolute_timeout_s: float | None = None,
 ) -> tuple[int, str]:
     quiet_mode = is_quiet_test_output() and not is_verbose()
     run_cwd = cwd or ROOT
@@ -253,36 +262,44 @@ def _run_capture(
         print(f"[dev] {label or rendered_cmd}")
 
     start = time.monotonic()
-    result = subprocess.run(
-        [str(part) for part in cmd],
-        cwd=run_cwd,
-        env=merged_env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    output = result.stdout or ""
+    try:
+        result = subprocess.run(
+            [str(part) for part in cmd],
+            cwd=run_cwd,
+            env=merged_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=absolute_timeout_s,
+        )
+        returncode = result.returncode
+        output = result.stdout or ""
+    except subprocess.TimeoutExpired as exc:
+        returncode = 124
+        captured = exc.stdout or ""
+        output = captured.decode("utf-8", errors="replace") if isinstance(captured, bytes) else captured
+        output += f"\n[dev] absolute timeout after {absolute_timeout_s:g}s\n"
     if output and is_verbose():
         sys.stdout.write(output)
         sys.stdout.flush()
     elapsed = time.monotonic() - start
     failure_output_available = False
-    if result.returncode != 0 and (quiet_mode or show_output_on_failure) and not is_verbose():
+    if returncode != 0 and (quiet_mode or show_output_on_failure) and not is_verbose():
         failure_output_available = print_failed_output(
             output,
             label=label if quiet_mode else None,
         )
     status = format_exit_status(
-        rc=result.returncode,
+        rc=returncode,
         interrupted_for_idle=False,
         verbose=is_verbose(),
         failure_output_available=failure_output_available,
     )
-    if not quiet_mode or result.returncode != 0:
+    if not quiet_mode or returncode != 0:
         print(f"[dev] {status} in {format_duration(elapsed)}")
-    return result.returncode, output
+    return returncode, output
 
 
 run_capture = _run_capture

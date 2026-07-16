@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent
@@ -82,6 +83,12 @@ def test_busy_projection_is_owned_by_control_actions() -> None:
 def _is_dataset_projection_write(stripped_line: str, field: str) -> bool:
     token = f".dataset.{field}"
     suffix = stripped_line.split(token, 1)[1].lstrip()
-    if suffix.startswith("="):
+    if re.match(r"^=(?!=)", suffix):
         return True
     return stripped_line.startswith("delete ") and suffix.startswith(";")
+
+
+def test_dataset_projection_detector_accepts_assignment_only() -> None:
+    assert _is_dataset_projection_write("target.dataset.aqeBusy = busy;", "aqeBusy")
+    assert not _is_dataset_projection_write("target.dataset.aqeBusy === busy;", "aqeBusy")
+    assert not _is_dataset_projection_write("target.dataset.aqeBusy == busy;", "aqeBusy")

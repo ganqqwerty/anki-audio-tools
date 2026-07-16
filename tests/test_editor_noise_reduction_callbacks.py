@@ -13,16 +13,10 @@ from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorS
 from anki_audio_quick_editor.editor_transform_post_processing import (
     replace_current_field_after_noise_removal,
 )
+from tests.thread_fakes import ImmediateThread
 
 
 def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     class Editor:
         pass
 
@@ -144,13 +138,6 @@ def test_special_transform_graph_redraw_preserves_learner_overlay(tmp_path: Path
 
 
 def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     class Editor:
         pass
 
@@ -218,13 +205,6 @@ def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
 
 
 def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     class Editor:
         pass
 

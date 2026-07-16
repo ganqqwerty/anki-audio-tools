@@ -51,7 +51,11 @@ def download_extract_promote(
     _download_pack(pack, archive_path, progress, check_cancel)
     progress(60, "Verify zip", f"Runtime archive size and SHA-256 verified at {archive_path}.")
     extract_root = base_dir / f"{manifest.manifest_id}.extracting-{os.getpid()}-{int(time.time())}"
+    backup_root = base_dir / f"{manifest.manifest_id}.rollback-{os.getpid()}-{int(time.time())}"
     shutil.rmtree(extract_root, ignore_errors=True)
+    shutil.rmtree(backup_root, ignore_errors=True)
+    target_root = managed_runtime_root(addon_dir, manifest.manifest_id)
+    promoted = False
     try:
         check_cancel()
         progress(68, "Unpack zip", f"Extracting {len(files)} expected files into {extract_root}.")
@@ -60,18 +64,24 @@ def download_extract_promote(
         progress(78, "Verify files", f"Checking size and SHA-256 for {len(files)} extracted runtime files.")
         verify_extracted_files(extract_root, files)
         check_cancel()
-        target_root = managed_runtime_root(addon_dir, manifest.manifest_id)
         progress(88, "Promote runtime", f"Promoting verified runtime into {target_root}.")
         if target_root.exists():
-            shutil.rmtree(target_root)
+            target_root.replace(backup_root)
         extract_root.replace(target_root)
+        promoted = True
         write_ready_state(addon_dir, manifest, platform_key, files)
+        shutil.rmtree(backup_root, ignore_errors=True)
         progress(96, "Cleanup", "Runtime state written; cleaning temporary files.")
     except Exception:
+        if promoted:
+            shutil.rmtree(target_root, ignore_errors=True)
+        if backup_root.exists():
+            backup_root.replace(target_root)
         archive_path.unlink(missing_ok=True)
         raise
     finally:
         shutil.rmtree(extract_root, ignore_errors=True)
+        shutil.rmtree(backup_root, ignore_errors=True)
         archive_path.with_suffix(archive_path.suffix + ".download").unlink(missing_ok=True)
 
 

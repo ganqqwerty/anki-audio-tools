@@ -87,11 +87,18 @@ def test_safe_filename_stem_collapses_invalid_runs_and_falls_back_to_audio() -> 
     assert _safe_filename_stem("短い") == "audio"
 
 
-def test_temp_final_path_preserves_basename_only() -> None:
+def test_temp_final_path_preserves_basename_only(monkeypatch, tmp_path: Path) -> None:
+    temp_root = tmp_path / "aqe_final_test"
+    temp_root.mkdir()
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_rendering.tempfile.mkdtemp",
+        lambda *, prefix: str(temp_root),
+    )
+
     path = temp_final_path("../nested/clip.mp3")
 
     assert path.name == "clip.mp3"
-    assert path.parent.name.startswith("aqe_final_")
+    assert path.parent == temp_root
 
 
 def _mp3_policy() -> SimpleNamespace:

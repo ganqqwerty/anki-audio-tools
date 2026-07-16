@@ -103,6 +103,7 @@ def test_coverage_pytest_shows_output_on_failure(monkeypatch) -> None:
         "_run",
         lambda cmd, **kwargs: calls.append((cmd, kwargs)) or 0,
     )
+    monkeypatch.setattr(coverage, "_check_risk_coverage", lambda _path: 0)
 
     assert coverage.cmd_coverage() == 0
     assert calls[0][1]["show_output_on_failure"] is True

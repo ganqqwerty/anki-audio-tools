@@ -4,20 +4,29 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
-from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_types import AudioProcessingResult
 
+_facade_provider: Callable[[], Any] | None = None
+
+
+def configure_facade_provider(provider: Callable[[], Any]) -> None:
+    """Configure the compatibility facade used by rendering wrappers."""
+    global _facade_provider
+    _facade_provider = provider
+
 
 def _facade() -> Any:
-    return import_module(".audio_processor", package=__package__)
+    if _facade_provider is None:
+        raise RuntimeError("Audio processor rendering portal is not configured.")
+    return _facade_provider()
 
 
-def _sync(facade: Any, name: str) -> None:
-    cast(Callable[[], None], getattr(facade, name))()
+def _install_dependencies(facade: Any) -> None:
+    cast(Callable[[], None], facade.install_audio_dependencies)()
 
 
 def _member(facade: Any, name: str) -> Any:
@@ -45,7 +54,7 @@ def render_audio(
     artifact_root: Path | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _rendering(facade).render_audio(source_path, state, config, output_path, on_command, artifact_root))
 
 
@@ -57,7 +66,7 @@ def render_converted_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _rendering(facade).render_converted_audio(source_path, config, target_format, output_path, on_command))
 
 
@@ -70,7 +79,7 @@ def render_size_reduced_audio(
     mode: object | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _rendering(facade).render_size_reduced_audio(
         source_path,
         config,
@@ -89,7 +98,7 @@ def render_audio_region_deleted(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _rendering(facade).render_audio_region_deleted(
         source_path,
         selection_start_ms,
@@ -109,7 +118,7 @@ def render_audio_region_kept(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _rendering(facade).render_audio_region_kept(
         source_path,
         selection_start_ms,
@@ -128,13 +137,13 @@ def make_output_filename(
     output_format: object = "source",
 ) -> str:
     facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
+    _install_dependencies(facade)
     return cast(str, _rendering(facade).make_output_filename(source_filename, now, token, output_format=output_format))
 
 
 def temp_final_path(filename: str) -> Path:
     facade = _facade()
-    _sync(facade, "_sync_rendering_dependencies")
+    _install_dependencies(facade)
     return cast(Path, _rendering(facade).temp_final_path(filename))
 
 
@@ -145,7 +154,7 @@ def render_noise_reduced_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_noise_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _noise(facade).render_noise_reduced_audio(source_path, config, output_path, on_command))
 
 
@@ -156,7 +165,7 @@ def render_pitch_hum_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_pitch_hum_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _pitch(facade).render_pitch_hum_audio(source_path, config, output_path, on_command))
 
 
@@ -167,7 +176,7 @@ def render_pitch_tier_hum_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_pitch_hum_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _pitch(facade).render_pitch_tier_hum_audio(source_path, config, output_path, on_command))
 
 
@@ -178,7 +187,7 @@ def render_rnnoise_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_noise_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _noise(facade).render_rnnoise_audio(source_path, config, output_path, on_command))
 
 
@@ -189,7 +198,7 @@ def render_dpdfnet_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_noise_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _noise(facade).render_dpdfnet_audio(source_path, config, output_path, on_command))
 
 
@@ -200,5 +209,5 @@ def render_voice_only_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     facade = _facade()
-    _sync(facade, "_sync_noise_dependencies")
+    _install_dependencies(facade)
     return cast(AudioProcessingResult, _noise(facade).render_voice_only_audio(source_path, config, output_path, on_command))

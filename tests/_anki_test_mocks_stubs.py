@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import types
+from collections.abc import Callable
+from concurrent.futures import Future
+from dataclasses import dataclass
+from typing import Any
 from unittest.mock import MagicMock
 
 
@@ -54,25 +58,56 @@ class _AnkiQt:
         pass
 
 
+@dataclass(frozen=True)
+class _ScheduledTask:
+    task: Callable[[], Any]
+    on_done: Callable[[Future[Any]], None] | None
+    future: Future[Any]
+    uses_collection: bool
+
+
 class _TaskManager:
-    def run_on_main(self, closure: object) -> None:
-        if callable(closure):
-            closure()
+    """Controllable task manager preserving Anki's Future callback contract."""
+
+    def __init__(self, *, auto_run: bool = True) -> None:
+        self.auto_run = auto_run
+        self.main_queue: list[Callable[[], Any]] = []
+        self.background_queue: list[_ScheduledTask] = []
+
+    def run_on_main(self, closure: Callable[[], Any]) -> None:
+        self.main_queue.append(closure)
+        if self.auto_run:
+            self.flush_main()
 
     def run_in_background(
         self,
-        task: object,
-        on_done: object = None,
+        task: Callable[[], Any],
+        on_done: Callable[[Future[Any]], None] | None = None,
         args: dict[str, object] | None = None,
         uses_collection: bool = True,
-    ) -> object:
-        del args, uses_collection
-        if callable(task):
-            result = task()
-            if callable(on_done):
-                on_done(types.SimpleNamespace(result=lambda: result))
-            return result
-        return object()
+    ) -> Future[Any]:
+        del args
+        scheduled = _ScheduledTask(task, on_done, Future(), uses_collection)
+        self.background_queue.append(scheduled)
+        if self.auto_run:
+            self.complete_next_background()
+        return scheduled.future
+
+    def flush_main(self) -> None:
+        while self.main_queue:
+            self.main_queue.pop(0)()
+
+    def complete_next_background(self) -> Future[Any]:
+        if not self.background_queue:
+            raise AssertionError("No background task is scheduled.")
+        scheduled = self.background_queue.pop(0)
+        try:
+            scheduled.future.set_result(scheduled.task())
+        except BaseException as exc:
+            scheduled.future.set_exception(exc)
+        if scheduled.on_done is not None:
+            scheduled.on_done(scheduled.future)
+        return scheduled.future
 
 
 class _Editor:
@@ -84,8 +119,8 @@ class _AnkiWebView:
     def __init__(self, *args: object, **kwargs: object) -> None:
         del args, kwargs
         self.requiresCol = True
-        self._bridge_command = None
-        self._bridge_context = None
+        self._bridge_command: object | None = None
+        self._bridge_context: object | None = None
         self._html = ""
         self._page = types.SimpleNamespace(
             runJavaScript=lambda _script, callback=None: callback(None) if callback else None
@@ -119,6 +154,9 @@ class _AnkiWebView:
 
     def page(self) -> object:
         return self._page
+
+    def cleanup(self) -> None:
+        pass
 
 
 class _UndoStatus:

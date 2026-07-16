@@ -111,32 +111,84 @@ def _extract_import_names(node: ast.Import | ast.ImportFrom) -> list[str]:
     return []
 
 
-def _collect_imports(nodes: list[ast.stmt], *, recurse_into_defs: bool) -> list[str]:
-    imports: list[str] = []
-    for node in nodes:
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            imports.extend(_extract_import_names(node))
-        elif isinstance(node, ast.If):
-            if not _is_type_checking_guard(node):
-                imports.extend(_collect_imports(node.body, recurse_into_defs=recurse_into_defs))
-                imports.extend(_collect_imports(node.orelse, recurse_into_defs=recurse_into_defs))
-        elif isinstance(node, ast.Try):
-            imports.extend(_collect_imports(node.body, recurse_into_defs=recurse_into_defs))
-            for handler in node.handlers:
-                imports.extend(_collect_imports(handler.body, recurse_into_defs=recurse_into_defs))
-            imports.extend(_collect_imports(node.orelse, recurse_into_defs=recurse_into_defs))
-            imports.extend(_collect_imports(node.finalbody, recurse_into_defs=recurse_into_defs))
-        elif recurse_into_defs and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            imports.extend(_collect_imports(node.body, recurse_into_defs=recurse_into_defs))
-    return imports
+class _ImportCollector(ast.NodeVisitor):
+    def __init__(self, *, recurse_into_defs: bool) -> None:
+        self.imports: list[str] = []
+        self._recurse_into_defs = recurse_into_defs
+
+    def visit_Import(self, node: ast.Import) -> None:
+        self.imports.extend(_extract_import_names(node))
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        self.imports.extend(_extract_import_names(node))
+
+    def visit_If(self, node: ast.If) -> None:
+        if not _is_type_checking_guard(node):
+            self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        if self._recurse_into_defs:
+            self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        if self._recurse_into_defs:
+            self.generic_visit(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        if self._recurse_into_defs:
+            self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if _is_import_module_call(node.func) and node.args:
+            module_name = _literal_dynamic_import_name(node.args[0])
+            if module_name is not None:
+                self.imports.append(module_name)
+        self.generic_visit(node)
+
+
+def _is_import_module_call(node: ast.expr) -> bool:
+    return (isinstance(node, ast.Name) and node.id == "import_module") or (
+        isinstance(node, ast.Attribute)
+        and node.attr == "import_module"
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "importlib"
+    )
+
+
+def _literal_dynamic_import_name(node: ast.expr) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if not isinstance(node, ast.JoinedStr) or not node.values:
+        return None
+    first, *rest = node.values
+    if not (
+        isinstance(first, ast.FormattedValue)
+        and isinstance(first.value, ast.Name)
+        and first.value.id == "__name__"
+    ):
+        return None
+    suffix_parts: list[str] = []
+    for value in rest:
+        if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+            return None
+        suffix_parts.append(value.value)
+    suffix = "".join(suffix_parts)
+    return suffix if suffix.startswith(".") else None
+
+
+def collect_imports_from_source(source: str, *, recurse_into_defs: bool) -> list[str]:
+    """Return static and supported literal dynamic imports from Python source."""
+    collector = _ImportCollector(recurse_into_defs=recurse_into_defs)
+    collector.visit(ast.parse(source))
+    return collector.imports
 
 
 def get_module_level_imports(path: Path) -> list[str]:
-    return _collect_imports(ast.parse(path.read_text(encoding="utf-8")).body, recurse_into_defs=False)
+    return collect_imports_from_source(path.read_text(encoding="utf-8"), recurse_into_defs=False)
 
 
 def get_all_imports(path: Path) -> list[str]:
-    return _collect_imports(ast.parse(path.read_text(encoding="utf-8")).body, recurse_into_defs=True)
+    return collect_imports_from_source(path.read_text(encoding="utf-8"), recurse_into_defs=True)
 
 
 def collect_private_cross_module_imports() -> list[tuple[str, str, str]]:
@@ -191,15 +243,19 @@ def _imports_anki(imports: list[str]) -> set[str]:
     return {m for m in imports if any(m == prefix or m.startswith(prefix + ".") for prefix in ANKI_PREFIXES)}
 
 
-def _detect_side_effects(path: Path) -> set[SideEffect]:
-    text = path.read_text(encoding="utf-8")
-    lines = [line for line in text.splitlines() if not line.strip().startswith("#")]
-    joined = "\n".join(lines)
+def detect_side_effects_from_source(source: str) -> set[SideEffect]:
+    """Detect configured call-shaped side effects without matching comments or strings."""
+    executable_segments = [ast.get_source_segment(source, node) or "" for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)]
+    joined = "\n".join(executable_segments)
     hits: set[SideEffect] = set()
     for side_effect, patterns in SIDE_EFFECT_PATTERNS.items():
         if any(re.search(pattern, joined) for pattern in patterns):
             hits.add(side_effect)
     return hits
+
+
+def _detect_side_effects(path: Path) -> set[SideEffect]:
+    return detect_side_effects_from_source(path.read_text(encoding="utf-8"))
 
 
 def observe_module(module_name: str) -> ModuleObservation:
@@ -262,6 +318,15 @@ def validate_contracts(
                     module=module_name,
                     kind="addon_deps",
                     detail=", ".join(extra_deps),
+                )
+            )
+        unused_deps = sorted(contract.allowed_addon_deps - observation.addon_deps)
+        if unused_deps:
+            violations.append(
+                ModuleViolation(
+                    module=module_name,
+                    kind="unused_addon_deps",
+                    detail=", ".join(unused_deps),
                 )
             )
         for forbidden_prefix in contract.forbidden_import_prefixes:

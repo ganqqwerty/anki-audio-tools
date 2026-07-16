@@ -141,7 +141,6 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "audio_operations",
-            "audio_processing_presets",
             "batch_operations",
             "browser_dialog_state",
             "browser_report",

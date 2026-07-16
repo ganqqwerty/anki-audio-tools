@@ -23,14 +23,7 @@ from anki_audio_quick_editor.support import (
     clear_latest_denoise_support_incident,
     latest_denoise_support_incident,
 )
-
-
-class ImmediateThread:
-    def __init__(self, target, daemon=True):
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
+from tests.thread_fakes import ImmediateThread
 
 
 class Editor:

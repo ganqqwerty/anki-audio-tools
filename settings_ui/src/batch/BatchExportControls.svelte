@@ -50,7 +50,12 @@
         data-testid="audio-export-destination"
         value={form.destinationPath}
       />
-      <button type="button" disabled={disabled} onclick={onChooseDestination}>
+      <button
+        type="button"
+        data-testid="audio-export-choose-destination"
+        disabled={disabled}
+        onclick={onChooseDestination}
+      >
         {t("audio_export.choose_destination")}
       </button>
     </div>

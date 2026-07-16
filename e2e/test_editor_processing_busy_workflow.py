@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+from e2e.conftest import runtime_addon_import_path
 from e2e.editor_graph_helpers import _click_graph_and_wait
 from e2e.editor_note_helpers import (
     DEFAULT_VISIBLE_EDITOR_BUTTONS,
@@ -15,6 +18,7 @@ from e2e.editor_note_helpers import (
     _sound_filename,
     _three_audio_field_note,
     _wait_for_generated_mp3,
+    _wait_for_status,
     _wait_for_status_flow,
 )
 from e2e.helpers import (
@@ -24,6 +28,7 @@ from e2e.helpers import (
     wait_for_js_condition,
     wait_for_selector,
 )
+from e2e.race_helpers import DelayedRenderer
 
 
 def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> None:
@@ -261,6 +266,7 @@ def test_processing_command_locks_playback_recording_history_graph_and_modificat
 def test_still_processing_status_is_replaced_after_mid_render_undo_request(
     anki_mw,
     ffmpeg_config,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_still_processing_volume_undo.wav"
@@ -269,24 +275,39 @@ def test_still_processing_status_is_replaced_after_mid_render_undo_request(
     _configure_ffmpeg(anki_mw, ffmpeg_config)
 
     editor, parent = _open_editor(anki_mw, note)
+    delayed = DelayedRenderer()
     try:
         wait_for_selector(editor.web, _button_selector("aqe:volume-up"), timeout=10.0)
+        monkeypatch.setattr(
+            runtime_addon_import_path(".editor_dependencies", "render_audio"),
+            delayed.render_audio,
+        )
         click_selector(editor.web, _button_selector("aqe:volume-up"), timeout=5.0)
-        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        delayed.wait_started()
+        wait_for_js_condition(
+            editor.web,
+            f"document.querySelector({json.dumps(_button_selector('aqe:undo'))})?.disabled === true",
+            lambda value: value is True,
+            timeout=5.0,
+        )
+
+        run_js(editor.web, "globalThis.pycmd('focus:0'); globalThis.pycmd('aqe:undo');")
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Still processing. Please wait.",
+            timeout=5.0,
+        )
+        delayed.allow_completion()
 
         final_status = _wait_for_status_flow(
             editor,
-            lambda status: status["text"] in {
-                "Increased volume by 15 dB.",
-                "Undid: Original audio.",
-            },
+            lambda status: status["text"] == "Increased volume by 15 dB.",
             timeout=10.0,
         )
 
-        if final_status["text"] == "Undid: Original audio.":
-            assert _sound_filename(note.fields[0]) == source.name
-        else:
-            assert _sound_filename(note.fields[0]) != source.name
+        assert delayed.completed.is_set(), "renderer completion was not observed"
+        assert final_status["text"] == "Increased volume by 15 dB."
+        assert _sound_filename(note.fields[0]) != source.name
     finally:
         editor.set_note(None)
         parent.close()

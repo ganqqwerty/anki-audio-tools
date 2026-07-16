@@ -6,6 +6,8 @@ import subprocess
 import time
 from pathlib import Path
 
+import pytest
+
 from e2e.conftest import runtime_addon_import_path
 from e2e.editor_audio_generation_helpers import _generate_tone_silence_tone
 from e2e.editor_graph_helpers import (
@@ -170,6 +172,8 @@ def test_silence_visualizer_renders_pitch_gaps_without_crashing(anki_mw, ffmpeg_
         parent.close()
 
 
+@pytest.mark.allow_error_log(r"anki_audio_quick_editor: boundary failed: editor\.worker\.graph_analysis")
+@pytest.mark.allow_error_log(r"editor_frontend\.status: editor visualizer status field=0 displayed error: AQE-GRAPH-001:")
 def test_visualizer_failure_is_non_mutating_and_edit_buttons_still_work(
     anki_mw,
     ffmpeg_config,

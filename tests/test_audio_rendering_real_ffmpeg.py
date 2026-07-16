@@ -12,7 +12,13 @@ from anki_audio_quick_editor.audio_processor import (
     temp_final_path,
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from tests.audio_fixtures import FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON, _run_ffmpeg
+from tests.audio_fixtures import (
+    FFMPEG_AVAILABLE,
+    FFMPEG_SKIP_REASON,
+    _ffmpeg_paths,
+    _run_ffmpeg,
+)
+from tests.media_oracles import db_ratio, decode_mono_f32, probe_audio, rms
 
 INPUT_FORMAT_FIXTURES = (
     ("aac", ("-c:a", "aac", "-f", "adts")),
@@ -56,12 +62,21 @@ def _generate_input_format(path: Path, *, output_args: tuple[str, ...]) -> None:
 
 
 @pytest.mark.allow_managed_runtime
-def test_render_audio_writes_temp_final_output_without_mutating_source_file(tmp_path: Path) -> None:
+def test_render_audio_writes_temp_final_output_without_mutating_source_file(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     assert FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
     source = tmp_path / "source.wav"
     _generate_tone(source, duration_s=1.0)
     original_source_bytes = source.read_bytes()
     desired_name = make_output_filename(source.name)
+    temp_root = tmp_path / "aqe_final_test"
+    temp_root.mkdir()
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_rendering.tempfile.mkdtemp",
+        lambda *, prefix: str(temp_root),
+    )
     final_output = temp_final_path(desired_name)
     output = render_audio(
         source,
@@ -120,7 +135,7 @@ def test_render_audio_speed_up_shows_reduced_duration_on_real_ffmpeg(tmp_path: P
 
 
 @pytest.mark.allow_managed_runtime
-def test_render_audio_volume_gain_adds_expected_filters_on_real_ffmpeg(tmp_path: Path) -> None:
+def test_render_audio_volume_gain_changes_decoded_pcm_by_expected_db(tmp_path: Path) -> None:
     assert FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
     source = tmp_path / "gain.wav"
     louder = tmp_path / "louder.mp3"
@@ -140,8 +155,15 @@ def test_render_audio_volume_gain_adds_expected_filters_on_real_ffmpeg(tmp_path:
         output_path=quieter,
     )
 
-    assert "volume=6.00dB" in format_ffmpeg_command(louder_result.command)
-    assert "volume=-6.00dB" in format_ffmpeg_command(quieter_result.command)
+    ffmpeg, ffprobe = _ffmpeg_paths()
+    source_rms = rms(decode_mono_f32(ffmpeg, source))
+    louder_rms = rms(decode_mono_f32(ffmpeg, louder))
+    quieter_rms = rms(decode_mono_f32(ffmpeg, quieter))
+
+    assert db_ratio(source_rms, louder_rms) == pytest.approx(6.0, abs=0.35)
+    assert db_ratio(source_rms, quieter_rms) == pytest.approx(-6.0, abs=0.35)
+    assert probe_audio(ffprobe, louder).duration_s == pytest.approx(1.0, abs=0.08)
+    assert probe_audio(ffprobe, quieter).duration_s == pytest.approx(1.0, abs=0.08)
     assert louder_result.output_path == louder
     assert quieter_result.output_path == quieter
 

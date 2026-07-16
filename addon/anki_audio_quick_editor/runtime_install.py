@@ -43,6 +43,7 @@ download_extract_promote = runtime_install_io.download_extract_promote
 _STATE_LOCK = threading.RLock()
 _INSTALL_THREAD: threading.Thread | None = None
 _LAST_STATUS: dict[str, Any] = {}
+_INSTALL_LISTENERS: list[Callable[[dict[str, Any]], None]] = []
 
 
 def runtime_status(addon_dir: Path) -> dict[str, Any]:
@@ -90,7 +91,11 @@ def ensure_runtime_async(
     global _INSTALL_THREAD
     with _STATE_LOCK:
         if _INSTALL_THREAD is not None and _INSTALL_THREAD.is_alive():
-            return dict(_LAST_STATUS)
+            current = dict(_LAST_STATUS)
+            if notify is not None and notify not in _INSTALL_LISTENERS:
+                _INSTALL_LISTENERS.append(notify)
+                notify_runtime_status(notify, current)
+            return current
         current_status = runtime_status(addon_dir)
         if current_status["phase"] == RUNTIME_PHASE_READY:
             _remember_status(current_status)
@@ -104,7 +109,7 @@ def ensure_runtime_async(
 
         thread = threading.Thread(
             target=_install_thread_main,
-            args=(addon_dir, notify),
+            args=(addon_dir,),
             daemon=True,
             name="aqe-runtime-install",
         )
@@ -112,7 +117,10 @@ def ensure_runtime_async(
         downloading["phase"] = RUNTIME_PHASE_DOWNLOADING
         downloading["message"] = "Downloading Audio Quick Editor runtime assets..."
         _remember_status(downloading)
-        notify_runtime_status(notify, downloading)
+        _INSTALL_LISTENERS.clear()
+        if notify is not None:
+            _INSTALL_LISTENERS.append(notify)
+        _notify_install_listeners(downloading)
         _INSTALL_THREAD = thread
     thread.start()
     return downloading
@@ -229,16 +237,25 @@ def _remember_status(payload: dict[str, Any]) -> None:
     _LAST_STATUS.update(payload)
 
 
-def _install_thread_main(addon_dir: Path, notify_fn: Callable[[dict[str, Any]], None] | None) -> None:
+def _notify_install_listeners(payload: dict[str, Any]) -> None:
+    with _STATE_LOCK:
+        listeners = tuple(_INSTALL_LISTENERS)
+    for listener in listeners:
+        notify_runtime_status(listener, payload)
+
+
+def _install_thread_main(addon_dir: Path) -> None:
     def progress(progress_status: dict[str, Any]) -> None:
         with _STATE_LOCK:
             _remember_status(progress_status)
-        notify_runtime_status(notify_fn, progress_status)
+        _notify_install_listeners(progress_status)
 
     final_status = ensure_runtime(addon_dir, progress=progress)
     with _STATE_LOCK:
         _remember_status(final_status)
-    notify_runtime_status(notify_fn, final_status)
+    _notify_install_listeners(final_status)
+    with _STATE_LOCK:
+        _INSTALL_LISTENERS.clear()
 
 
 def _handle_ready_runtime(

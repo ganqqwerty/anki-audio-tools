@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from e2e import conftest as e2e_conftest
@@ -10,8 +11,10 @@ class _FakeAudioConfig:
         self.ffmpeg_path = ffmpeg_path
 
 
-def test_e2e_default_config_leaves_ffmpeg_unpinned_for_runtime_resolution() -> None:
-    assert e2e_conftest._default_config()["ffmpeg_path"] == ""
+def test_e2e_default_config_comes_from_the_packaged_production_defaults() -> None:
+    defaults = json.loads((e2e_conftest.ADDON_DIR / "config.json").read_text(encoding="utf-8"))
+    assert defaults["ffmpeg_path"] == "/opt/homebrew/bin/ffmpeg"
+    assert defaults["_config_version"] == 2
 
 
 def test_e2e_ffmpeg_config_uses_runtime_aware_addon_helpers(monkeypatch, tmp_path: Path) -> None:

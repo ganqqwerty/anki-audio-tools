@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import types
+from concurrent.futures import Future
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -13,6 +15,8 @@ from anki_api_contract.discover import (
     ImportedObject,
     discover_anki_api_surface,
 )
+
+from tests._anki_test_mocks_stubs import _TaskManager
 
 SURFACE = discover_anki_api_surface()
 
@@ -52,8 +56,44 @@ def test_mocked_anki_imported_objects_exist(imported: ImportedObject) -> None:
 @pytest.mark.parametrize("use", SURFACE.callable_uses, ids=lambda item: item.display_name)
 def test_mocked_anki_callable_uses_are_declared(use: CallableUse) -> None:
     module = importlib.import_module(use.module)
+    resolved = _resolve_declared(module, use.qualname)
 
-    assert _resolve_declared(module, use.qualname) is not None
+    assert callable(resolved)
+    positional = [object()] * (use.positional_args + int(use.implicit_self))
+    keywords = {name: object() for name in use.keywords}
+    inspect.signature(resolved).bind(*positional, **keywords)
+
+
+def test_task_manager_can_hold_and_deliver_background_completion() -> None:
+    taskman = _TaskManager(auto_run=False)
+    callbacks: list[tuple[bool, int]] = []
+
+    future = taskman.run_in_background(
+        lambda: 42,
+        lambda completed: callbacks.append((completed.done(), completed.result())),
+        uses_collection=False,
+    )
+
+    assert not future.done()
+    assert len(taskman.background_queue) == 1
+    taskman.complete_next_background()
+    assert future.result() == 42
+    assert callbacks == [(True, 42)]
+
+
+def test_task_manager_delivers_exceptions_through_future() -> None:
+    taskman = _TaskManager(auto_run=False)
+    callbacks: list[Future[Any]] = []
+
+    def fail() -> None:
+        raise RuntimeError("boom")
+
+    future = taskman.run_in_background(fail, callbacks.append)
+    taskman.complete_next_background()
+
+    assert callbacks == [future]
+    with pytest.raises(RuntimeError, match="boom"):
+        future.result()
 
 
 def test_browser_menu_hook_wrapper_signature_is_discovered() -> None:

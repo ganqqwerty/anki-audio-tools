@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -26,12 +27,21 @@ from scripts.dev_tasks.python_env import (
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON_COVERAGE_FAIL_UNDER = 80
 COVERAGE_XML = ROOT / "coverage.xml"
+COVERAGE_JSON = ROOT / "coverage.json"
 SETTINGS_UI_LCOV = SETTINGS_UI_DIR / "coverage" / "lcov.info"
+RISK_COVERAGE_FLOORS = {
+    "addon/anki_audio_quick_editor/editor_region_delete.py": 55.0,
+    "addon/anki_audio_quick_editor/editor_region_delete_worker.py": 60.0,
+    "addon/anki_audio_quick_editor/reviewer_template_filter_integration.py": 60.0,
+    "addon/anki_audio_quick_editor/runtime_install.py": 60.0,
+    "addon/anki_audio_quick_editor/runtime_lookup.py": 60.0,
+    "addon/anki_audio_quick_editor/runtime_platform.py": 50.0,
+}
 
 
 def cmd_coverage() -> int:
     anki_python = _find_anki_python()
-    return _run(
+    rc = _run(
         [
             str(anki_python),
             "-m",
@@ -40,11 +50,34 @@ def cmd_coverage() -> int:
             "--cov",
             "--cov-branch",
             "--cov-report=term-missing",
+            f"--cov-report=json:{COVERAGE_JSON}",
             f"--cov-fail-under={PYTHON_COVERAGE_FAIL_UNDER}",
         ],
         label=f"python coverage (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)",
         show_output_on_failure=True,
     )
+    if rc != 0:
+        return rc
+    return _check_risk_coverage(COVERAGE_JSON)
+
+
+def _check_risk_coverage(report_path: Path) -> int:
+    """Enforce conservative per-file floors for high-risk orchestration modules."""
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    files = report.get("files", {})
+    failures: list[str] = []
+    for relative, floor in RISK_COVERAGE_FLOORS.items():
+        summary = files.get(relative, {}).get("summary", {})
+        actual = float(summary.get("percent_covered", 0.0))
+        if actual < floor:
+            failures.append(f"{relative}: {actual:.2f}% < {floor:.2f}%")
+    if failures:
+        print("ERROR: risk-tier coverage floors failed:", file=sys.stderr)
+        for failure in failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+    print(f"[dev] risk-tier coverage floors passed ({len(RISK_COVERAGE_FLOORS)} files)")
+    return 0
 
 
 def _prefix_settings_ui_lcov_paths() -> None:

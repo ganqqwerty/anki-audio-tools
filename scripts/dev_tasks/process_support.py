@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import queue
+import signal
 import subprocess
 import sys
 import threading
@@ -70,21 +72,62 @@ def handle_idle_warning(
     return next_warning
 
 
-def terminate_process_after_idle(
+def terminate_process_tree(
     process: subprocess.Popen[str],
     *,
-    idle_for: float,
+    reason: str,
     terminate_grace_s: float,
 ) -> None:
-    print(
-        f"[dev] idle timeout reached after {format_duration(idle_for)}; terminating command...",
-        file=sys.stderr,
-    )
-    process.terminate()
+    print(f"[dev] {reason}; terminating command process tree...", file=sys.stderr)
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except (PermissionError, ProcessLookupError):
+            return
+    elif os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T"],
+            check=False,
+            capture_output=True,
+        )
+    else:
+        process.terminate()
     try:
         process.wait(timeout=terminate_grace_s)
     except subprocess.TimeoutExpired:
-        process.kill()
+        if os.name == "posix":
+            os.killpg(process.pid, signal.SIGKILL)
+        elif os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                check=False,
+                capture_output=True,
+            )
+        else:
+            process.kill()
+    if os.name == "posix":
+        deadline = time.monotonic() + terminate_grace_s
+        while time.monotonic() < deadline:
+            try:
+                os.killpg(process.pid, 0)
+            except (PermissionError, ProcessLookupError):
+                break
+            time.sleep(0.01)
+        else:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
+def process_group_exists(process: subprocess.Popen[str]) -> bool:
+    if os.name != "posix":
+        return True
+    try:
+        os.killpg(process.pid, 0)
+    except (PermissionError, ProcessLookupError):
+        return False
+    return True
 
 
 def format_exit_status(
@@ -95,7 +138,7 @@ def format_exit_status(
     failure_output_available: bool = False,
 ) -> str:
     if interrupted_for_idle:
-        status = "FAILED: terminated after idle timeout"
+        status = "FAILED: terminated after timeout"
     elif rc == 0:
         status = "finished with exit code 0"
     else:
@@ -115,10 +158,41 @@ def handle_idle_queue_wait(
     stream_closed: bool,
     idle_warning_s: float,
     idle_timeout_s: float,
+    absolute_timeout_s: float,
     terminate_grace_s: float,
     stream_output: bool,
     buffered_output: list[str] | None,
 ) -> tuple[bool, bool, bool, float, float]:
+    elapsed = time.monotonic() - start
+    if process.poll() is not None:
+        while True:
+            try:
+                pending = output_queue.get_nowait()
+            except queue.Empty:
+                break
+            if pending is None:
+                stream_closed = True
+                continue
+            if stream_output:
+                sys.stdout.write(pending)
+            elif buffered_output is not None:
+                buffered_output.append(pending)
+        if stream_output:
+            sys.stdout.flush()
+        if not stream_closed and process_group_exists(process):
+            terminate_process_tree(
+                process,
+                reason="command exited while descendants still held its output pipe",
+                terminate_grace_s=terminate_grace_s,
+            )
+        return True, False, stream_closed, last_output, next_warning
+    if absolute_timeout_s and elapsed >= absolute_timeout_s and process.poll() is None:
+        terminate_process_tree(
+            process,
+            reason=f"absolute timeout reached after {format_duration(elapsed)}",
+            terminate_grace_s=terminate_grace_s,
+        )
+        return False, True, stream_closed, last_output, next_warning
     try:
         line = output_queue.get(timeout=1)
     except queue.Empty:
@@ -132,14 +206,12 @@ def handle_idle_queue_wait(
             idle_warning_s=idle_warning_s,
         )
         if idle_timeout_s and idle_for >= idle_timeout_s and process.poll() is None:
-            terminate_process_after_idle(
+            terminate_process_tree(
                 process,
-                idle_for=idle_for,
+                reason=f"idle timeout reached after {format_duration(idle_for)}",
                 terminate_grace_s=terminate_grace_s,
             )
             return False, True, stream_closed, last_output, next_warning
-        if stream_closed and process.poll() is not None:
-            return True, False, stream_closed, last_output, next_warning
         return False, False, stream_closed, last_output, next_warning
     if line is None:
         if process.poll() is not None:

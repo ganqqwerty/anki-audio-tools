@@ -88,7 +88,7 @@ AUDIO_CORE_CONTRACTS: dict[str, ModuleContract] = {
     "audio_commands_runtime": contract(
         "audio_commands_runtime",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_commands", "ffmpeg_output_contracts"),
+        allowed_addon_deps=("ffmpeg_output_contracts",),
     ),
     "audio_export_types": contract(
         "audio_export_types",
@@ -148,7 +148,6 @@ AUDIO_CORE_CONTRACTS: dict[str, ModuleContract] = {
             "audio_tools",
             "audio_types",
             "errors",
-            "support",
         ),
         allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
     ),
@@ -264,7 +263,6 @@ AUDIO_CORE_CONTRACTS: dict[str, ModuleContract] = {
         "audio_processor",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
-            "audio_artifacts",
             "audio_commands",
             "audio_deps",
             "audio_external",
@@ -277,7 +275,6 @@ AUDIO_CORE_CONTRACTS: dict[str, ModuleContract] = {
             "audio_processor_rendering_portal",
             "audio_processor_runtime",
             "audio_rendering",
-            "audio_size_reduction",
             "audio_state",
             "audio_tools",
             "audio_types",
@@ -286,7 +283,7 @@ AUDIO_CORE_CONTRACTS: dict[str, ModuleContract] = {
     "audio_processor_rendering_portal": contract(
         "audio_processor_rendering_portal",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_processor", "audio_state", "audio_types"),
+        allowed_addon_deps=("audio_state", "audio_types"),
     ),
     "audio_processor_runtime": contract(
         "audio_processor_runtime",

@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+from scripts.dev_tasks.node_tools import frontend_npm_command
 from scripts.dev_tasks.process import run_capture, run_process
 from scripts.dev_tasks.python_env import find_anki_python
 from scripts.dev_tasks.quality import (
@@ -18,6 +19,52 @@ from scripts.dev_tasks.quality import (
 
 ROOT = Path(__file__).resolve().parents[2]
 RADON_FAIL_MIN_RANK = "C"
+MUTATION_TEST_SELECTION = (
+    "tests/test_audio_state.py",
+    "tests/test_config_migration_defaults.py",
+    "tests/test_config_migration_editor_buttons.py",
+    "tests/test_config_migration_normalization.py",
+    "tests/test_config_migration_visible_editor_buttons.py",
+    "tests/test_sound_refs.py",
+    "tests/test_settings_state.py",
+    "tests/test_batch_visualization.py",
+    "tests/test_prosody_svg.py",
+    "tests/test_audio_tools.py",
+    "tests/test_architecture/test_inspection_detectors.py",
+    "tests/test_editor_region_delete_integration.py",
+    "tests/test_release_archive_validation.py",
+    "tests/test_runtime_manager_install.py",
+    "tests/test_runtime_manager_state.py",
+    "tests/test_runtime_manager_paths.py",
+    "tests/test_prosody_cache.py",
+    "tests/test_prosody_fallback.py",
+)
+MUTATION_GROUPS = {
+    "architecture": (
+        "tests.test_architecture.inspection*",
+        "scripts.graphs.python_modules*",
+    ),
+    "config": ("addon.anki_audio_quick_editor.config_migration*",),
+    "region-delete": (
+        "addon.anki_audio_quick_editor.editor_region_delete*",
+        "addon.anki_audio_quick_editor.editor_region_delete_worker*",
+    ),
+    "release": (
+        "addon.anki_audio_quick_editor.runtime_manifest*",
+        "addon.anki_audio_quick_editor.runtime_platform*",
+    ),
+    "runtime": (
+        "addon.anki_audio_quick_editor.runtime_install*",
+        "addon.anki_audio_quick_editor.runtime_install_io*",
+        "addon.anki_audio_quick_editor.runtime_lookup*",
+        "addon.anki_audio_quick_editor.runtime_state*",
+    ),
+    "prosody": (
+        "addon.anki_audio_quick_editor.prosody_cache*",
+        "addon.anki_audio_quick_editor.prosody_fallback*",
+        "addon.anki_audio_quick_editor.prosody_praat*",
+    ),
+}
 
 
 def cmd_complexity(_command_args: list[str]) -> int:
@@ -150,7 +197,42 @@ def cmd_deps(_command_args: list[str]) -> int:
 
 
 def cmd_muttest(command_args: list[str]) -> int:
+    if command_args == ["html-audio"]:
+        command = frontend_npm_command("test:mutation:html-audio")
+        if command is None:
+            print("ERROR: npm or a supported frontend script runner is required.", file=sys.stderr)
+            return 1
+        return run_process(command, cwd=ROOT / "settings_ui", label="HTML audio mutation testing")
     anki_python = find_anki_python()
+    if command_args == ["smoke"]:
+        return run_process(
+            [
+                str(anki_python),
+                "-m",
+                "pytest",
+                "--collect-only",
+                "-q",
+                "-p",
+                "no:randomly",
+                "-p",
+                "no:random-order",
+                "-c",
+                "mutmut-pyproject.toml",
+                *MUTATION_TEST_SELECTION,
+            ],
+            label="mutation test collection smoke",
+        )
+    if len(command_args) == 2 and command_args[0] == "group":
+        group = command_args[1]
+        patterns = MUTATION_GROUPS.get(group)
+        if patterns is None:
+            print(
+                f"[dev] unknown mutation group {group!r}; choose from "
+                + ", ".join(sorted(MUTATION_GROUPS)),
+                file=sys.stderr,
+            )
+            return 2
+        command_args = ["run", *patterns]
     mutmut_args = command_args
     if not mutmut_args or mutmut_args[0].startswith("-"):
         mutmut_args = ["run", *mutmut_args]
@@ -163,6 +245,7 @@ def cmd_muttest(command_args: list[str]) -> int:
         "print-time-estimates": "mutmut time estimates",
         "export-cicd-stats": "mutmut CI/CD stats export",
         "apply": "mutmut apply mutant",
+        "smoke": "mutation test collection smoke",
     }
     rc = run_process(
         [str(anki_python), "-m", "mutmut", *mutmut_args],

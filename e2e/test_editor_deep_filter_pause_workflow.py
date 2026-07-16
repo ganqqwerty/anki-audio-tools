@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from e2e.conftest import import_runtime_addon_module
 from e2e.editor_audio_generation_helpers import _generate_tone_silence_tone
 from e2e.editor_note_helpers import (
@@ -107,6 +109,8 @@ def test_shorten_pauses_uses_dpdfnet_analysis_and_retains_artifacts(
         _cleanup_artifact_dirs(artifact_root, source)
 
 
+@pytest.mark.allow_error_log(r"editor_processing: boundary failed: editor\.worker\.render")
+@pytest.mark.allow_error_log(r"editor_frontend\.status: editor status displayed error: AQE-AUDIO-001:")
 def test_shorten_pauses_invalid_source_leaves_note_unchanged(
     anki_mw,
     ffmpeg_config,

@@ -119,24 +119,90 @@ def wait_for_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOU
 
 def click_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOUT) -> None:
     deadline = time.time() + timeout
-    clicked: list[bool | None] = [None]
+    result: list[str | None] = [None]
 
     def _capture(value):
-        clicked[0] = value is True
+        result[0] = str(value)
 
     while time.time() < deadline:
-        clicked[0] = None
+        result[0] = None
         run_js(
             target,
             f"""
             (() => {{
-              const node = document.querySelector({json.dumps(selector)});
-              if (!node) return false;
-              if (node.disabled === true || node.getAttribute("aria-disabled") === "true") return false;
-              const rect = node.getBoundingClientRect();
-              const clientX = rect.left + Math.min(rect.width / 2, Math.max(rect.width - 1, 1));
-              const clientY = rect.top + Math.min(rect.height / 2, Math.max(rect.height - 1, 1));
-              const base = {{ bubbles: true, button: 0, buttons: 1, clientX, clientY, composed: true }};
+              let node = document.querySelector({json.dumps(selector)});
+              if (!node) return "missing";
+              if (node.disabled === true || node.getAttribute("aria-disabled") === "true") return "disabled";
+              const style = window.getComputedStyle(node);
+              if (
+                style.display === "none" ||
+                style.visibility !== "visible" ||
+                style.pointerEvents === "none" ||
+                Number(style.opacity) === 0
+              ) return `style:${{style.display}}:${{style.visibility}}:${{style.pointerEvents}}:${{style.opacity}}`;
+              let rect = node.getBoundingClientRect();
+              if (rect.bottom <= 0 || rect.top >= window.innerHeight) {{
+                node.scrollIntoView({{ block: "center", inline: "nearest" }});
+                rect = node.getBoundingClientRect();
+              }}
+              if (rect.width <= 0 || rect.height <= 0) return `geometry:${{rect.width}}x${{rect.height}}`;
+              const left = Math.max(0, rect.left);
+              const right = Math.min(window.innerWidth, rect.right);
+              const top = Math.max(0, rect.top);
+              const bottom = Math.min(window.innerHeight, rect.bottom);
+              const clientX = (left + right) / 2;
+              const clientY = (top + bottom) / 2;
+              if (
+                right <= left || bottom <= top
+              ) return `viewport:${{clientX}},${{clientY}}`;
+              const candidates = [
+                [clientX, clientY], [left + 2, top + 2], [right - 2, top + 2],
+                [left + 2, bottom - 2], [right - 2, bottom - 2],
+              ];
+              const point = candidates.find(([x, y]) => {{
+                const candidateHit = document.elementFromPoint(x, y);
+                const currentNode = candidateHit?.closest?.({json.dumps(selector)});
+                return candidateHit && (
+                  candidateHit === node || node.contains(candidateHit) || currentNode === document.querySelector({json.dumps(selector)})
+                );
+              }});
+              const hit = document.elementFromPoint(clientX, clientY);
+              if (!point) {{
+                let overlay = hit;
+                while (overlay) {{
+                  const position = window.getComputedStyle(overlay).position;
+                  if (position === "sticky" || position === "fixed") break;
+                  overlay = overlay.parentElement;
+                }}
+                if (overlay) {{
+                  const overlayRect = overlay.getBoundingClientRect();
+                  const delta = rect.top >= overlayRect.top ? overlayRect.height + 8 : -(overlayRect.height + 8);
+                  let scroller = node.parentElement;
+                  while (scroller) {{
+                    const scrollerStyle = window.getComputedStyle(scroller);
+                    const canScroll = /(auto|scroll|overlay)/.test(scrollerStyle.overflowY)
+                      && scroller.scrollHeight > scroller.clientHeight;
+                    if (canScroll) break;
+                    scroller = scroller.parentElement;
+                  }}
+                  const before = scroller?.scrollTop ?? window.scrollY;
+                  if (scroller) scroller.scrollTop += delta;
+                  else window.scrollBy(0, delta);
+                  const after = scroller?.scrollTop ?? window.scrollY;
+                  return `scrolling-overlay:target=${{rect.top}}-${{rect.bottom}}:overlay=${{overlayRect.top}}-${{overlayRect.bottom}}:scroll=${{before}}-${{after}}:max=${{scroller ? scroller.scrollHeight - scroller.clientHeight : document.documentElement.scrollHeight - window.innerHeight}}`;
+                }}
+                if (node.getAttribute("data-aqe-click-scroll-attempted") !== "true") {{
+                  node.setAttribute("data-aqe-click-scroll-attempted", "true");
+                  node.scrollIntoView({{ block: "center", inline: "nearest" }});
+                  return "scrolling-covered-target";
+                }}
+                return `covered:${{hit?.tagName || "none"}}:${{hit?.getAttribute?.("data-testid") || ""}}:${{hit?.className || ""}}:command=${{hit?.closest?.('[data-aqe-command]')?.getAttribute?.('data-aqe-command') || ''}}:html=${{hit?.parentElement?.outerHTML?.slice?.(0, 500) || ''}}:rect=${{rect.left}},${{rect.top}},${{rect.right}},${{rect.bottom}}`;
+              }}
+              const [clickX, clickY] = point;
+              const resolvedNode = document.elementFromPoint(clickX, clickY)?.closest?.({json.dumps(selector)});
+              if (resolvedNode) node = resolvedNode;
+              node.removeAttribute("data-aqe-click-scroll-attempted");
+              const base = {{ bubbles: true, button: 0, buttons: 1, clientX: clickX, clientY: clickY, composed: true }};
               if (typeof PointerEvent === "function") {{
                 node.dispatchEvent(new PointerEvent("pointerdown", {{ ...base, pointerId: 1, pointerType: "mouse" }}));
               }}
@@ -146,18 +212,53 @@ def click_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOUT) 
               }}
               node.dispatchEvent(new MouseEvent("mouseup", {{ ...base, buttons: 0 }}));
               node.dispatchEvent(new MouseEvent("click", {{ ...base, buttons: 0, detail: 1 }}));
-              return true;
+              return "clicked";
             }})()
             """,
             _capture,
         )
-        while clicked[0] is None and time.time() < deadline:
+        while result[0] is None and time.time() < deadline:
             _run_event_loop_step()
-        if clicked[0] is True:
+        if result[0] == "clicked":
             _run_event_loop_step()
             return
         _run_event_loop_step()
-    raise TimeoutError(f"Timed out clicking selector: {selector}")
+    raise TimeoutError(f"Timed out clicking selector: {selector}; last result={result[0]!r}")
+
+
+def trusted_pointer_to_selector(target, selector: str, *, click: bool) -> None:
+    """Move or click through Qt at the center of a verified WebView element."""
+    from PyQt6.QtCore import QPoint, Qt
+    from PyQt6.QtTest import QTest
+
+    point = wait_for_js_condition(
+        target,
+        f"""
+        (() => {{
+          const node = document.querySelector({json.dumps(selector)});
+          if (!node || node.disabled || node.getAttribute('aria-disabled') === 'true') return null;
+          const rect = node.getBoundingClientRect();
+          return {{ x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) }};
+        }})()
+        """,
+        lambda value: isinstance(value, dict),
+        timeout=5.0,
+    )
+    web_point = QPoint(int(point["x"]), int(point["y"]))
+    widget = target.childAt(web_point) or target.focusProxy() or target
+    widget_point = widget.mapFrom(target, web_point) if widget is not target else web_point
+    if click:
+        QTest.mouseClick(
+            widget,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            widget_point,
+        )
+    else:
+        QTest.mouseMove(target, QPoint(1, 1))
+        _run_event_loop_step()
+        QTest.mouseMove(widget, widget_point)
+    _run_event_loop_step()
 
 
 def generate_tone(ffmpeg_config, path: Path, duration_s: float) -> None:

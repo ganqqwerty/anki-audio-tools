@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess  # nosec B404
+import sys
 import tempfile
 import uuid
 from collections.abc import Callable
@@ -31,6 +32,8 @@ from .audio_processor_runtime import (
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_types import AudioProcessingResult
+
+_render_portal.configure_facade_provider(lambda: sys.modules[__name__])
 
 _BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
 BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
@@ -73,7 +76,8 @@ def _bundled_deep_filter_path() -> Path | None:
     return _ORIGINAL_BUNDLED_DEEP_FILTER_PATH()
 
 
-def _audio_module_deps() -> AudioModuleDeps:
+def audio_module_dependencies() -> AudioModuleDeps:
+    """Return the facade's current typed dependency set."""
     return AudioModuleDeps(
         find_ffmpeg=find_ffmpeg,
         find_ffprobe=find_ffprobe,
@@ -96,11 +100,23 @@ def _audio_module_deps() -> AudioModuleDeps:
     )
 
 
-def _sync_tool_dependencies() -> None:
+def install_audio_dependencies(deps: AudioModuleDeps | None = None) -> None:
+    """Install one typed dependency set into the compatibility leaf modules."""
+    resolved = deps or audio_module_dependencies()
     sync_tool_dependencies(
         _audio_tools,
-        _audio_module_deps(),
+        resolved,
     )
+    sync_external_dependencies(_audio_external, resolved)
+    sync_pause_dependencies(
+        _audio_pause_pipeline,
+        _audio_pause_pipeline_steps,
+        _audio_pause_pipeline_stage,
+        resolved,
+    )
+    sync_rendering_dependencies(_audio_rendering, resolved)
+    sync_noise_dependencies(_audio_noise_reduction, resolved)
+    sync_pitch_hum_dependencies(_audio_pitch_hum, resolved)
 
 
 def current_platform_key() -> str | None:
@@ -128,17 +144,17 @@ def tool_source_label(tool_path: Path, *, configured_path: str = "") -> str:
 
 
 def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
-    _sync_tool_dependencies()
+    install_audio_dependencies()
     return _audio_tools.find_ffmpeg(configured_path)
 
 
 def find_ffprobe(ffmpeg_path: Path) -> Path:
-    _sync_tool_dependencies()
+    install_audio_dependencies()
     return _audio_tools.find_ffprobe(ffmpeg_path)
 
 
 def find_deep_filter(configured_path: str = "") -> Path:
-    _sync_tool_dependencies()
+    install_audio_dependencies()
     return _audio_tools.find_deep_filter(configured_path)
 
 
@@ -147,42 +163,35 @@ def expected_bundled_rnnoise_dir() -> Path | None:
 
 
 def find_rnnoise_bundle() -> Path:
-    _sync_tool_dependencies()
+    install_audio_dependencies()
     return _audio_tools.find_rnnoise_bundle(
-        expected_bundled_tool_path=expected_bundled_tool_path,
+        get_expected_bundled_tool_path=expected_bundled_tool_path,
     )
 
 
 def find_dpdfnet_bundle() -> Path:
-    _sync_tool_dependencies()
+    install_audio_dependencies()
     return _audio_tools.find_dpdfnet_bundle()
 
 
 def find_spleeter_bundle() -> tuple[Path, Path, Path]:
-    _sync_tool_dependencies()
+    install_audio_dependencies()
     return _audio_tools.find_spleeter_bundle(
-        expected_bundled_tool_path=expected_bundled_tool_path,
-        expected_bundled_spleeter_model_path=expected_bundled_spleeter_model_path,
+        get_expected_bundled_tool_path=expected_bundled_tool_path,
+        get_expected_bundled_spleeter_model_path=expected_bundled_spleeter_model_path,
     )
 
 
 def find_silero_vad_bundle() -> tuple[Path, Path]:
-    _sync_tool_dependencies()
+    install_audio_dependencies()
     return _audio_tools.find_silero_vad_bundle(
-        expected_bundled_tool_path=expected_bundled_tool_path,
-        expected_bundled_silero_vad_model_path=expected_bundled_silero_vad_model_path,
-    )
-
-
-def _sync_external_dependencies() -> None:
-    sync_external_dependencies(
-        _audio_external,
-        _audio_module_deps(),
+        get_expected_bundled_tool_path=expected_bundled_tool_path,
+        get_expected_bundled_silero_vad_model_path=expected_bundled_silero_vad_model_path,
     )
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
-    _sync_external_dependencies()
+    install_audio_dependencies()
     return _audio_external.probe_duration_ms(source_path, config)
 
 
@@ -192,12 +201,12 @@ def run_external_command(
         timeout_seconds: float | None = None,
         env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    _sync_external_dependencies()
+    install_audio_dependencies()
     return _audio_external.run_external_command(command, launch_error_message, timeout_seconds, env)
 
 
 def external_command_run_kwargs() -> dict[str, Any]:
-    _sync_external_dependencies()
+    install_audio_dependencies()
     return _audio_external.external_command_run_kwargs()
 
 
@@ -206,15 +215,6 @@ def render_external_error_message(
         default_message: str,
 ) -> str:
     return _audio_external.render_external_error_message(result, default_message)
-
-
-def _sync_pause_dependencies() -> None:
-    sync_pause_dependencies(
-        _audio_pause_pipeline,
-        _audio_pause_pipeline_steps,
-        _audio_pause_pipeline_stage,
-        _audio_module_deps(),
-    )
 
 
 def render_pause_removal_pipeline_audio(
@@ -228,7 +228,7 @@ def render_pause_removal_pipeline_audio(
     artifact_root: Path | None,
     source_duration_ms: int,
 ) -> AudioProcessingResult:
-    _sync_pause_dependencies()
+    install_audio_dependencies()
     return _audio_pause_pipeline.render_pause_removal_pipeline_audio(
         source_path,
         state,
@@ -238,25 +238,4 @@ def render_pause_removal_pipeline_audio(
         on_command,
         artifact_root=artifact_root,
         source_duration_ms=source_duration_ms,
-    )
-
-
-def _sync_rendering_dependencies() -> None:
-    sync_rendering_dependencies(
-        _audio_rendering,
-        _audio_module_deps(),
-    )
-
-
-def _sync_noise_dependencies() -> None:
-    sync_noise_dependencies(
-        _audio_noise_reduction,
-        _audio_module_deps(),
-    )
-
-
-def _sync_pitch_hum_dependencies() -> None:
-    sync_pitch_hum_dependencies(
-        _audio_pitch_hum,
-        _audio_module_deps(),
     )

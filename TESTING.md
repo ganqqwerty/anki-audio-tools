@@ -25,7 +25,7 @@ python3 scripts/dev.py test-e2e-parallel
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
 - `settings_ui/tests/` covers bridge envelopes, async job plumbing, logging, frontend independence guardrails, the settings UI, Browser batch UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the ignored generated frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
 - `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
-- `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 80%.
+- `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage, fails below 80% aggregate coverage, and enforces conservative per-file floors for critical runtime, region-delete, and Reviewer orchestration modules.
 - `python3 scripts/dev.py qodana` runs JetBrains Qodana with `qodana.yaml` and fails on any reported problem.
 - `python3 scripts/dev.py sonar` regenerates Python XML coverage and frontend LCOV from scratch, waits for the Sonar quality gate, and fails on missing reports or a failed quality gate.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing through the same runtime-aware tool discovery used in production.
@@ -114,7 +114,11 @@ Qodana uses `qodana-python-community` in native mode and `failThreshold: 0`, so 
 
 The file-length policy warns above 400 physical lines and fails above 500 physical lines for hand-maintained Python, TypeScript, and Svelte files. Generated contract output and committed webview bundle output are excluded by explicit generated-file predicates, and contract freshness remains covered by `python3 scripts/dev.py contracts-check`.
 
-Python coverage uses branch coverage and fails below 80%. Frontend coverage thresholds are enforced by Vitest: 80% lines/functions/statements, 70% branches, and 90% lines/functions/statements for `settings_ui/src/editor-inline/`.
+Python coverage uses branch coverage and fails below 80% overall, then applies
+the risk-file floors declared in `scripts/dev_tasks/coverage.py`. Frontend
+coverage thresholds are enforced by Vitest both globally and for named
+high-risk editor/settings state modules; these are ratchets, not target quality
+levels, and should increase as focused behavioral coverage lands.
 
 SonarQube is opt-in because it needs `sonar-scanner` and `SONAR_TOKEN`, but when run it is a hard gate: coverage reports must be freshly generated and the scanner waits for the server quality gate. Generated contracts are excluded from Sonar issue and coverage accounting. The inline editor bundle intentionally keeps the browser `window.__aqe*` bridge contract, so Sonar's `typescript:S7764` global-object preference is ignored only under `settings_ui/src/editor-inline/**`.
 
@@ -171,14 +175,24 @@ Pause removal has focused unit tests because it combines detector-specific comma
 
 ## Mutation Testing
 
-Mutation testing is available as an advisory, opt-in workflow for the deterministic Python core. It is not part of `python3 scripts/dev.py check` and it is not a feature-completion gate.
+Mutation testing has a cheap collection smoke in `python3 scripts/dev.py check`.
+Full mutation execution remains scheduled/advisory because of its cost.
 
-The mutation scope is configured in [`pyproject.toml`](pyproject.toml) under `[tool.mutmut]`, which defines `paths_to_mutate` and `do_not_mutate`. The mutmut run uses the Anki bundled Python environment via `scripts/dev.py`, mutates only covered lines, disables pytest randomization, and limits test selection to the matching focused unit-test files.
+Python mutation uses the dedicated `mutmut-pyproject.toml` configuration with a
+fixed random seed. Focused groups cover architecture detectors, config,
+region deletion, release, runtime, and prosody. The HTML-audio session reducer
+uses Stryker with the real Vitest transition matrix. Scheduled jobs publish all
+mutmut outcome categories and `mutation-diff.json`, which compares the current
+counts with the previous successful workflow artifact when one exists.
 
 Useful commands:
 
 ```bash
 python3 scripts/dev.py muttest run
+python3 scripts/dev.py muttest smoke
+python3 scripts/dev.py muttest group architecture
+python3 scripts/dev.py muttest group runtime
+python3 scripts/dev.py muttest html-audio
 python3 scripts/dev.py muttest results
 python3 scripts/dev.py muttest show <mutant>
 python3 scripts/dev.py muttest tests-for-mutant <mutant>
@@ -240,7 +254,12 @@ The e2e suite uses a temporary `ANKI_BASE`, copies the add-on under `addons21/10
 
 Reviewer e2e tests should remain user-reachable: actions are exercised through context menu commands and visible controls. Assertions that depend on private reviewer hook output are intentionally kept in focused unit tests under `tests/test_reviewer_integration_*.py` so the e2e boundary remains "observable behavior only."
 
-E2E tests run in randomized order and Anki config is persistent inside the temporary add-on profile for the duration of a test. When adding a config key, update the e2e default-config helpers so the new setting is explicitly reset to its production default unless a test opts into another value. This prevents one settings-dialog test from silently changing later editor tests.
+E2E tests run in randomized order. Before and after every ordinary item, the
+harness builds the complete baseline from production config defaults,
+`migrate_config()`, and the Settings Save backend. This resets config plus its
+logging/debug side effects without a hand-maintained E2E dictionary. The
+`preserve_e2e_config(reason)` marker is reserved for reviewed same-session
+persistence workflows and requires a reason during collection.
 
 Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. Shared e2e defaults intentionally leave `ffmpeg_path` empty so those tests exercise the same lookup order as production: configured path when set, then managed runtime, package `bin/` as a source-tree fallback, then `PATH` as a compatibility fallback. Do not pin machine-specific Homebrew or Windows paths in the shared e2e defaults.
 
@@ -254,8 +273,96 @@ The inline editor has an additional in-between integration layer in `settings_ui
 
 When adding or changing editor toolbar or selection-panel command buttons, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) and keep the settings visibility/display-mode architecture guard passing. It maps current editor commands to behavior expectations, e2e/unit coverage, and known buttons that intentionally diverge from standard modification-button rules.
 
-Browser batch operations are covered by Python unit tests for hook registration, WebView shell behavior, state/contract decoding, batch progress/cancel semantics, SVG media writes, denoise parameter routing, skip/failure handling, and target-field appends. The Svelte batch UI is covered in `settings_ui/tests/`. Direct real-WebView batch dialog race coverage lives in `e2e/test_browser_batch_race_workflow.py`; there is still no full Browser-selection-to-dialog e2e workflow, so add one before making risky Browser selection or context-menu changes.
+Browser batch operations are covered by Python unit tests for hook registration,
+WebView shell behavior, state/contract decoding, progress/cancel semantics, SVG
+media writes, denoise routing, skip/failure handling, and target-field appends.
+The Svelte UI is covered in `settings_ui/tests/`. Real Browser selection,
+dialog, decoded output, race, and close cleanup paths live in
+`e2e/test_browser_batch_workflow.py` and
+`e2e/test_browser_batch_race_workflow.py`. Decoded semantic coverage for
+convert, speed, volume, denoise, pause removal, size reduction, graph, and
+preset workflows lives in `e2e/test_browser_batch_operations_workflow.py`;
+multi-note partial failure, missing media, multi-field isolation, and
+barrier-driven cancellation remain in `e2e/test_browser_batch_workflow.py`.
 
-Playback interval e2e tests patch Anki's `av_player` with a fake recorder instead of relying on speakers, microphone capture, or an audio-listening model. The recorder observes `play_tags()`, `seek_relative()`, `stop_and_clear_queue()`, and `toggle_pause()`, and derives the effective original-file `start_ms`/`end_ms` interval AQE asked Anki to play. Cursor playback should use temporary `aqe_playback_*__from_<ms>ms_*.mp3` segments instead of relative seek.
+The E2E harness restores the complete production-default migrated config and
+process-global state for every unmarked item. Unexpected native playback and
+Python/JavaScript/Qt error channels fail closed. Use the narrow
+`allow_native_playback` and `allow_error_log` markers only when the operation or
+message is itself part of the asserted contract. The click helper refuses
+hidden, disabled, covered, offscreen, or wrong-hit-target elements; direct DOM
+activation belongs only in explicitly marked `in_anki_component` tests.
 
-This verifies AQE's playback command contract deterministically. Physical audio output is intentionally outside the normal test gate.
+Every collected test receives exactly one primary classification: `unit`,
+`component`, `in_anki_component`, or `e2e`. Runtime-backed tests additionally
+carry `external_runtime`; real Qt/WebEngine input carries `trusted_input`; and
+desktop-global workflows carry `shared_desktop`. Collection rejects ambiguous
+or invalid combinations, empty `test_*.py` modules, unreasoned persistence
+markers, and runtime skips/xfails. Shared synchronous thread behavior comes
+from `tests/thread_fakes.py` so callback arguments and one-shot execution do not
+vary between test modules.
+
+`.github/workflows/quality.yml` runs deterministic PR gates and platform runtime
+tests, real-Anki E2E on protected/non-PR runs, serial E2E for release tags, and
+scheduled focused Python plus HTML-audio mutation jobs. E2E artifacts contain
+the random seed, shard JUnit files, failing node IDs, and exact one-process
+rerun commands.
+
+Most playback interval E2E tests use a fake browser driver or patch Anki's
+`av_player` to cover UI and command-state transitions quickly. Rule 36 prevents
+those doubles from making claims about native browser decoding, codec support,
+or real media events.
+
+`e2e/test_editor_audible_playback_workflow.py` is the independent acoustic
+layer. It drives the real HTML media element with trusted Qt clicks, captures
+bounded PCM through a test-only AudioWorklet, and checks source position with
+the deterministic addressable fixture and oracle under
+`settings_ui/tests/audible/`. It currently covers full-prefix playback,
+selected-region seeking, selected one-shot playback, and bounded selected repeat
+with a real silence gap and terminal stop. These tests prove the WebView
+media signal, not the final operating-system output device; device loopback
+remains outside the default gate.
+
+Real microphone permission prompts, physical input-device enumeration, and
+operating-system loopback belong to an opt-in hardware recorder lane on each
+supported platform. They are not permitted to skip inside PR jobs. The default
+gate instead uses deterministic fake recorders for permission, start/stop,
+timeout, replacement, and failure behavior; a release candidate that changes
+native recording must additionally record the hardware-lane OS, device,
+permission state, and emitted file probe results.
+
+### When addressable audio is required
+
+Add an addressable-audio E2E test when the acceptance criterion contains an
+audible fact that state, events, or `currentTime` cannot independently prove.
+It is mandatory for changes that can affect:
+
+- the emitted source position or playback boundary;
+- seeking, cursor movement, selection replacement/resize/clear, or resume while
+  audio is already playing;
+- repeat pass count, repeat gaps, cancellation, or terminal silence;
+- source or note replacement, processing during playback, post-edit autoplay,
+  or survival of an old timer/media element;
+- codec/container decoding in Qt WebEngine;
+- absence of an old prefix, duplicate range, overlap, dropout, unexpected
+  output, or audio after stop/navigation/failure.
+
+Use the deterministic addressable fixture for at least one representative
+real-Anki path through the changed behavior. Keep faster reducer, jsdom, and
+fake-driver tests for permutations and state-machine detail; addressability is
+an additional boundary test, not a requirement to convert every playback test.
+The expected acoustic region must come from the user gesture or test input,
+never from the graph cursor, playback state, media `currentTime`, or another
+observation owned by the system under test.
+
+Addressable audio is normally unnecessary for pure reducers, DOM projection,
+layout, configuration, button visibility, command payloads, and failure paths
+that cannot have prior or pending playback. A failure/navigation test does need
+it when proving that already-started or queued audio becomes and remains silent.
+
+Tests making these claims must include `audible`, `acoustic`, or `emitted_pcm`
+in the test name. Rule 36 uses that declaration to require
+`install_audible_capture` and `analyze_audible_capture` and to reject fake audio
+drivers. If a transform changes the addressable signal itself, first add an
+independent transform-aware reference/model; do not weaken the oracle or infer
+the verdict from application state.

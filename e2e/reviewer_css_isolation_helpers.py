@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from e2e.editor_note_helpers import _button_selector
-from e2e.helpers import wait_for_js_condition
+from e2e.helpers import trusted_pointer_to_selector, wait_for_js_condition
 
 
 def assert_reviewer_audio_controls_full_width(reviewer, field_ord: int) -> None:
@@ -188,26 +188,32 @@ def assert_reviewer_remove_pauses_popover_css_isolated(reviewer, field_ord: int)
 
 
 def assert_reviewer_tooltip_css_isolated(reviewer) -> None:
-    """Assert AQE tooltip roots keep compact padding under hostile card CSS."""
+    """Hover a shipped tooltip trigger and assert its provider-owned content styling."""
+    trusted_pointer_to_selector(
+        reviewer.web,
+        ".aqe-ui-root [data-aqe-tooltip-content]",
+        click=False,
+    )
     tooltip_style = wait_for_js_condition(
         reviewer.web,
         """
         (() => {
-          const card = document.querySelector('.card') || document.body;
-          const probe = document.createElement('div');
-          probe.className = 'aqe-ui-root aqe-rich-tooltip';
-          probe.textContent = 'Tooltip probe';
-          card.appendChild(probe);
-          const style = getComputedStyle(probe);
-          const result = {
+          const trigger = document.querySelector('.aqe-ui-root [data-aqe-tooltip-content]');
+          if (!trigger) return null;
+          trigger.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+          trigger.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
+          trigger.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+          trigger.focus();
+          const tooltip = document.querySelector('.aqe-rich-tooltip');
+          if (!tooltip) return null;
+          const style = getComputedStyle(tooltip);
+          return {
             fontSize: style.fontSize,
             marginLeft: style.marginLeft,
             paddingLeft: style.paddingLeft,
             paddingTop: style.paddingTop,
             textTransform: style.textTransform,
           };
-          probe.remove();
-          return result;
         })()
         """,
         lambda value: isinstance(value, dict),

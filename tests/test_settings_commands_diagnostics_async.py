@@ -16,7 +16,7 @@ from tests.settings_command_fixtures import (
     _make_dialog,
     _parse_callback,
 )
-from tests.test_settings_commands_diagnostics import _ImmediateThread
+from tests.thread_fakes import ImmediateThread
 
 
 def test_async_command_reports_invalid_payload(caplog: pytest.LogCaptureFixture) -> None:
@@ -89,7 +89,7 @@ def test_async_command_reports_unknown_operation() -> None:
     calls, eval_fn = _capture_eval()
     payload = {"id": "job-unknown", "op": "explode", "payload": {}}
 
-    with patch("threading.Thread", _ImmediateThread):
+    with patch("threading.Thread", ImmediateThread):
         assert handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog) is True
 
     result = _parse_callback(calls[-1], "onAsyncDone")
@@ -126,4 +126,3 @@ def test_async_health_check_rejects_non_dict_payload_config() -> None:
             "message": "Invalid async command payload",
         },
     }
-

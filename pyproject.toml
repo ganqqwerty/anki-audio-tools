@@ -43,6 +43,17 @@ required_plugins = [
     "pytest-randomly",
 ]
 markers = [
+    "unit: deterministic isolated Python behavior test",
+    "component: multi-module Python or architecture integration test",
+    "e2e: user workflow exercised in a real Anki process",
+    "external_runtime: requires a managed or system native runtime dependency",
+    "allow_error_log(pattern): permits a reviewed expected E2E error matching a narrow regex",
+    "allow_native_playback(*operations): explicitly permits native playback and optionally asserts the exact start/stop/seek/pause operation sequence",
+    "trusted_input: exercises a workflow through real Qt/WebEngine keyboard or pointer input",
+    "in_anki_component: exercises shipped frontend behavior inside a real Anki WebView with synthetic DOM setup",
+    "shared_desktop: serializes E2E modules that mutate process-global desktop services",
+    "preserve_e2e_config(reason): intentionally retain configuration for a reviewed same-session E2E workflow",
+    "isolation_sentinel(window_title): deliberately leaks one named window to prove harness cleanup",
     "allow_managed_runtime: allows unit smoke tests to use the downloaded managed runtime",
     "praat: requires praat-parselmouth for generated speech contour fixtures",
 ]
@@ -209,7 +220,11 @@ docstring-code-format = true
 
 [tool.mypy]
 python_version = "3.13"
-files = ["addon/anki_audio_quick_editor"]
+files = [
+    "addon/anki_audio_quick_editor",
+    "tests/_anki_test_mocks_environment.py",
+    "tests/_anki_test_mocks_stubs.py",
+]
 exclude = "addon/anki_audio_quick_editor/(vendor|user_files)"
 ignore_missing_imports = false
 disallow_any_generics = true
@@ -244,6 +259,17 @@ module = [
     "anki_audio_quick_editor.reviewer_template_filter_integration",
 ]
 disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+module = [
+    "tests._anki_test_mocks_environment",
+    "tests._anki_test_mocks_stubs",
+]
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
+module = "tests._anki_test_mocks_environment"
+disable_error_code = ["attr-defined"]
 
 [tool.radon]
 exclude = "*/tests/*,*/test_*.py,*/migrations/*,*/generated/*"
@@ -531,6 +557,8 @@ DEP004 = ["parselmouth"]
 [tool.mutmut]
 paths_to_mutate = [
     "addon/anki_audio_quick_editor",
+    "scripts/graphs/python_modules.py",
+    "tests/test_architecture/inspection.py",
 ]
 do_not_mutate = [
     "addon/anki_audio_quick_editor/__init__.py",
@@ -542,9 +570,6 @@ do_not_mutate = [
     "addon/anki_audio_quick_editor/editor_ui.py",
     "addon/anki_audio_quick_editor/errors.py",
     "addon/anki_audio_quick_editor/prosody_analyzer.py",
-    "addon/anki_audio_quick_editor/prosody_cache.py",
-    "addon/anki_audio_quick_editor/prosody_fallback.py",
-    "addon/anki_audio_quick_editor/prosody_praat.py",
     "addon/anki_audio_quick_editor/prosody_types.py",
     "addon/anki_audio_quick_editor/settings/__init__.py",
     "addon/anki_audio_quick_editor/settings/commands.py",
@@ -553,17 +578,26 @@ do_not_mutate = [
 mutate_only_covered_lines = true
 max_stack_depth = 8
 pytest_add_cli_args = [
-    "-p",
-    "no:randomly",
-    "-p",
-    "no:random-order",
+    "-c",
+    "../mutmut-pyproject.toml",
 ]
 pytest_add_cli_args_test_selection = [
     "tests/test_audio_state.py",
-    "tests/test_config_migration.py",
+    "tests/test_config_migration_defaults.py",
+    "tests/test_config_migration_editor_buttons.py",
+    "tests/test_config_migration_normalization.py",
+    "tests/test_config_migration_visible_editor_buttons.py",
     "tests/test_sound_refs.py",
     "tests/test_settings_state.py",
     "tests/test_batch_visualization.py",
     "tests/test_prosody_svg.py",
     "tests/test_audio_tools.py",
+    "tests/test_architecture/test_inspection_detectors.py",
+    "tests/test_editor_region_delete_integration.py",
+    "tests/test_release_archive_validation.py",
+    "tests/test_runtime_manager_install.py",
+    "tests/test_runtime_manager_state.py",
+    "tests/test_runtime_manager_paths.py",
+    "tests/test_prosody_cache.py",
+    "tests/test_prosody_fallback.py",
 ]

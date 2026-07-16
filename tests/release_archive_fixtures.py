@@ -65,6 +65,38 @@ def complete_executable_names() -> set[str]:
     return set(release.release_runtime_executables(release_assets.load_lock()))
 
 
+def expected_runtime_names_from_raw_lock(lock: dict) -> set[str]:
+    """Traverse raw lock dictionaries as an oracle independent of release selectors."""
+    names: set[str] = set()
+    targets = lock.get("targets")
+    assert isinstance(targets, dict)
+    for target, target_entry in targets.items():
+        assert isinstance(target, str)
+        assert isinstance(target_entry, dict)
+        tools = target_entry.get("tools")
+        assert isinstance(tools, dict)
+        for tool_entry in tools.values():
+            assert isinstance(tool_entry, dict)
+            executable = tool_entry.get("executable")
+            assert isinstance(executable, str)
+            names.add(f"bin/{target}/{executable}")
+            runtime_files = tool_entry.get("runtime_files", [])
+            assert isinstance(runtime_files, list)
+            for file_entry in runtime_files:
+                assert isinstance(file_entry, dict)
+                path = file_entry.get("path")
+                assert isinstance(path, str)
+                names.add(f"bin/{target}/{path}")
+    shared_files = lock.get("shared_files")
+    assert isinstance(shared_files, dict)
+    for file_entry in shared_files.values():
+        assert isinstance(file_entry, dict)
+        path = file_entry.get("path")
+        assert isinstance(path, str)
+        names.add(f"bin/{path}")
+    return names
+
+
 def external_ffmpeg_manifest_names() -> list[str]:
     return release.release_manifest_files(release_assets.load_lock(), include_ffmpeg=False, embed_runtime=True)
 

@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-from e2e.conftest import ADDON_NUMERIC_ID
+import pytest
+from tests.media_oracles import probe_audio
+
+from e2e.conftest import ADDON_NUMERIC_ID, import_runtime_addon_module
 from e2e.editor_graph_helpers import _click_graph_and_wait
 from e2e.editor_note_helpers import _button_selector, _sound_filename
-from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
-from e2e.reviewer_css_isolation_helpers import (
-    assert_reviewer_audio_controls_css_isolated,
-    assert_reviewer_audio_controls_full_width,
-    assert_reviewer_chorusing_marker_row_css_isolated,
-    assert_reviewer_remove_pauses_popover_css_isolated,
-    assert_reviewer_tooltip_css_isolated,
-)
-from e2e.test_reviewer_audio_editor_workflow import (
+from e2e.helpers import wait_for_condition, wait_for_js_condition
+from e2e.reviewer_audio_editor_helpers import (
     _cleanup_reviewer_session,
     _menu_action,
     _open_reviewer_for_note,
@@ -25,8 +21,19 @@ from e2e.test_reviewer_audio_editor_workflow import (
     _wait_for_controls,
     _wait_for_no_controls,
 )
+from e2e.reviewer_css_isolation_helpers import (
+    assert_reviewer_audio_controls_css_isolated,
+    assert_reviewer_audio_controls_full_width,
+    assert_reviewer_chorusing_marker_row_css_isolated,
+    assert_reviewer_remove_pauses_popover_css_isolated,
+    assert_reviewer_tooltip_css_isolated,
+)
+from e2e.test_editor_real_media_repeat_workflow import _trusted_click_selector
+
+pytestmark = [pytest.mark.allow_native_playback, pytest.mark.shared_desktop]
 
 
+@pytest.mark.trusted_input
 def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     hostile_css = """
     .card div {
@@ -74,6 +81,7 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
         "reviewer_workflow_source.wav",
         card_css=hostile_css,
     )
+    original_source_bytes = _source.read_bytes()
     reviewer = _open_reviewer_for_note(anki_mw, note, deck_id)
     _wait_for_no_controls(reviewer.web)
 
@@ -110,7 +118,7 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     _wait_for_controls(reviewer.web)
 
     original_card_id = reviewer.card.id
-    click_selector(reviewer.web, _button_selector("aqe:faster", field_ord), timeout=5.0)
+    _trusted_click_selector(reviewer, _button_selector("aqe:faster", field_ord))
     wait_for_condition(
         lambda: (
             (filename := _sound_filename(anki_mw.col.get_note(note.id).fields[field_ord])) != _source.name
@@ -122,6 +130,14 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     )
     assert reviewer.card.id == original_card_id
     assert reviewer.state == "answer"
+    generated_name = _sound_filename(anki_mw.col.get_note(note.id).fields[field_ord])
+    processor = import_runtime_addon_module(".audio_processor")
+    ffmpeg = processor.find_ffmpeg(ffmpeg_config.ffmpeg_path)
+    ffprobe = processor.find_ffprobe(ffmpeg)
+    assert probe_audio(ffprobe, _media_dir / generated_name).duration_s < (
+        probe_audio(ffprobe, _source).duration_s * 0.8
+    )
+    assert _source.read_bytes() == original_source_bytes
 
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     original_editor_setting = bool(config.get("enable_reviewer_editor", True))

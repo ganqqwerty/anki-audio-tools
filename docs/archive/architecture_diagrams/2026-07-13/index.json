@@ -1,0 +1,20 @@
+{
+  "generated": "2026-07-13",
+  "project": "anki-audio-quick-editor",
+  "description": "Machine-readable architecture data for LLM consumption",
+  "files": {
+    "python-modules.json": "181 Python modules cataloged by layer, imports, and purpose",
+    "svelte-modules.json": "221 Svelte/TypeScript modules cataloged by category and imports",
+    "bridge-commands.json": "76 bridge commands (pycmd protocol) across editor, settings, batch, and window contract",
+    "webview-injection.json": "4 webview screens mapped to Anki hooks, Python handlers, and Svelte bundles",
+    "architecture-layers.json": "5-layer architecture model with rules and module assignments",
+    "relationships.json": "1914 cross-module relationships (Python, Svelte, and bridge)"
+  },
+  "totals": {
+    "python_modules": 181,
+    "svelte_modules": 221,
+    "bridge_commands": 76,
+    "webview_screens": 4,
+    "relationships": 1914
+  }
+}

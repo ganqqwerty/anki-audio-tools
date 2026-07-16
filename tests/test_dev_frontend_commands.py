@@ -60,6 +60,33 @@ def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Pa
     assert calls == ["build", "/usr/bin/npm run lint -- --fix", "/usr/bin/npm run validate"]
 
 
+def test_test_svelte_supplies_path_ffmpeg_to_acoustic_oracles(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    settings_ui = tmp_path / "settings_ui"
+    (settings_ui / "node_modules").mkdir(parents=True)
+    runs: list[tuple[str, object]] = []
+
+    monkeypatch.delenv("AQE_E2E_FFMPEG", raising=False)
+    monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/tools/ffmpeg")
+    monkeypatch.setattr(
+        frontend,
+        "frontend_npm_command",
+        lambda script, **kwargs: ["/usr/bin/npm", "run", script],
+    )
+    monkeypatch.setattr(frontend, "cmd_build_ui", lambda: 0)
+    monkeypatch.setattr(
+        frontend,
+        "_run",
+        lambda cmd, **kwargs: runs.append((cmd[-1], kwargs.get("env"))) or 0,
+    )
+
+    assert frontend.cmd_test_svelte() == 0
+    assert runs[-1] == ("validate", {"AQE_E2E_FFMPEG": "/tools/ffmpeg"})
+
+
 def test_test_svelte_stops_when_lint_autofix_fails(monkeypatch, tmp_path: Path) -> None:
     settings_ui = tmp_path / "settings_ui"
     (settings_ui / "node_modules").mkdir(parents=True)
@@ -131,11 +158,11 @@ def test_test_e2e_prints_runtime_notice(monkeypatch, capsys) -> None:
 def test_test_e2e_forwards_explicit_pytest_targets(monkeypatch) -> None:
     calls: list[str] = []
     graph_default_target = (
-        "e2e/test_editor_region_loop_graph_workflow.py::"
+        "e2e/test_editor_region_loop_graph_repeat_workflow.py::"
         "test_graph_default_repeat_can_be_turned_off_for_selected_region_playback"
     )
     multi_field_target = (
-        "e2e/test_editor_region_loop_graph_workflow.py::"
+        "e2e/test_editor_region_loop_graph_repeat_workflow.py::"
         "test_two_audio_fields_keep_region_state_scoped_and_single_active_playback"
     )
 

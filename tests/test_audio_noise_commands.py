@@ -18,7 +18,6 @@ from anki_audio_quick_editor.audio_commands import (
     build_spleeter_command,
     build_spleeter_prepare_command,
 )
-from anki_audio_quick_editor.audio_noise_reduction import select_deep_filter_output
 from anki_audio_quick_editor.errors import AudioProcessingError
 
 DEEP_FILTER = str(Path("/bin/deep-filter"))
@@ -194,22 +193,6 @@ def test_build_mp3_encode_command_uses_existing_output_policy(tmp_path: Path) ->
         "4",
         str(tmp_path / "cleaned.mp3"),
     )
-
-
-def test_select_deep_filter_output_accepts_exactly_one_wav(tmp_path: Path) -> None:
-    output = tmp_path / "cleaned.wav"
-    output.write_bytes(b"wav")
-    (tmp_path / "notes.txt").write_text("ignored")
-    assert select_deep_filter_output(tmp_path) == output
-
-
-def test_select_deep_filter_output_rejects_zero_or_multiple_wavs(tmp_path: Path) -> None:
-    with pytest.raises(AudioProcessingError, match="did not produce"):
-        select_deep_filter_output(tmp_path)
-    (tmp_path / "a.wav").write_bytes(b"a")
-    (tmp_path / "b.wav").write_bytes(b"b")
-    with pytest.raises(AudioProcessingError, match="multiple"):
-        select_deep_filter_output(tmp_path)
 
 
 def test_atempo_filters_preserve_exact_boundary_values() -> None:

@@ -327,6 +327,12 @@ def test_editor_voice_recording_comparison_workflow(
             timeout=5.0,
             message="Share yours did not upload the learner recording file",
         )
+        wait_for_js_condition(
+            editor.web,
+            "document.querySelector('[data-testid=\"aqe-status-0\"]')?.textContent || ''",
+            lambda value: value.startswith("Copied Litterbox link for"),
+            timeout=5.0,
+        )
     finally:
         editor.set_note(None)
         parent.close()

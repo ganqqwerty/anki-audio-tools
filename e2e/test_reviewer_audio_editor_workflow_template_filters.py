@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import pytest
+
 from e2e.conftest import ADDON_NUMERIC_ID
 from e2e.editor_note_helpers import _button_selector
 from e2e.helpers import click_selector, wait_for_js_condition
-from e2e.test_reviewer_audio_editor_workflow import (
+from e2e.reviewer_audio_editor_helpers import (
     _cleanup_reviewer_session,
     _open_reviewer_for_note,
     _prepare_reviewer_note,
@@ -14,6 +16,8 @@ from e2e.test_reviewer_audio_editor_workflow import (
     _wait_for_no_controls,
     _wait_for_template_target_controls,
 )
+
+pytestmark = [pytest.mark.allow_native_playback, pytest.mark.shared_desktop]
 
 
 def test_reviewer_audio_panel_template_filter_opens_controls(anki_mw, ffmpeg_config) -> None:
@@ -125,4 +129,3 @@ def test_reviewer_audio_panel_template_filter_ignores_disabled_setting(
         config["enable_reviewer_editor"] = True
         anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
         _cleanup_reviewer_session(reviewer)
-

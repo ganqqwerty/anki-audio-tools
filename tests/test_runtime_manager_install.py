@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 
 from anki_audio_quick_editor import runtime_manager
-from tests.test_runtime_manager import _write_manifest, _write_runtime_pack
+from tests.runtime_manager_fixtures import _write_manifest, _write_runtime_pack
 
 
 def test_ensure_runtime_downloads_verifies_and_persists_state(
@@ -254,3 +254,59 @@ def test_ensure_runtime_can_be_cancelled_before_download(tmp_path: Path, monkeyp
     assert not (addon_dir / "user_files" / "runtime_state.json").exists()
     assert not (addon_dir / "user_files" / "runtime" / "runtime-test").exists()
 
+
+def test_ensure_runtime_cancels_after_downloaded_bytes_arrive(tmp_path: Path, monkeypatch) -> None:
+    payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(addon_dir, archive=archive, archive_sha=archive_sha, file_payloads=payloads)
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+    cancel_event = threading.Event()
+    observed_download = threading.Event()
+
+    def progress(payload: dict[str, object]) -> None:
+        if "Downloaded " in str(payload.get("detail", "")):
+            observed_download.set()
+            cancel_event.set()
+
+    status = runtime_manager.ensure_runtime(addon_dir, progress=progress, cancel_event=cancel_event)
+
+    assert observed_download.is_set(), "test did not rendezvous after downloaded data arrived"
+    assert status["phase"] == "missing"
+    assert not (addon_dir / "user_files" / "runtime" / "runtime-test").exists()
+    assert not list((addon_dir / "user_files" / "runtime").glob("*.extracting-*"))
+    assert not list((addon_dir / "user_files" / "runtime" / "downloads").glob("*.download"))
+
+
+def test_ensure_runtime_cancels_during_extracted_file_verification(tmp_path: Path, monkeypatch) -> None:
+    payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(addon_dir, archive=archive, archive_sha=archive_sha, file_payloads=payloads)
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+    cancel_event = threading.Event()
+    verification_started = threading.Event()
+
+    def progress(payload: dict[str, object]) -> None:
+        if payload.get("step") == "Verify files":
+            verification_started.set()
+            cancel_event.set()
+
+    status = runtime_manager.ensure_runtime(addon_dir, progress=progress, cancel_event=cancel_event)
+
+    assert verification_started.is_set(), "test did not rendezvous at extracted-file verification"
+    assert status["phase"] == "missing"
+    assert not (addon_dir / "user_files" / "runtime" / "runtime-test").exists()
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()

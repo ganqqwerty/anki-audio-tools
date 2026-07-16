@@ -99,6 +99,85 @@ Use pure reducer tests for impossible transition orderings. Use integration
 tests for projection and effect execution. Use real Anki e2e for Qt WebEngine
 timing, metadata, and `HTMLAudioElement.play()` promise interleavings.
 
+### Independent acoustic observation
+
+State and media-element observations explain what playback intended to do; they
+do not prove what the browser media pipeline emitted. Tests whose names claim
+`audible`, `acoustic`, or emitted-PCM behavior must additionally use the
+bounded capture helper in `e2e/audible_audio_capture.py` and evaluate the result
+with the independent oracle under `settings_ui/tests/audible/`.
+
+The oracle uses the synthetic `addressable-timecode.wav` fixture. Its coarse
+50 ms tone frames locate a source region and its PRBS carrier refines source
+position. Expected regions come from the test gesture, never from `currentTime`,
+the graph cursor, or projected playback state. The current analysis trace is
+sampled at roughly 10 ms intervals; raw PCM remains at the Web Audio sample
+rate. This supports source-region and dropout assertions but is not a promise
+of one-millisecond click-to-speaker timing.
+
+The real-Anki adapter uses a test-only, CSP-approved static AudioWorklet. E2E
+setup registers only `test_support/audio_probe_worklet.js` as a web export.
+Captured PCM remains bounded and is transferred outside the WebView for the
+verdict. The production command bridge never carries samples or capture
+controls. Closing the temporary editor destroys the capture context after the
+helper disconnects its nodes.
+
+Acoustic assertions supplement, rather than replace, session transitions,
+native media events, play-count budgets, and fallback checks. Silence,
+unknown non-silent output, overlap, duplicate source ranges, unexpected
+prefixes, and output after a declared stop are failures. The oracle's
+carrier-free negative and 100 ms dropout tests must remain in place so capture
+or matching changes cannot manufacture confidence.
+
+### When addressable audio is required
+
+Use addressable audio when behavior could be wrong at the speaker while the
+session reducer, graph cursor, media events, play-call count, and `currentTime`
+all remain plausible. In those cases telemetry is corroborating evidence, not
+the verdict.
+
+Addressable acoustic E2E coverage is required for changes affecting these
+observable guarantees:
+
+| Guarantee | Examples |
+| --- | --- |
+| Correct content | start position, end boundary, forbidden prefix/suffix, selected region |
+| Stateful continuity | seek or cursor drag while playing, pause/reposition/resume, selection resize/replacement/clear |
+| Bounded repetition | pass count, inter-pass silence, repeat disable, timer cancellation, terminal silence |
+| Source lifetime | transform during playback, post-edit autoplay, note switch, source replacement, stale media-element prevention |
+| Native decoding | WAV/MP3/OGG/M4A support, decode failure, browser media fallback |
+| Negative audible behavior | no overlap, duplicate pass, dropout, old-source leak, delayed restart, or output after stop/failure/navigation |
+
+One representative acoustic E2E path is sufficient when lower-level tests
+exhaustively cover equivalent state-machine permutations. Add more acoustic
+cases when browser timing, codec behavior, source replacement, or action order
+changes the media-pipeline risk; do not mechanically duplicate every fake-driver
+test.
+
+Addressability is not required for tests limited to pure transition logic, DOM
+or CSS projection, configuration persistence, control visibility, bridge
+payload shape, or command dispatch. It becomes required as soon as such a test
+claims that a particular interval was heard, that silence persisted, or that
+old/duplicate audio was absent.
+
+Every required acoustic E2E test must:
+
+1. use a real Qt WebEngine media element and a trusted user gesture;
+2. derive expected source regions from test inputs and gestures, never from
+   playback telemetry;
+3. install bounded PCM capture before the relevant gesture and evaluate it
+   outside the WebView with the independent oracle;
+4. assert positive output and relevant negative space, such as forbidden
+   prefixes, repeat gaps, old-source absence, and terminal silence;
+5. retain state/event/log assertions for diagnosis;
+6. include `audible`, `acoustic`, or `emitted_pcm` in its name so Rule 36
+   enforces the capture/oracle boundary.
+
+Volume-only and other signal-preserving transforms may reuse the addressable
+reference with explicit clipping/gain expectations. Pitch, tempo, trimming, or
+other time/frequency-changing transforms require an independent transformed
+reference or transform-aware oracle before making acoustic position claims.
+
 ## Logging Budget
 
 Do not log high-frequency animation frames, pointer movement, or progress ticks.

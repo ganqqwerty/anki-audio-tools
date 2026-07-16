@@ -32,17 +32,6 @@ class BarrierCall:
         assert self.release.wait(5.0), "test did not release the blocked worker"
 
 
-class ImmediateThread:
-    """Thread replacement that runs synchronously for unit tests."""
-
-    def __init__(self, target: Callable[[], None], daemon: bool = False) -> None:
-        self._target = target
-        self.daemon = daemon
-
-    def start(self) -> None:
-        self._target()
-
-
 class BackgroundThread:
     """Thread replacement that keeps a real thread but exposes it for joining."""
 

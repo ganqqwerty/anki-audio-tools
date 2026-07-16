@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import ast
 import concurrent.futures
 import os
+import secrets
 import shutil
+import sys
 import tempfile
 import time
+import xml.etree.ElementTree as ElementTree
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -24,14 +28,15 @@ from scripts.dev_tasks.python_env import _find_anki_python
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_E2E_JOBS = 3
-SHARED_DESKTOP_FILES = frozenset(
-    {
-        "e2e/test_editor_share_workflow.py",
-        "e2e/test_settings_dialog_diagnostics.py",
-        "e2e/test_settings_dialog_shell.py",
-        "e2e/test_settings_hidden_warning.py",
-        "e2e/test_settings_save_flows.py",
-    }
+COLLECTION_TIMEOUT_S = 60.0
+SHARED_DESKTOP_CAPABILITIES = (
+    "QApplication.clipboard",
+    "AUDIBLE_",
+    "audible_capture",
+    "enable_audible_worklet",
+    "anki_mw.reviewer",
+    "moveToState(\"review\")",
+    "moveToState('review')",
 )
 
 
@@ -39,6 +44,7 @@ SHARED_DESKTOP_FILES = frozenset(
 class E2EFileGroup:
     path: str
     nodeids: tuple[str, ...]
+    shared_desktop: bool = False
 
     @property
     def item_count(self) -> int:
@@ -100,9 +106,27 @@ def group_nodeids_by_file(nodeids: Sequence[str]) -> tuple[E2EFileGroup, ...]:
             continue
         grouped[_nodeid_file(nodeid)].append(nodeid)
     return tuple(
-        E2EFileGroup(path, tuple(sorted(grouped[path])))
+        E2EFileGroup(
+            path,
+            tuple(sorted(grouped[path])),
+            shared_desktop=_has_module_marker(path, "shared_desktop"),
+        )
         for path in sorted(grouped)
     )
+
+
+def unclassified_shared_desktop_files(paths: Sequence[str]) -> tuple[str, ...]:
+    unclassified: list[str] = []
+    for path in paths:
+        source_path = ROOT / path
+        if not source_path.is_file():
+            continue
+        source = source_path.read_text(encoding="utf-8")
+        if any(capability in source for capability in SHARED_DESKTOP_CAPABILITIES) and not _has_module_marker(
+            path, "shared_desktop"
+        ):
+            unclassified.append(path)
+    return tuple(sorted(unclassified))
 
 
 def plan_shards(file_groups: Sequence[E2EFileGroup], worker_count: int) -> tuple[E2EShard, ...]:
@@ -112,8 +136,8 @@ def plan_shards(file_groups: Sequence[E2EFileGroup], worker_count: int) -> tuple
     if worker_count == 1:
         return (E2EShard("e2e-1", groups),)
 
-    shared_groups = tuple(group for group in groups if group.path in SHARED_DESKTOP_FILES)
-    regular_groups = tuple(group for group in groups if group.path not in SHARED_DESKTOP_FILES)
+    shared_groups = tuple(group for group in groups if group.shared_desktop)
+    regular_groups = tuple(group for group in groups if not group.shared_desktop)
     shard_count = min(worker_count, len(regular_groups) + (1 if shared_groups else 0))
 
     shards: list[E2EShard] = []
@@ -154,8 +178,8 @@ def cmd_test_e2e_parallel(command_args: Sequence[str]) -> int:
 
     file_groups = group_nodeids_by_file(nodeids)
     potential_shards = len(
-        [group for group in file_groups if group.path not in SHARED_DESKTOP_FILES]
-    ) + (1 if any(group.path in SHARED_DESKTOP_FILES for group in file_groups) else 0)
+        [group for group in file_groups if not group.shared_desktop]
+    ) + (1 if any(group.shared_desktop for group in file_groups) else 0)
     worker_count = requested_worker_count(os.environ, potential_shards)
     shards = plan_shards(file_groups, worker_count)
     if not shards:
@@ -165,7 +189,7 @@ def cmd_test_e2e_parallel(command_args: Sequence[str]) -> int:
     total_items = sum(shard.item_count for shard in shards)
     _emit_parallel_status(
         f"[dev] e2e parallel: {total_items} item(s), "
-        f"{len(shards)} shard(s), {worker_count} worker(s)"
+        f"{len(shards)} shard(s), {worker_count} worker(s), platform={sys.platform}"
     )
     for shard in shards:
         _emit_parallel_status(
@@ -173,12 +197,14 @@ def cmd_test_e2e_parallel(command_args: Sequence[str]) -> int:
             f"{', '.join(shard.files)}"
         )
 
+    seed = _random_seed(os.environ)
+    _emit_parallel_status(f"[dev] pytest-randomly seed: {seed}")
     results: list[_ShardResult] = []
     if worker_count == 1:
-        results = [_run_shard(anki_python, shard) for shard in shards]
+        results = [_run_shard(anki_python, shard, seed) for shard in shards]
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor:
-            results = list(executor.map(lambda shard: _run_shard(anki_python, shard), shards))
+            results = list(executor.map(lambda shard: _run_shard(anki_python, shard, seed), shards))
 
     failed = [result for result in results if result.returncode != 0]
     if failed:
@@ -199,6 +225,7 @@ def _collect_nodeids(anki_python: Path, targets: Sequence[str], cache_dir: Path)
         ],
         label="python e2e tests (parallel collect)",
         show_output_on_failure=True,
+        absolute_timeout_s=COLLECTION_TIMEOUT_S,
     )
     if rc != 0:
         return None
@@ -214,23 +241,70 @@ class _ShardResult:
     name: str
     returncode: int
     rerun_command: str
+    failed_nodeids: tuple[str, ...] = ()
 
 
-def _run_shard(anki_python: Path, shard: E2EShard) -> _ShardResult:
+def _run_shard(anki_python: Path, shard: E2EShard, seed: int | None = None) -> _ShardResult:
+    resolved_seed = _random_seed(os.environ) if seed is None else seed
     cache_dir = Path(tempfile.mkdtemp(prefix=f"aqe-{shard.name}-pytest-cache-"))
+    report_dir = ROOT / "e2e-artifacts" / "shards"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / f"{shard.name}-junit.xml"
+    report_path.unlink(missing_ok=True)
     start = time.monotonic()
     try:
         label = f"python e2e tests: {shard.name}"
         rc = _run(
-            [str(anki_python), "-m", *_pytest_args(shard.nodeids, cache_dir=cache_dir)],
+            [
+                str(anki_python),
+                "-m",
+                *_pytest_args(shard.nodeids, cache_dir=cache_dir),
+                f"--randomly-seed={resolved_seed}",
+                f"--junitxml={report_path}",
+            ],
             label=label,
             show_output_on_failure=True,
         )
+        failed_nodeids = _failed_nodeids(report_path)
     finally:
         shutil.rmtree(cache_dir, ignore_errors=True)
     elapsed = _format_duration(time.monotonic() - start)
     _emit_parallel_status(f"[dev] shard {shard.name} completed in {elapsed}")
-    return _ShardResult(shard.name, rc, _rerun_command(shard))
+    return _ShardResult(
+        shard.name,
+        rc,
+        _rerun_command(shard, resolved_seed, failed_nodeids),
+        failed_nodeids,
+    )
+
+
+def _has_module_marker(path: str, marker: str) -> bool:
+    source_path = ROOT / path
+    if not source_path.is_file():
+        return False
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=path)
+    expected = ("pytest", "mark", marker)
+    return any(_attribute_parts(node) == expected for node in ast.walk(tree))
+
+
+def _attribute_parts(node: ast.AST) -> tuple[str, ...]:
+    parts: list[str] = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if isinstance(node, ast.Name):
+        parts.append(node.id)
+    return tuple(reversed(parts))
+
+
+def _random_seed(env: Mapping[str, str]) -> int:
+    configured = env.get("DEV_E2E_RANDOM_SEED")
+    if configured is not None:
+        try:
+            return int(configured)
+        except ValueError:
+            pass
+    return secrets.randbelow(2**32)
 
 
 def _nodeid_file(nodeid: str) -> str:
@@ -244,5 +318,38 @@ def _nodeid_file(nodeid: str) -> str:
     return path.as_posix()
 
 
-def _rerun_command(shard: E2EShard) -> str:
-    return "python3 scripts/dev.py test-e2e-parallel " + " ".join(shard.files)
+def _failed_nodeids(report_path: Path) -> tuple[str, ...]:
+    if not report_path.is_file():
+        return ()
+    try:
+        root = ElementTree.parse(report_path).getroot()
+    except (ElementTree.ParseError, OSError):
+        return ()
+    failed: list[str] = []
+    for case in root.iter("testcase"):
+        if case.find("failure") is None and case.find("error") is None:
+            continue
+        path = case.get("file")
+        name = case.get("name")
+        classname = case.get("classname", "")
+        if not path and classname.startswith("e2e."):
+            path = classname.replace(".", "/") + ".py"
+        if not path or not name:
+            continue
+        class_parts = classname.split(".")
+        class_suffix = class_parts[-1] if class_parts and class_parts[-1][:1].isupper() else ""
+        suffix = f"::{class_suffix}" if class_suffix else ""
+        failed.append(f"{Path(path).as_posix()}{suffix}::{name}")
+    return tuple(sorted(set(failed)))
+
+
+def _rerun_command(
+    shard: E2EShard,
+    seed: int,
+    failed_nodeids: Sequence[str] = (),
+) -> str:
+    targets = tuple(failed_nodeids) or shard.nodeids
+    return (
+        f"DEV_E2E_RANDOM_SEED={seed} python3 scripts/dev.py test-e2e-parallel "
+        + " ".join(targets)
+    )

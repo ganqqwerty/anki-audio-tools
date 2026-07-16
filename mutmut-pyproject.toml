@@ -1,0 +1,14 @@
+[tool.pytest]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = ["-ra"]
+filterwarnings = ["error"]
+markers = [
+    "unit: deterministic isolated Python behavior test",
+    "component: multi-module Python or architecture integration test",
+    "in_anki_component: exercises shipped frontend behavior inside a real Anki WebView with synthetic DOM setup",
+    "e2e: user workflow exercised in a real Anki process",
+    "external_runtime: requires a managed or system native runtime dependency",
+    "allow_managed_runtime: allows unit smoke tests to use the downloaded managed runtime",
+    "praat: requires praat-parselmouth for generated speech contour fixtures",
+]

@@ -6,6 +6,7 @@ import ast
 from pathlib import Path
 
 from tests.test_architecture.contracts import MODULE_CONTRACTS
+from tests.test_architecture.inspection import collect_imports_from_source
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 ADDON = ROOT / "addon" / "anki_audio_quick_editor"
@@ -129,6 +130,10 @@ def _collect_imports(py_file: Path) -> dict[str, list[str]]:
                 addon_imports.append(node.module)
             else:
                 third_party.append(node.module)
+
+    for import_name in collect_imports_from_source(source, recurse_into_defs=True):
+        if import_name.startswith("."):
+            addon_imports.append(_resolve_relative_import(import_name, py_file))
 
     return {
         "anki": sorted(set(anki_imports)),

@@ -162,14 +162,14 @@ def run_batch(
             artifact_root,
         )
         last_audio = note_result.audio_filename or last_audio
+        if note_result.written and undo_entry is None:
+            undo_entry = col.add_custom_undo_entry("Audio Quick Editor batch operation")
         note_result = apply_result(
             col,
             report,
             note_result,
             request.target_field or request.source_field,
         )
-        if note_result.written and undo_entry is None:
-            undo_entry = col.undo_status().last_step
         report.processed += 1
         line = format_result_line(note_result, messages)
         report.add(line)

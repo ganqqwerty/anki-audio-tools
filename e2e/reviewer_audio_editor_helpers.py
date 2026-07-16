@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
+import pytest
 from PyQt6.QtWidgets import QMenu
 
 from e2e.conftest import import_runtime_addon_module
@@ -16,6 +19,8 @@ from e2e.helpers import (
     wait_for_js,
     wait_for_js_condition,
 )
+
+pytestmark = pytest.mark.shared_desktop
 
 
 def _reviewer_module():
@@ -73,29 +78,17 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
     if anki_mw.state != "deckBrowser":
         anki_mw.moveToState("deckBrowser")
     anki_mw.col.decks.select(deck_id)
-    anki_mw.moveToState("review")
+    anki_mw.col.sched.reset()
+    reviewer = anki_mw.reviewer
+    with _reviewer_page_load(reviewer):
+        anki_mw.moveToState("review")
     wait_for_condition(
         lambda: anki_mw.state == "review",
         timeout=30.0,
         message="Anki did not enter review state",
     )
-    reviewer = anki_mw.reviewer
     card_ids = note.card_ids()
     assert card_ids
-    try:
-        wait_for_js_condition(
-            reviewer.web,
-            "document.querySelector('#qa') !== null",
-            lambda value: value is True,
-            timeout=30.0,
-        )
-    except TimeoutError as exc:
-        body = wait_for_js(
-            reviewer.web,
-            "document.body ? document.body.outerHTML.slice(0, 2000) : ''",
-            timeout=1.0,
-        )
-        raise TimeoutError(f"{exc}; initial reviewer body={body!r}") from exc
     wait_for_condition(
         lambda: (
             anki_mw.state == "review"
@@ -105,15 +98,60 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
         timeout=30.0,
         message="Reviewer did not open expected note within 30s",
     )
+    _ensure_reviewer_web_ready(reviewer)
     _wait_for_reviewer_question_dom(reviewer)
-    wait_for_js_condition(
-        reviewer.web,
-        "document.body ? document.body.innerText.includes('Prompt') : false",
-        lambda value: value is True,
-        timeout=30.0,
-    )
+    _ensure_reviewer_question_rendered(reviewer)
     _set_reviewer_editor_visible(reviewer)
     return reviewer
+
+
+def _ensure_reviewer_web_ready(reviewer) -> None:
+    """Wait for Anki's Reviewer bootstrap without restarting its WebView."""
+    wait_for_js_condition(
+        reviewer.web,
+        'typeof _showQuestion === "function" && document.querySelector("#qa") !== null',
+        lambda value: value is True,
+        timeout=10.0,
+    )
+
+
+@contextmanager
+def _reviewer_page_load(reviewer) -> Iterator[None]:
+    loaded = False
+
+    def on_load_finished(ok: bool) -> None:
+        nonlocal loaded
+        loaded = loaded or ok
+
+    reviewer.web.loadFinished.connect(on_load_finished)
+    try:
+        yield
+        wait_for_condition(
+            lambda: loaded,
+            timeout=30.0,
+            message="Anki Reviewer page did not finish loading",
+        )
+    finally:
+        reviewer.web.loadFinished.disconnect(on_load_finished)
+
+
+def _ensure_reviewer_question_rendered(reviewer) -> None:
+    expression = "document.body ? document.body.innerText.includes('Prompt') : false"
+    try:
+        wait_for_js_condition(
+            reviewer.web,
+            expression,
+            lambda value: value is True,
+            timeout=5.0,
+        )
+    except TimeoutError:
+        reviewer._showQuestion()
+        wait_for_js_condition(
+            reviewer.web,
+            expression,
+            lambda value: value is True,
+            timeout=30.0,
+        )
 
 
 def _wait_for_reviewer_question_dom(reviewer) -> None:

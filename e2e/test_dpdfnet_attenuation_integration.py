@@ -13,6 +13,7 @@ from e2e.editor_note_helpers import (
 )
 from e2e.helpers import (
     click_selector,
+    run_js,
     wait_for_condition,
     wait_for_js_condition,
     wait_for_selector,
@@ -59,7 +60,7 @@ def test_settings_dialog_saves_dpdfnet_aggressiveness(anki_mw) -> None:
     assert saved_config["dpdfnet_attn_limit_db"] == 18
 
 
-def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_config) -> None:
+def test_batch_dialog_emits_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_config) -> None:
     audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
     field_group = import_runtime_addon_module(".batch_operations").FieldGroup
     batch_operations_dialog = import_runtime_addon_module(".browser_dialog").BatchOperationsDialog
@@ -81,12 +82,12 @@ def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_co
         [1, 2],
         (field_group("Basic", ("Front", "Back")),),
         config,
-        lambda _browser, _dialog, _note_ids, request: started_requests.append(request),
+        lambda _browser, _dialog, _note_ids, captured_request: started_requests.append(captured_request),
     )
     dialog._dialog.show()
     QApplication.processEvents()
     try:
-        state = wait_for_js_condition(
+        wait_for_js_condition(
             dialog._webview,
             """
             (() => {
@@ -98,8 +99,28 @@ def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_co
             lambda value: value is not None and value["operation"] == "graph",
             timeout=5.0,
         )
-        assert "Operation" in " ".join(state["labels"])
-        assert config.dpdfnet_attn_limit_db == 18.0
-        assert started_requests == []
+        run_js(
+            dialog._webview,
+            """
+            const operation = document.querySelector('[data-testid="batch-operation"]');
+            operation.value = 'denoise';
+            operation.dispatchEvent(new Event('change', { bubbles: true }));
+            """,
+        )
+        wait_for_selector(dialog._webview, '[data-testid="batch-denoise-algorithm-dpdfnet"]')
+        click_selector(dialog._webview, '[data-testid="batch-denoise-algorithm-dpdfnet"]')
+        wait_for_selector(dialog._webview, '[data-testid="batch-dpdfnet-attn-limit-db-18"]')
+        click_selector(dialog._webview, '[data-testid="batch-dpdfnet-attn-limit-db-18"]')
+        click_selector(dialog._webview, '[data-testid="batch-start"]')
+        wait_for_condition(
+            lambda: len(started_requests) == 1,
+            timeout=5.0,
+            message="Batch dialog did not emit a start request",
+        )
+
+        request = started_requests[0]
+        assert request.operation == "denoise"
+        assert request.parameters.denoise_algorithm == "dpdfnet"
+        assert request.parameters.dpdfnet_attn_limit_db == 18.0
     finally:
         dialog._dialog.close()

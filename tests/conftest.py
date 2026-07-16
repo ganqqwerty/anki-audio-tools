@@ -19,12 +19,7 @@ def _reset_audio_processor_dependency_injections() -> Iterator[None]:
 
     from anki_audio_quick_editor import audio_processor as facade
 
-    facade._sync_tool_dependencies()
-    facade._sync_external_dependencies()
-    facade._sync_pause_dependencies()
-    facade._sync_rendering_dependencies()
-    facade._sync_noise_dependencies()
-    facade._sync_pitch_hum_dependencies()
+    facade.install_audio_dependencies()
 
 
 @pytest.fixture(autouse=True)

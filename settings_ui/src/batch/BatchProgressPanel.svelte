@@ -23,13 +23,22 @@
 <section class="progress-panel" aria-live="polite">
   <div class="progress-meta">
     <span>{processed}/{total}</span>
-    <span class="progress-status">
+    <span
+      class="progress-status"
+      data-testid="batch-progress-status"
+      data-failures={failures}
+    >
       {isAudioExportSurface
         ? t("audio_export.progress", { processed, total, audio: t("audio_export.no_audio"), failures })
         : t("batch.progress", { processed, total, audio: t("batch.no_audio"), failures })}
     </span>
     {#if running}
-      <button type="button" class="progress-cancel" onclick={onCancel}>
+      <button
+        type="button"
+        class="progress-cancel"
+        data-testid="batch-cancel"
+        onclick={onCancel}
+      >
         {isAudioExportSurface ? t("audio_export.cancel") : t("batch.cancel")}
       </button>
     {/if}

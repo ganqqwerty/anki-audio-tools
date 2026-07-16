@@ -16,11 +16,16 @@ from e2e.helpers import (
     wait_for_js,
     wait_for_js_condition,
 )
-from e2e.test_reviewer_audio_editor_workflow import (
+from e2e.reviewer_audio_editor_helpers import (
+    _ensure_reviewer_question_rendered,
+    _ensure_reviewer_web_ready,
     _reviewer_note,
+    _reviewer_page_load,
     _show_answer,
     _wait_for_reviewer_question_dom,
 )
+
+pytestmark = [pytest.mark.allow_native_playback, pytest.mark.shared_desktop]
 
 
 def _unique_name(prefix: str) -> str:
@@ -41,13 +46,15 @@ def _open_filtered_reviewer_for_note(anki_mw, note, deck_id: int):
     if anki_mw.state != "deckBrowser":
         anki_mw.moveToState("deckBrowser")
     anki_mw.col.decks.select(deck_id)
-    anki_mw.moveToState("review")
+    anki_mw.col.sched.reset()
+    reviewer = anki_mw.reviewer
+    with _reviewer_page_load(reviewer):
+        anki_mw.moveToState("review")
     wait_for_condition(
         lambda: anki_mw.state == "review",
         timeout=10.0,
         message="Anki did not enter review state for filtered deck",
     )
-    reviewer = anki_mw.reviewer
     wait_for_condition(
         lambda: (
             reviewer.card is not None
@@ -57,13 +64,9 @@ def _open_filtered_reviewer_for_note(anki_mw, note, deck_id: int):
         timeout=15.0,
         message="Reviewer did not load the expected filtered-deck card",
     )
+    _ensure_reviewer_web_ready(reviewer)
     _wait_for_reviewer_question_dom(reviewer)
-    wait_for_js_condition(
-        reviewer.web,
-        "document.body ? document.body.innerText.includes('Prompt') : false",
-        lambda value: value is True,
-        timeout=10.0,
-    )
+    _ensure_reviewer_question_rendered(reviewer)
     return reviewer
 
 
@@ -86,15 +89,24 @@ def _close_edit_current(edit_current) -> None:
     edit_current.close()
 
 
+def _cleanup_filtered_deck(anki_mw, deck_id: int) -> None:
+    anki_mw.moveToState("deckBrowser")
+    anki_mw.col.sched.empty_filtered_deck(deck_id)
+    anki_mw.col.decks.remove([deck_id])
+    anki_mw.col.sched.reset()
+
+
 def _install_delayed_edit_current_fields_hook(delay_ms: int = 1250):
     from aqt import gui_hooks
 
-    def _delay_set_fields(js: str, note, editor) -> str:
-        del note
+    injection_count = 0
+
+    def _delay_set_fields(js: str, _note, editor) -> str:
+        nonlocal injection_count
         editor_mode = getattr(getattr(editor, "editorMode", None), "name", "")
         if editor_mode != "EDIT_CURRENT":
             return js
-        return js.replace(
+        updated = js.replace(
             "setFields(",
             f"""
             (() => {{
@@ -107,9 +119,19 @@ def _install_delayed_edit_current_fields_hook(delay_ms: int = 1250):
             setFields(""",
             1,
         )
+        injection_count += int(updated != js)
+        return updated
 
     gui_hooks.editor_will_load_note.append(_delay_set_fields)
-    return lambda: gui_hooks.editor_will_load_note.remove(_delay_set_fields)
+
+    def remove_and_assert_injected() -> None:
+        gui_hooks.editor_will_load_note.remove(_delay_set_fields)
+        assert injection_count == 1, (
+            "delayed Edit Current sentinel must rewrite exactly one setFields call; "
+            f"rewrote {injection_count}"
+        )
+
+    return remove_and_assert_injected
 
 
 def _wait_for_edit_current_audio_controls(edit_current, field_ord: int) -> None:
@@ -162,15 +184,17 @@ def test_edit_current_from_filtered_deck_shows_audio_controls(
         note,
         reschedule=reschedule,
     )
-    reviewer = _open_filtered_reviewer_for_note(anki_mw, note, filtered_deck_id)
-    if review_side == "answer":
-        _show_answer(reviewer)
-    edit_current = _open_edit_current_from_reviewer_link(reviewer, note)
+    edit_current = None
     try:
+        reviewer = _open_filtered_reviewer_for_note(anki_mw, note, filtered_deck_id)
+        if review_side == "answer":
+            _show_answer(reviewer)
+        edit_current = _open_edit_current_from_reviewer_link(reviewer, note)
         _wait_for_edit_current_audio_controls(edit_current, field_ord)
     finally:
-        _close_edit_current(edit_current)
-        reviewer.mw.moveToState("deckBrowser")
+        if edit_current is not None:
+            _close_edit_current(edit_current)
+        _cleanup_filtered_deck(anki_mw, filtered_deck_id)
 
 
 def test_edit_current_from_filtered_deck_recovers_when_fields_render_late(
@@ -183,14 +207,14 @@ def test_edit_current_from_filtered_deck_recovers_when_fields_render_late(
     note, _original_deck_id, field_ord = _reviewer_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config)
     filtered_deck_id = _create_filtered_deck_for_note(anki_mw, note, reschedule=True)
-    reviewer = _open_filtered_reviewer_for_note(anki_mw, note, filtered_deck_id)
     remove_hook = _install_delayed_edit_current_fields_hook()
     edit_current = None
     try:
+        reviewer = _open_filtered_reviewer_for_note(anki_mw, note, filtered_deck_id)
         edit_current = _open_edit_current_from_reviewer_link(reviewer, note)
         _wait_for_edit_current_audio_controls(edit_current, field_ord)
     finally:
         remove_hook()
         if edit_current is not None:
             _close_edit_current(edit_current)
-        reviewer.mw.moveToState("deckBrowser")
+        _cleanup_filtered_deck(anki_mw, filtered_deck_id)

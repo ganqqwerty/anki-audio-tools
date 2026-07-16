@@ -4,19 +4,23 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from PyQt6.QtWidgets import QApplication
 
 from e2e.conftest import import_runtime_addon_module
 from e2e.helpers import wait_for_js_condition
 from e2e.settings_dialog_helpers import open_settings_dialog
 
+pytestmark = pytest.mark.shared_desktop
+
 
 def test_tools_menu_action_opens_settings_dialog(anki_mw, qtbot) -> None:
     dialog = open_settings_dialog(anki_mw)
+    qtbot.addWidget(dialog)
     qtbot.waitUntil(lambda: dialog.isVisible(), timeout=5000)
 
 
-def test_settings_dialog_uses_anki_dark_theme_classes_and_readable_colors(anki_mw) -> None:
+def test_settings_dialog_uses_anki_dark_theme_classes_and_readable_colors(anki_mw, qtbot) -> None:
     from aqt.theme import Theme
 
     previous_theme = anki_mw.pm.theme()
@@ -24,6 +28,7 @@ def test_settings_dialog_uses_anki_dark_theme_classes_and_readable_colors(anki_m
         anki_mw.set_theme(Theme.DARK)
         QApplication.processEvents()
         dialog = open_settings_dialog(anki_mw)
+        qtbot.addWidget(dialog)
 
         theme_state = wait_for_js_condition(
             dialog,

@@ -30,6 +30,7 @@ class SettingsDialog(QDialog):
         self.setWindowTitle(t("settings.window_title"))
         self.setMinimumWidth(900)
         self.setMinimumHeight(640)
+        self._cleaned_up = False
 
         addon_id = mw.addonManager.addonFromModule(__name__)
         config = mw.addonManager.getConfig(addon_id) or {}
@@ -50,6 +51,12 @@ class SettingsDialog(QDialog):
         body, head = _render_settings_content(config)
         self._webview.stdHtml(body=body, head=head, context=self)
         layout.addWidget(self._webview)
+
+    def closeEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
+        if not self._cleaned_up:
+            self._cleaned_up = True
+            self._webview.cleanup()
+        super().closeEvent(event)
 
     def run_js(self, script: str, callback: Any = None) -> None:
         """Evaluate JavaScript in the settings webview."""

@@ -53,6 +53,25 @@ describe("editor inline plot helpers", () => {
     expect(segments[1]).toHaveLength(2);
   });
 
+  it("renders visible rises, drops, dips, and voiceless gaps with shipped geometry", () => {
+    const points: NormalizedProsodyTrack["points"] = [
+      [0, 240, 0.8, true],
+      [150, 140, 0.7, true],
+      [300, 230, 0.8, true],
+      [450, null, 0, false],
+      [600, 130, 0.6, true],
+      [750, 250, 0.9, true],
+    ];
+    const segments = pitchSegments(points, 750, 100, 300);
+
+    expect(segments).toHaveLength(2);
+    expect(segments.every((segment) => segment.flat().every(Number.isFinite))).toBe(true);
+    expect(yForPitch(140, 100, 300) - yForPitch(240, 100, 300)).toBeGreaterThanOrEqual(16);
+    expect(yForPitch(140, 100, 300) - yForPitch(230, 100, 300)).toBeGreaterThanOrEqual(16);
+    expect(yForPitch(130, 100, 300) - yForPitch(250, 100, 300)).toBeGreaterThanOrEqual(16);
+    expect(xForMs(750, 750)).toBe(PLOT.width - PLOT.right);
+  });
+
   it("interpolates the pitch under the cursor and returns no pitch across unvoiced gaps", () => {
     expect(pitchHzAtMs(track.points, -50)).toBe(120);
     expect(pitchHzAtMs(track.points, 100)).toBe(140);

@@ -145,7 +145,6 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
             "editor_recording_state",
             "editor_runtime",
             "editor_reload_status",
-            "editor_session",
             "error_codes",
             "errors",
             "file_reveal",

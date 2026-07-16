@@ -64,6 +64,7 @@ class BatchOperationsDialog:
         self._run_batch_in_background = run_batch_in_background
         self._running = False
         self._finished = False
+        self._cleaned_up = False
         self._log_lines: list[str] = []
         self._dialog = QDialog(browser)
         self._dialog.setWindowTitle(self.tr("batch.window_title"))
@@ -232,7 +233,14 @@ class BatchOperationsDialog:
         finished = getattr(self._dialog, "finished", None)
         connect = getattr(finished, "connect", None)
         if callable(connect):
-            connect(lambda _result: self._cancel_running(mark_not_running=True))
+            connect(lambda _result: self._cleanup_dialog())
+
+    def _cleanup_dialog(self) -> None:
+        if self._cleaned_up:
+            return
+        self._cleaned_up = True
+        self._cancel_running(mark_not_running=True)
+        self._webview.cleanup()
 
     def _cancel_running(self, *, mark_not_running: bool = False) -> bool:
         if not self._running:

@@ -11,14 +11,14 @@ from tests.settings_command_fixtures import (
     _make_dialog,
     _parse_callback,
 )
-from tests.test_settings_commands_diagnostics import (
+from tests.settings_commands_diagnostics_fixtures import (
     DEEP_FILTER,
     DPDFNET,
     RNNOISE,
     SILERO_VAD,
     SPLEETER,
-    _ImmediateThread,
 )
+from tests.thread_fakes import ImmediateThread
 
 
 def test_async_health_check_reports_result() -> None:
@@ -26,7 +26,7 @@ def test_async_health_check_reports_result() -> None:
     calls, eval_fn = _capture_eval()
     payload = {"id": "job-1", "op": "health_check", "payload": {"config": _full_config()}}
 
-    with patch("threading.Thread", _ImmediateThread):
+    with patch("threading.Thread", ImmediateThread):
         handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
@@ -52,7 +52,7 @@ def test_async_health_check_reports_deep_filter_version() -> None:
     }
 
     with (
-        patch("threading.Thread", _ImmediateThread),
+        patch("threading.Thread", ImmediateThread),
         patch(
             "anki_audio_quick_editor.audio_processor.find_deep_filter",
             return_value=Path("/addon/bin/deep-filter"),
@@ -85,7 +85,7 @@ def test_async_health_check_reports_rnnoise_version() -> None:
     }
 
     with (
-        patch("threading.Thread", _ImmediateThread),
+        patch("threading.Thread", ImmediateThread),
         patch(
             "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
             return_value=Path("/addon/bin/macos-arm64/rnnoise-cli"),
@@ -118,7 +118,7 @@ def test_async_health_check_reports_dpdfnet_version() -> None:
     }
 
     with (
-        patch("threading.Thread", _ImmediateThread),
+        patch("threading.Thread", ImmediateThread),
         patch(
             "anki_audio_quick_editor.audio_processor.find_dpdfnet_bundle",
             return_value=Path("/addon/bin/macos-arm64/dpdfnet"),
@@ -151,7 +151,7 @@ def test_async_health_check_reports_spleeter_probe() -> None:
     }
 
     with (
-        patch("threading.Thread", _ImmediateThread),
+        patch("threading.Thread", ImmediateThread),
         patch(
             "anki_audio_quick_editor.audio_processor.find_spleeter_bundle",
             return_value=(
@@ -188,7 +188,7 @@ def test_async_health_check_reports_silero_vad_probe() -> None:
     }
 
     with (
-        patch("threading.Thread", _ImmediateThread),
+        patch("threading.Thread", ImmediateThread),
         patch(
             "anki_audio_quick_editor.audio_processor.find_silero_vad_bundle",
             return_value=(

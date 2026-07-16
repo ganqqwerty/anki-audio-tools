@@ -42,6 +42,8 @@ from e2e.test_editor_real_media_repeat_workflow import (
     _wait_for_real_html_playback,
 )
 
+pytestmark = pytest.mark.trusted_input
+
 SourceKind = Literal["forvo-ogg", "hidden-tone", "graph-tone"]
 
 

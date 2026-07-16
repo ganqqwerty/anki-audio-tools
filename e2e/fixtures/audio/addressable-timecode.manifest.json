@@ -1,0 +1,129 @@
+{
+  "addressableTimecode": {
+    "bankNames": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "banksHz": [
+      [
+        600,
+        700,
+        800,
+        900,
+        1000,
+        1100,
+        1200,
+        1300
+      ],
+      [
+        1700,
+        1800,
+        1900,
+        2000,
+        2100,
+        2200,
+        2300,
+        2400
+      ],
+      [
+        2900,
+        3000,
+        3100,
+        3200,
+        3300,
+        3400,
+        3500,
+        3600
+      ],
+      [
+        4100,
+        4200,
+        4300,
+        4400,
+        4500,
+        4600,
+        4700,
+        4800
+      ]
+    ],
+    "carrier": {
+      "algorithm": "prbs31-x31-x28-1-bpsk-raised-cosine-v1",
+      "centerFrequencyHz": 6000,
+      "chipRateHz": 1200,
+      "nominalBandHz": [
+        4800,
+        7200
+      ],
+      "periodChips": 2147483647,
+      "periodSeconds": 1789569.7058333333,
+      "rmsLinear": 0.06708397287529393,
+      "samplesPerChip": 40
+    },
+    "channels": 1,
+    "checksums": {
+      "addressable-timecode.m4a": "a249b4899a38b44ccbbf4e50537a8342808d8de89176fae8e03e7a06d25940ef",
+      "addressable-timecode.mp3": "12fce60ea6448b3bcbe111982f93953224b4aa5072eee66f08a7c4bc01ce5bb9",
+      "addressable-timecode.ogg": "546fd8855be7013360b0c5619f39b77b4cb8e8d24d1f91454b23aebf2b23ed5e",
+      "addressable-timecode.wav": "0db620128ebf9ce6d11aaa2ec8b4c8d81e2c1a9996210244ea0f9322a218dd67"
+    },
+    "chirp": {
+      "amplitudeLinearBeforePeakNormalization": 0.035,
+      "durationMs": 20,
+      "frequenciesHz": [
+        800,
+        1400
+      ],
+      "intervalMs": 1000
+    },
+    "coarse": {
+      "crossfade": "equal-power-raised-cosine",
+      "frameRmsLinear": 0.21466871320094058,
+      "phase": "global-continuous",
+      "tonesPerFrame": 4
+    },
+    "codecs": {
+      "addressable-timecode.m4a": "aac",
+      "addressable-timecode.mp3": "libmp3lame",
+      "addressable-timecode.ogg": "libvorbis",
+      "addressable-timecode.wav": "pcm_s16le"
+    },
+    "digitOrder": {
+      "banksMostToLeastSignificant": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "encoding": "base-8-most-significant-bank-first",
+      "placeValues": [
+        512,
+        64,
+        8,
+        1
+      ]
+    },
+    "durationMs": 10000,
+    "frameCount": 200,
+    "frameDurationMs": 50,
+    "peak": {
+      "measuredDbfs": -3.000097173025577,
+      "targetDbfs": -3.0
+    },
+    "radix": 8,
+    "sampleRateHz": 48000,
+    "sampleWidthBits": 16,
+    "seed": 99537187,
+    "seedHex": "0x05EED123",
+    "transitionMs": 5,
+    "version": 1
+  },
+  "files": {
+    "addressable-timecode.m4a": "a249b4899a38b44ccbbf4e50537a8342808d8de89176fae8e03e7a06d25940ef",
+    "addressable-timecode.mp3": "12fce60ea6448b3bcbe111982f93953224b4aa5072eee66f08a7c4bc01ce5bb9",
+    "addressable-timecode.ogg": "546fd8855be7013360b0c5619f39b77b4cb8e8d24d1f91454b23aebf2b23ed5e",
+    "addressable-timecode.wav": "0db620128ebf9ce6d11aaa2ec8b4c8d81e2c1a9996210244ea0f9322a218dd67"
+  },
+  "generator": "scripts/generate_audible_fixtures.py"
+}

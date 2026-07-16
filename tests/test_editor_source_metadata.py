@@ -7,15 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from anki_audio_quick_editor.editor_source_metadata import request_source_metadata
-
-
-class ImmediateThread:
-    def __init__(self, target, daemon: bool = False):
-        self._target = target
-        self.daemon = daemon
-
-    def start(self) -> None:
-        self._target()
+from tests.thread_fakes import ImmediateThread
 
 
 class EvalCollector:

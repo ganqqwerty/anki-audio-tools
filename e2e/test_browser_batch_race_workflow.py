@@ -3,6 +3,7 @@ from __future__ import annotations
 from e2e.browser_workflow_helpers import (
     add_basic_audio_note,
     click_batch_start,
+    close_browser,
     open_batch_dialog,
     select_batch_operation,
     trigger_cards_menu_action,
@@ -75,3 +76,6 @@ def test_batch_dialog_running_controls_explain_disabled_tooltip(anki_mw, monkeyp
         )
 
         assert "Aggressive" in tooltip_state["buttonTooltip"]
+        dialog._dialog.hide()
+        dialog._dialog.close()
+        close_browser(browser)

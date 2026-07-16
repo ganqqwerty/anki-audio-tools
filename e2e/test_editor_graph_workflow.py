@@ -6,6 +6,7 @@ import json
 import time
 from pathlib import Path
 
+import pytest
 from PyQt6.QtWidgets import QApplication
 
 from e2e.conftest import import_runtime_addon_module
@@ -93,6 +94,7 @@ def test_show_graph_by_default_auto_analyzes_all_audio_fields(
         parent.close()
 
 
+@pytest.mark.allow_error_log(r"editor_frontend\.status: editor (?:visualizer status field=0|status) displayed error: AQE-MEDIA-001:")
 def test_manual_graph_after_clearing_default_graph_field_shows_error_without_analyzing(
     anki_mw,
     ffmpeg_config,

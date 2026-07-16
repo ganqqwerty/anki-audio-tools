@@ -24,6 +24,7 @@ from anki_audio_quick_editor.support import (
     latest_rnnoise_support_incident,
     latest_spleeter_support_incident,
 )
+from tests.thread_fakes import ImmediateThread
 
 
 @pytest.mark.parametrize(
@@ -46,13 +47,6 @@ def test_standard_denoise_failure_logs_renders_error_and_keeps_note(
     monkeypatch,
     caplog,
 ) -> None:
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
-
     class Editor:
         pass
 
@@ -116,13 +110,6 @@ def test_rnnoise_failure_logs_renders_error_and_keeps_note(
     caplog,
 ) -> None:
     clear_latest_rnnoise_support_incident()
-
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
 
     class Editor:
         pass
@@ -193,13 +180,6 @@ def test_voice_only_failure_logs_renders_error_and_keeps_note(
     caplog,
 ) -> None:
     clear_latest_spleeter_support_incident()
-
-    class ImmediateThread:
-        def __init__(self, target, daemon=True):
-            self._target = target
-
-        def start(self) -> None:
-            self._target()
 
     class Editor:
         pass

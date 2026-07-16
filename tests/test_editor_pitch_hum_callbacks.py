@@ -12,14 +12,7 @@ from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingC
 from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
-
-
-class ImmediateThread:
-    def __init__(self, target, daemon=True):
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
+from tests.thread_fakes import ImmediateThread
 
 
 def _setup_editor(

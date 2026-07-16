@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import copy
 import importlib
+import logging
 import os
 import shutil
-import signal
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -23,6 +23,12 @@ ADDON_DIR = PROJECT_ROOT / "addon" / "anki_audio_quick_editor"
 ADDON_NUMERIC_ID = "1000000002"
 
 
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    setattr(item, f"rep_{call.when}", outcome.get_result())
+
+
 def import_runtime_addon_module(module_suffix: str = ""):
     """Import the add-on as Anki loads it, using the installed numeric package id."""
     if module_suffix and not module_suffix.startswith("."):
@@ -36,88 +42,37 @@ def runtime_addon_import_path(module_suffix: str, attr: str | None = None) -> st
     return f"{path}.{attr}" if attr else path
 
 
-def _default_config() -> dict:
-    return {
-        "_config_version": 23,
-        "enabled": True,
-        "debug_logging": False,
-        "show_ffmpeg_commands": False,
-        "repeat_playback_by_default": True,
-        "repeat_pause_seconds": 0.0,
-        "chorusing_pause_seconds": 0.0,
-        "chorusing_auto_advance_by_default": False,
-        "chorusing_auto_advance_repeats": 3,
-        "voice_recording_countdown_seconds": 0,
-        "share_target": "litterbox",
-        "show_graph_by_default": True,
-        "selection_marker_shift_buttons_enabled": False,
-        "visible_editor_buttons": [
-            "aqe:play",
-            "aqe:analyze",
-            "aqe:chorusing-previous",
-            "aqe:chorusing-next",
-            "aqe:show-file",
-            "aqe:share",
-            "aqe:preset",
-            "aqe:remove-pauses",
-            "aqe:denoise-standard",
-            "aqe:slower",
-            "aqe:faster",
-            "aqe:delete-selection",
-            "aqe:delete-rest",
-            "aqe:undo",
-            "aqe:redo",
-            "aqe:settings",
-        ],
-        "editor_button_modes": {
-            "aqe:play": "icon",
-            "aqe:analyze": "icon",
-            "aqe:chorusing-previous": "icon",
-            "aqe:chorusing-next": "icon",
-            "aqe:record-voice": "icon",
-            "aqe:play-recording": "icon",
-            "aqe:show-file": "icon",
-            "aqe:share": "icon",
-            "aqe:preset": "text",
-            "aqe:convert": "text",
-            "aqe:remove-pauses": "text",
-            "aqe:denoise-standard": "text",
-            "aqe:pitch-hum": "text",
-            "aqe:slower": "icon",
-            "aqe:faster": "icon",
-            "aqe:delete-selection": "icon",
-            "aqe:delete-rest": "icon",
-            "aqe:volume-down": "icon",
-            "aqe:volume-up": "icon",
-            "aqe:undo": "icon",
-            "aqe:redo": "icon",
-            "aqe:settings": "icon",
-        },
-        "audio_processing_presets": [],
-        "speed_step": 1.5,
-        "min_speed": 0.2,
-        "max_speed": 5.0,
-        "volume_step_db": 15.0,
-        "min_volume_db": -40.0,
-        "max_volume_db": 40.0,
-        "pause_detection_algorithm": "silencedetect",
-        "pause_aggressiveness": "normal",
-        "pause_silencedetect_threshold_db": -45.0,
-        "pause_silencedetect_min_silence_seconds": 0.3,
-        "pause_silencedetect_min_speech_seconds": 0.1,
-        "pause_silencedetect_preprocess_denoise": True,
-        "pause_silero_threshold": 0.5,
-        "pause_silero_min_silence_seconds": 0.45,
-        "pause_silero_min_speech_seconds": 0.1,
-        "pause_silero_preprocess_denoise": False,
-        "output_format": "source",
-        # Let e2e exercise the add-on's runtime-aware ffmpeg lookup.
-        "ffmpeg_path": "",
-        "deep_filter_post_filter": True,
-        "dpdfnet_attn_limit_db": 12.0,
-        "denoise_algorithm": "standard",
-        "pitch_hum_mode": "direct",
-    }
+def _canonical_default_config(mw) -> dict[str, object]:
+    """Build the E2E baseline through the production defaults and migration path."""
+    migration = import_runtime_addon_module(".config_migration")
+    ffmpeg_defaults = import_runtime_addon_module(".ffmpeg_defaults")
+    defaults = ffmpeg_defaults.with_platform_ffmpeg_default(
+        mw.addonManager.addonConfigDefaults(ADDON_NUMERIC_ID) or {}
+    )
+    migrated, _changed = migration.migrate_config({}, defaults)
+    return migrated
+
+
+def _save_config_through_runtime_path(config: dict[str, object]) -> None:
+    """Apply E2E config through the same backend path as the Settings Save command."""
+    commands = import_runtime_addon_module(".settings.commands")
+    bridge = import_runtime_addon_module(".webview_bridge")
+
+    class _AcceptedDialog:
+        accepted = False
+
+        def accept(self) -> None:
+            self.accepted = True
+
+    dialog = _AcceptedDialog()
+    errors: list[str] = []
+    commands._handle_settings_save(
+        bridge.WebviewBridgeCommand("settings.save", copy.deepcopy(config)),
+        errors.append,
+        dialog,
+    )
+    assert errors == []
+    assert dialog.accepted
 
 
 def _process_events_until(predicate, timeout_s: float, message: str) -> None:
@@ -198,6 +153,13 @@ def qapp(anki_base):
                 f"got {type(app).__name__ if app is not None else 'None'} instead."
             )
         yield app
+        app.closeAllWindows()
+        for widget in app.topLevelWidgets():
+            widget.close()
+            widget.deleteLater()
+        app.sendPostedEvents()
+        app.processEvents()
+        app.quit()
 
 
 @pytest.fixture(scope="session")
@@ -217,13 +179,10 @@ def anki_app(anki_base, qapp):
         ".settings.initial_state",
         ".editor_integration",
     ):
-        try:
-            import_runtime_addon_module(suffix)
-        except Exception:
-            pass
+        import_runtime_addon_module(suffix)
 
     addon_manager = aqt.mw.addonManager
-    addon_manager.writeConfig(ADDON_NUMERIC_ID, _default_config())
+    addon_manager.writeConfig(ADDON_NUMERIC_ID, _canonical_default_config(aqt.mw))
     yield aqt.mw
 
 
@@ -232,45 +191,235 @@ def anki_mw(anki_app):
     return anki_app
 
 
+@pytest.fixture(scope="session")
+def e2e_process_baseline(anki_mw):
+    """Capture desktop state that must survive every randomized E2E item."""
+    from PyQt6.QtWidgets import QApplication
+
+    return {
+        "clipboard": QApplication.clipboard().text(),
+        "theme": anki_mw.pm.theme(),
+    }
+
+
+@pytest.fixture(autouse=True)
+def _restore_canonical_config(anki_mw, request):
+    """Prevent randomized E2E items from sharing mutable add-on configuration."""
+    if request.node.get_closest_marker("preserve_e2e_config") is not None:
+        yield
+        return
+    baseline = _canonical_default_config(anki_mw)
+    _save_config_through_runtime_path(baseline)
+    yield
+    _save_config_through_runtime_path(baseline)
+
+
+def _assert_window_leak_policy(request, leaked) -> None:
+    sentinel = request.node.get_closest_marker("isolation_sentinel")
+    if sentinel is None:
+        assert not leaked, "E2E item leaked visible top-level windows: " + ", ".join(
+            f"{type(widget).__name__}({widget.windowTitle()!r})" for widget in leaked
+        )
+        return
+    expected_titles = [arg for arg in sentinel.args if isinstance(arg, str)]
+    assert [widget.windowTitle() for widget in leaked] == expected_titles
+
+
+@pytest.fixture(autouse=True)
+def _isolate_process_global_state(anki_mw, request):
+    from aqt import gui_hooks
+    from PyQt6 import sip
+    from PyQt6.QtWidgets import QApplication
+
+    support = import_runtime_addon_module(".support")
+    clipboard = QApplication.clipboard()
+    clipboard_text = clipboard.text()
+    original_theme = anki_mw.pm.theme()
+    baseline_widgets = {id(widget) for widget in QApplication.topLevelWidgets()}
+    baseline_theme_hooks = {id(callback) for callback in gui_hooks.theme_did_change._hooks}
+    for clear in (
+        support.clear_latest_denoise_support_incident,
+        support.clear_latest_spleeter_support_incident,
+        support.clear_latest_pause_pipeline_support_incident,
+    ):
+        clear()
+    yield
+
+    clipboard.setText(clipboard_text)
+    if anki_mw.pm.theme() != original_theme:
+        anki_mw.set_theme(original_theme)
+    if anki_mw.state != "deckBrowser":
+        anki_mw.moveToState("deckBrowser")
+    for clear in (
+        support.clear_latest_denoise_support_incident,
+        support.clear_latest_spleeter_support_incident,
+        support.clear_latest_pause_pipeline_support_incident,
+    ):
+        clear()
+
+    leaked = [
+        widget
+        for widget in QApplication.topLevelWidgets()
+        if id(widget) not in baseline_widgets and widget.isVisible()
+    ]
+    for widget in leaked:
+        widget.close()
+        widget.deleteLater()
+    QApplication.processEvents()
+    newly_dead_theme_hooks = []
+    for callback in list(gui_hooks.theme_did_change._hooks):
+        owner = getattr(callback, "__self__", None)
+        if owner is not None and sip.isdeleted(owner):
+            if id(callback) not in baseline_theme_hooks:
+                newly_dead_theme_hooks.append(callback)
+            gui_hooks.theme_did_change.remove(callback)
+    report = getattr(request.node, "rep_call", None)
+    if report is not None and report.passed:
+        _assert_window_leak_policy(request, leaked)
+        assert not newly_dead_theme_hooks, (
+            "E2E item left theme hooks bound to deleted WebViews: "
+            + ", ".join(repr(callback) for callback in newly_dead_theme_hooks)
+        )
+
+
+@pytest.fixture(autouse=True)
+def _fail_on_unexpected_error_channels(request):
+    from PyQt6.QtCore import QtMsgType, qInstallMessageHandler
+
+    from e2e.harness_error_policy import unexpected_messages
+
+    python_errors: list[str] = []
+    qt_errors: list[str] = []
+
+    class _ErrorHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            del self
+            if record.levelno >= logging.ERROR and (
+                record.name.startswith(ADDON_NUMERIC_ID)
+                or record.name.startswith("anki_audio_quick_editor")
+            ):
+                python_errors.append(f"{record.name}: {record.getMessage()}")
+
+    def qt_message_handler(message_type, _context, message) -> None:
+        if message_type in {QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg}:
+            qt_errors.append(str(message))
+
+    handler = _ErrorHandler()
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+    previous_qt_handler = qInstallMessageHandler(qt_message_handler)
+    yield
+    qInstallMessageHandler(previous_qt_handler)
+    root_logger.removeHandler(handler)
+
+    report = getattr(request.node, "rep_call", None)
+    if report is not None and not report.passed:
+        return
+    allowed_patterns = tuple(
+        pattern
+        for marker in request.node.iter_markers("allow_error_log")
+        for pattern in marker.args
+        if isinstance(pattern, str)
+    )
+    unexpected = unexpected_messages(
+        [*python_errors, *(f"Qt critical: {message}" for message in qt_errors)],
+        allowed_patterns,
+    )
+    assert not unexpected, (
+        "Unexpected E2E error channel output. Fix the failure or add a narrow "
+        "allow_error_log regex with a reason:\n" + "\n".join(unexpected)
+    )
 @pytest.fixture
 def ffmpeg_config(anki_mw):
     """Return config that points at runtime-managed ffmpeg, or fail when unavailable."""
     del anki_mw
     audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
     audio_processor = import_runtime_addon_module(".audio_processor")
+    missing_ffmpeg_error = import_runtime_addon_module(".errors").MissingFfmpegError
 
     try:
         return _runtime_ffmpeg_config(audio_processor, audio_processing_config)
-    except Exception as exc:
+    except missing_ffmpeg_error as exc:
         pytest.fail(f"ffmpeg and ffprobe are required for audio processing e2e tests: {exc}")
 
 
+def _native_operation_guard(operation, original, *, allowed, operation_log, fake_playback_active):
+    def guarded(*args, **kwargs):
+        if fake_playback_active():
+            return original(*args, **kwargs)
+        if allowed:
+            operation_log.append(operation)
+            return None
+        raise AssertionError(
+            f"Unexpected native av_player {operation!r} operation. "
+            "Use browser audio, a scoped fake, or an exact allow_native_playback operation contract."
+        )
+
+    return guarded
+
+
+def _native_play_tags_guard(original, *, allowed, operation_log, fake_playback_active):
+    def guarded(tags):
+        if not fake_playback_active():
+            if allowed:
+                operation_log.append("start")
+                return None
+            pytest.fail(
+                "Unexpected native av_player.play_tags() call outside _record_fake_playback. "
+                "Editor playback tests must either use browser audio or explicitly fake legacy native playback."
+            )
+        return original(tags)
+
+    return guarded
+
+
 @pytest.fixture(autouse=True)
-def _guard_unfaked_native_playback(monkeypatch):
+def _guard_unfaked_native_playback(monkeypatch, request):
     from aqt.sound import av_player
 
     from e2e.editor_playback_helpers import fake_playback_active
 
-    original_play_tags = av_player.play_tags
-    original_stop = av_player.stop_and_clear_queue
+    guarded_methods = {
+        "stop": ("stop_and_clear_queue", av_player.stop_and_clear_queue),
+        "seek": ("seek_relative", av_player.seek_relative),
+        "pause": ("toggle_pause", av_player.toggle_pause),
+    }
+    operation_log: list[str] = []
+    native_marker = request.node.get_closest_marker("allow_native_playback")
+    native_playback_allowed = native_marker is not None
 
-    def guarded_play_tags(tags):
-        if not fake_playback_active():
-            if os.environ.get("AQE_STRICT_NATIVE_PLAYBACK_GUARD") == "1":
-                pytest.fail(
-                    "Unexpected native av_player.play_tags() call outside _record_fake_playback. "
-                    "Editor playback tests must either use browser audio or explicitly fake legacy native playback."
-                )
-            return None
-        return original_play_tags(tags)
-
-    def guarded_stop_and_clear_queue():
-        if fake_playback_active():
-            return original_stop()
-        return None
-
-    monkeypatch.setattr(av_player, "play_tags", guarded_play_tags)
-    monkeypatch.setattr(av_player, "stop_and_clear_queue", guarded_stop_and_clear_queue)
+    monkeypatch.setattr(
+        av_player,
+        "play_tags",
+        _native_play_tags_guard(
+            av_player.play_tags,
+            allowed=native_playback_allowed,
+            operation_log=operation_log,
+            fake_playback_active=fake_playback_active,
+        ),
+    )
+    for operation, (name, original) in guarded_methods.items():
+        monkeypatch.setattr(
+            av_player,
+            name,
+            _native_operation_guard(
+                operation,
+                original,
+                allowed=native_playback_allowed,
+                operation_log=operation_log,
+                fake_playback_active=fake_playback_active,
+            ),
+        )
+    yield
+    if native_playback_allowed:
+        expected = [value for value in native_marker.args if isinstance(value, str)]
+        if expected:
+            assert operation_log == expected, (
+                f"native playback operation mismatch: expected {expected}, observed {operation_log}"
+            )
+        else:
+            assert operation_log, "allow_native_playback marker recorded no native operations"
+            assert operation_log[0] == "start", "approved native playback did not start with play_tags"
 
 
 def _runtime_ffmpeg_config(audio_processor, audio_processing_config):
@@ -279,33 +428,3 @@ def _runtime_ffmpeg_config(audio_processor, audio_processing_config):
     ffmpeg = audio_processor.find_ffmpeg(configured)
     audio_processor.find_ffprobe(ffmpeg)
     return audio_processing_config(ffmpeg_path=str(ffmpeg))
-
-
-# noinspection PyUnusedLocal
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_sessionfinish(session, exitstatus):
-    """Force-exit after pytest prints the summary to avoid Qt WebEngine teardown hangs."""
-    del session
-    yield
-
-    for stream in (sys.stdout, sys.stderr):
-        flush = getattr(stream, "flush", None)
-        if callable(flush):
-            flush()
-
-    try:
-        result = subprocess.run(
-            ["pgrep", "-P", str(os.getpid())],
-            capture_output=True,
-            text=True,
-            timeout=2,
-        )
-        for pid_str in result.stdout.split():
-            try:
-                os.kill(int(pid_str), signal.SIGKILL)
-            except (ValueError, OSError):
-                pass
-    except Exception:
-        pass
-
-    os._exit(int(exitstatus))

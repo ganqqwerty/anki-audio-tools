@@ -198,8 +198,7 @@ def _configure_mw(mw: MagicMock) -> None:
     mw.addonManager.addonConfigDefaults.return_value = {}
     mw.addonManager.addonFromModule.side_effect = lambda _module: "anki_audio_quick_editor"
     mw.addonManager.addonsFolder.return_value = "/tmp/anki-audio-quick-editor-addon"
-    mw.taskman = _named_mock("aqt.mw.taskman")
-    mw.taskman.run_on_main.side_effect = lambda fn: fn()
+    mw.taskman = _TaskManager()
     mw.pm = _named_mock("aqt.mw.pm")
     mw.pm.profileFolder.return_value = "/tmp/anki-audio-quick-editor-profile"
     mw.col = _named_mock("aqt.mw.col")

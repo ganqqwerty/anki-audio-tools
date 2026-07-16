@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
-import re
+import subprocess
 from pathlib import Path
 
+from scripts.dev_tasks.node_tools import find_node_command
+
 ROOT = Path(__file__).parent.parent.parent
+NODE = find_node_command()
 EDITOR_BUTTONS = ROOT / "settings_ui" / "src" / "lib" / "editor-toolbar-buttons.ts"
 SETTINGS_BUTTONS = ROOT / "settings_ui" / "src" / "lib" / "settings-toolbar-buttons.ts"
 SELECTION_TOOLBAR = ROOT / "settings_ui" / "src" / "editor-inline" / "SelectionToolbar.svelte"
@@ -15,28 +18,61 @@ CONFIG_SCHEMA = ROOT / "addon" / "anki_audio_quick_editor" / "config.schema.json
 CONFIG_DEFAULTS = ROOT / "addon" / "anki_audio_quick_editor" / "config.json"
 
 
-def _function_body(source: str, function_name: str) -> str:
-    match = re.search(rf"\bfunction\s+{re.escape(function_name)}\b[^\{{]*\{{", source)
-    assert match is not None, f"{function_name} function not found"
-    body_start = match.end()
-    depth = 1
-    for index, char in enumerate(source[body_start:], start=body_start):
-        if char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                return source[body_start:index]
-    raise AssertionError(f"{function_name} function body is incomplete")
+_FUNCTION_QUERY = r"""
+const ts = require("typescript");
+const functionName = process.argv[1];
+let source = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", chunk => source += chunk);
+process.stdin.on("end", () => {
+  const file = ts.createSourceFile("query.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  let target;
+  const visit = node => {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === functionName) target = node;
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  if (!target?.body) process.exit(2);
+  const commands = [];
+  const collect = node => {
+    if (ts.isPropertyAssignment(node)
+        && ((ts.isIdentifier(node.name) && node.name.text === "command")
+            || (ts.isStringLiteral(node.name) && node.name.text === "command"))
+        && ts.isStringLiteralLike(node.initializer)) commands.push(node.initializer.text);
+    ts.forEachChild(node, collect);
+  };
+  collect(target.body);
+  process.stdout.write(JSON.stringify({body: target.body.getText(file), commands}));
+});
+"""
+
+
+def _function_query(source: str, function_name: str) -> dict[str, object]:
+    assert NODE is not None, "Node.js is required for TypeScript architecture queries"
+    result = subprocess.run(
+        [NODE, "-e", _FUNCTION_QUERY, function_name],
+        cwd=ROOT / "settings_ui",
+        input=source,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, f"{function_name} function not found: {result.stderr}"
+    value = json.loads(result.stdout)
+    assert isinstance(value, dict)
+    return value
 
 
 def _commands_in_function(source: str, function_name: str) -> set[str]:
-    return set(re.findall(r'command:\s*"([^"]+)"', _function_body(source, function_name)))
+    commands = _function_query(source, function_name)["commands"]
+    assert isinstance(commands, list)
+    return {str(command) for command in commands}
 
 
 def _selection_toolbar_literal_commands() -> set[str]:
     source = SELECTION_TOOLBAR.read_text(encoding="utf-8")
-    return set(re.findall(r'data-aqe-command="([^"]+)"', source))
+    marker = 'data-aqe-command="'
+    return {part.split('"', 1)[0] for part in source.split(marker)[1:]}
 
 
 def _config_schema_enum(property_name: str) -> set[str]:
@@ -71,6 +107,19 @@ def test_settings_uses_settings_facing_editor_button_registry() -> None:
     settings_source = TOOLBAR_SETTINGS.read_text(encoding="utf-8")
 
     assert "export function settingsToolbarButtons" in settings_buttons_source
-    assert "selectionActionButtons()" in _function_body(settings_buttons_source, "settingsToolbarButtons")
+    body = _function_query(settings_buttons_source, "settingsToolbarButtons")["body"]
+    assert isinstance(body, str)
+    assert "selectionActionButtons()" in body
     assert "settingsToolbarButtons" in settings_source
     assert "const buttons = settingsToolbarButtons();" in settings_source
+
+
+def test_function_query_ignores_braces_and_commands_in_comments_or_strings() -> None:
+    source = '''
+    function commandButtons() {
+      const example = "} command: \\\"aqe:false\\\"";
+      // { command: "aqe:comment" }
+      return [{ command: "aqe:real" }];
+    }
+    '''
+    assert _commands_in_function(source, "commandButtons") == {"aqe:real"}

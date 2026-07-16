@@ -14,6 +14,7 @@ from anki_audio_quick_editor.editor_sharing import (
     share_learner_recording_file,
 )
 from anki_audio_quick_editor.errors import AudioProcessingError, MissingMediaError
+from tests.thread_fakes import ImmediateThread as _ImmediateThread
 
 
 def _message(key: str, values: dict[str, str] | None = None) -> str:
@@ -35,15 +36,6 @@ def _message(key: str, values: dict[str, str] | None = None) -> str:
     if key == "editor.status.share_failed":
         return f"Share failed: {values['error']}"
     raise KeyError(key)
-
-
-class _ImmediateThread:
-    def __init__(self, target, daemon: bool = False) -> None:
-        del daemon
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
 
 
 class _Editor:

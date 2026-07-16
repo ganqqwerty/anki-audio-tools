@@ -26,6 +26,9 @@ REAL_AUDIO_TEST_NAME_TERMS = {
     "vorbis",
 }
 
+AUDIBLE_TEST_NAME_TERMS = {"audible", "acoustic", "emitted_pcm"}
+AUDIBLE_REQUIRED_CALLS = {"analyze_audible_capture", "install_audible_capture"}
+
 BROWSER_MEDIA_FACT_TERMS = {
     "MediaError": "inspects native browser media error objects",
     "audio.error": "inspects native browser media errors",
@@ -84,6 +87,37 @@ def test_e2e_real_browser_audio_coverage_does_not_use_fake_audio_driver() -> Non
         "native MediaError facts, repeat decoder behavior, or play/pause rejection "
         "must use a real WebView audio element. The fake HTML audio driver is only "
         "valid for UI and graph state tests.\n"
+        + "\n".join(violations)
+    )
+
+
+def test_e2e_audible_output_claims_use_capture_and_independent_oracle() -> None:
+    violations: list[str] = []
+    for path in sorted(E2E_ROOT.rglob("*.py")):
+        source = path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(path))
+        for function in _function_nodes(tree):
+            if not function.name.startswith("test_"):
+                continue
+            if not any(term in function.name.lower() for term in AUDIBLE_TEST_NAME_TERMS):
+                continue
+            calls = {
+                call_name
+                for node in ast.walk(function)
+                if isinstance(node, ast.Call)
+                and (call_name := _call_name(node.func)) is not None
+            }
+            missing = sorted(AUDIBLE_REQUIRED_CALLS - calls)
+            fake_calls = sorted(calls & FAKE_AUDIO_DRIVER_CALLS)
+            if missing or fake_calls:
+                violations.append(
+                    f"{path.relative_to(ROOT)}:{function.lineno}: {function.name} "
+                    f"missing={missing!r} fake_calls={fake_calls!r}"
+                )
+
+    assert violations == [], (
+        "Audible-output E2E tests must capture real WebView PCM, evaluate it in "
+        "the independent acoustic oracle, and must not install a fake audio driver.\n"
         + "\n".join(violations)
     )
 

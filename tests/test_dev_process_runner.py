@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 from scripts.dev_tasks import process
@@ -131,7 +132,46 @@ def test_process_run_uses_configured_idle_timeout(capsys) -> None:
 
     captured = capsys.readouterr()
     assert rc != 0
-    assert "FAILED: terminated after idle timeout" in captured.out
+    assert "FAILED: terminated after timeout" in captured.out
+
+
+def test_process_run_enforces_absolute_timeout_despite_continuous_output(capsys) -> None:
+    process.set_verbose(False)
+
+    rc = process._run(
+        [
+            sys.executable,
+            "-c",
+            "import time\nwhile True:\n print('busy', flush=True)\n time.sleep(0.02)",
+        ],
+        label="bounded command",
+        idle_timeout_s=1.0,
+        absolute_timeout_s=0.05,
+    )
+
+    captured = capsys.readouterr()
+    assert rc != 0
+    assert "FAILED: terminated after timeout" in captured.out
+
+
+def test_process_run_does_not_wait_for_descendant_inheriting_output_pipe(capsys) -> None:
+    process.set_verbose(False)
+    started = time.monotonic()
+
+    rc = process._run(
+        [
+            sys.executable,
+            "-c",
+            "import subprocess, sys; subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'])",
+        ],
+        label="background descendant command",
+        idle_timeout_s=5.0,
+        absolute_timeout_s=5.0,
+    )
+
+    assert rc == 0
+    assert time.monotonic() - started < 3.0
+    assert "descendants still held its output pipe" in capsys.readouterr().err
 
 
 def test_process_run_stays_silent_for_passing_quiet_test_commands(capsys) -> None:

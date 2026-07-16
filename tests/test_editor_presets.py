@@ -11,15 +11,7 @@ from anki_audio_quick_editor.editor_actions import EditorCommandPayload
 from anki_audio_quick_editor.editor_presets import run_processing_preset_async
 from anki_audio_quick_editor.editor_session import EditorSession
 from tests.editor_bridge_command_fixtures import make_editor
-
-
-class ImmediateThread:
-    def __init__(self, target, daemon: bool) -> None:
-        del daemon
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
+from tests.thread_fakes import ImmediateThread
 
 
 def _preset_config(*, graph_enabled: bool, steps: list[dict]) -> dict:

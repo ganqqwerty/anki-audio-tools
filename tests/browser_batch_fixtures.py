@@ -3,11 +3,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 
-class FakeUndoStatus:
-    def __init__(self, last_step: int = 0) -> None:
-        self.last_step = last_step
-
-
 class FakeNote:
     def __init__(self, note_id: int) -> None:
         self.id = note_id
@@ -28,16 +23,15 @@ class FakeCol:
         self.notes = {1: FakeNote(1), 2: FakeNote(2)}
         self.updated: list[int] = []
         self.merged: list[int] = []
+        self.custom_undo_entries: list[str] = []
         self.media = SimpleNamespace(write_data=lambda name, data: name)
 
     def get_note(self, note_id: int) -> FakeNote:
         return self.notes[note_id]
 
-    def add_custom_undo_entry(self, _name: str) -> int:
+    def add_custom_undo_entry(self, name: str) -> int:
+        self.custom_undo_entries.append(name)
         return 42
-
-    def undo_status(self) -> FakeUndoStatus:
-        return FakeUndoStatus(last_step=42)
 
     def update_note(self, note: FakeNote) -> object:
         self.updated.append(int(note.id))

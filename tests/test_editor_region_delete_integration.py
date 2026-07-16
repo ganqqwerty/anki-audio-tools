@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
@@ -11,8 +12,109 @@ from anki_audio_quick_editor.editor_callbacks import (
     _parse_region_delete_request,
     _replace_current_field_after_region_delete,
 )
+from anki_audio_quick_editor.editor_region_delete import delete_selection_with_request
 from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
+from anki_audio_quick_editor.editor_session import EditorSession
+
+
+def _region_request(**overrides: object) -> dict[str, object]:
+    request: dict[str, object] = {
+        "operation": "delete-selection",
+        "ord": 0,
+        "sourceFilename": "clip.wav",
+        "selectionStartMs": 250,
+        "selectionEndMs": 750,
+        "cursorMs": 300,
+        "durationMs": 1000,
+        "trigger": "button",
+        "playbackActive": False,
+    }
+    request.update(overrides)
+    return request
+
+
+def _public_region_delete_deps(tmp_path: Path, **overrides: object) -> SimpleNamespace:
+    statuses: list[tuple[str, Any]] = []
+    busy: list[tuple[int | None, bool]] = []
+    session = SimpleNamespace()
+    values: dict[str, object] = {
+        "sessions": {},
+        "is_busy": lambda _session: False,
+        "still_processing_message": "Still processing. Please wait.",
+        "current_field_index": lambda _editor: 0,
+        "resolve_requested_field_media": lambda *_args: object(),
+        "current_media_path": lambda _editor: (session, tmp_path / "clip.wav"),
+        "set_busy": lambda _editor, value: busy.append((None, value)),
+        "set_busy_for_field": lambda _editor, field, value, *_args: busy.append((field, value)),
+        "eval_status": lambda _editor, message, *, kind: statuses.append((kind, message)),
+        "statuses": statuses,
+        "busy_calls": busy,
+    }
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+def test_public_region_delete_rejects_malformed_request_and_releases_busy(tmp_path: Path) -> None:
+    deps = _public_region_delete_deps(tmp_path)
+
+    delete_selection_with_request(object(), {"operation": "invalid"}, deps)
+
+    assert deps.busy_calls == [(None, False)]
+    assert deps.statuses[0][0] == "error"
+    assert deps.statuses[0][1]["code"] == "AQE-AUDIO-001"
+
+
+def test_public_region_delete_rejects_busy_session_without_starting_work(tmp_path: Path) -> None:
+    editor = object()
+    existing = object()
+    deps = _public_region_delete_deps(
+        tmp_path,
+        sessions={editor: existing},
+        is_busy=lambda session: session is existing,
+    )
+
+    delete_selection_with_request(editor, _region_request(), deps)
+
+    assert deps.busy_calls == []
+    assert deps.statuses == [("processing", "Still processing. Please wait.")]
+
+
+def test_public_region_delete_rejects_inactive_field(tmp_path: Path) -> None:
+    deps = _public_region_delete_deps(tmp_path, current_field_index=lambda _editor: 1)
+
+    delete_selection_with_request(object(), _region_request(), deps)
+
+    assert deps.busy_calls == [(0, False)]
+    assert deps.statuses[0][0] == "error"
+    assert deps.statuses[0][1]["code"] == "AQE-GRAPH-001"
+
+
+def test_public_region_delete_rejects_unresolved_or_changed_media(tmp_path: Path) -> None:
+    unresolved = _public_region_delete_deps(tmp_path, resolve_requested_field_media=lambda *_args: None)
+    delete_selection_with_request(object(), _region_request(), unresolved)
+    assert unresolved.busy_calls == [(0, False)]
+    assert unresolved.statuses[0][1]["code"] == "AQE-GRAPH-001"
+
+    changed = _public_region_delete_deps(
+        tmp_path,
+        current_media_path=lambda _editor: (SimpleNamespace(), tmp_path / "changed.wav"),
+    )
+    delete_selection_with_request(object(), _region_request(), changed)
+    assert changed.busy_calls == [(0, False)]
+    assert changed.statuses[0][1]["code"] == "AQE-GRAPH-001"
+
+
+def test_public_region_delete_rejects_whole_clip(tmp_path: Path) -> None:
+    deps = _public_region_delete_deps(tmp_path)
+
+    delete_selection_with_request(
+        object(),
+        _region_request(selectionStartMs=0, selectionEndMs=1000),
+        deps,
+    )
+
+    assert deps.busy_calls == [(0, False)]
+    assert deps.statuses[0][0] == "warning"
 
 
 def test_region_delete_request_parser_normalizes_payload() -> None:
@@ -255,7 +357,10 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
     assert session.cursor_ms == 0
     assert session.redo_history.pop() is None
     assert session.undo_history.pop().filename == "clip.mp3"
-    assert session.pending_status == PendingEditorStatus(1, message="Deleted selection 250-750 ms.")
+    assert session.pending_status is not None
+    assert session.pending_status.field_index == 1
+    assert session.pending_status.kind == "info"
+    assert session.pending_status.message == "Deleted selection 250-750 ms."
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
     assert any(
         "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]

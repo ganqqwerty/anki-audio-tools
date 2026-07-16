@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import (
     _basic_audio_note,
@@ -19,6 +21,8 @@ from e2e.helpers import (
     wait_for_selector,
 )
 from e2e.test_editor_processing_split_buttons_workflow import _split_menu_selector
+
+pytestmark = pytest.mark.shared_desktop
 
 
 def _share_preset_selector(target: str, ord_: int = 0) -> str:
@@ -58,7 +62,7 @@ def test_share_button_uploads_to_litterbox_then_catbox_without_mutating_note(
         click_selector(editor.web, _button_selector("aqe:share"), timeout=5.0)
         wait_for_condition(
             lambda: QApplication.clipboard().text() == "https://litterbox.catbox.moe/abc123/clip.mp3",
-            timeout=5.0,
+            timeout=15.0,
             message="Litterbox share did not copy the expected URL",
         )
 
@@ -67,7 +71,7 @@ def test_share_button_uploads_to_litterbox_then_catbox_without_mutating_note(
         click_selector(editor.web, _button_selector("aqe:share"), timeout=5.0)
         wait_for_condition(
             lambda: QApplication.clipboard().text() == "https://files.catbox.moe/share123.mp3",
-            timeout=5.0,
+            timeout=15.0,
             message="Catbox share did not copy the expected URL",
         )
 

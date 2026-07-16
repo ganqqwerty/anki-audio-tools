@@ -5,8 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from PyQt6.QtCore import QPoint, Qt
-from PyQt6.QtTest import QTest
+import pytest
 
 from e2e.editor_audio_generation_helpers import _generate_high_bitrate_mp3
 from e2e.editor_graph_helpers import (
@@ -24,10 +23,12 @@ from e2e.editor_region_loop_helpers import (
     _set_repeat,
 )
 from e2e.helpers import (
-    _run_event_loop_step,
     run_js,
+    trusted_pointer_to_selector,
     wait_for_js_condition,
 )
+
+pytestmark = pytest.mark.trusted_input
 
 MEDIA_FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "audio"
 EXPECTED_FORVO_REPEAT_PLAY_CALLS = 3
@@ -142,6 +143,7 @@ def _open_real_media_editor(
     ffmpeg_config,
     fixture_path: Path,
     *,
+    config_overrides: dict | None = None,
     require_browser_audio_ready: bool = True,
 ):
     if not fixture_path.is_file():
@@ -150,7 +152,12 @@ def _open_real_media_editor(
     source = media_dir / fixture_path.name
     shutil.copy2(fixture_path, source)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config, repeat_playback_by_default=False)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        repeat_playback_by_default=False,
+        **(config_overrides or {}),
+    )
     editor, parent = _open_editor(anki_mw, note)
     try:
         track = _click_graph_and_wait(
@@ -233,37 +240,25 @@ def _stop_real_audio_playback(editor, ord_: int = 0) -> None:
         }})()
         """,
     )
-    for _ in range(5):
-        _run_event_loop_step()
-
-
-def _trusted_click_selector(editor, selector: str) -> None:
-    point = wait_for_js_condition(
+    wait_for_js_condition(
         editor.web,
         f"""
         (() => {{
-          const node = document.querySelector({selector!r});
-          if (!node || node.disabled || node.getAttribute("aria-disabled") === "true") return null;
-          const rect = node.getBoundingClientRect();
-          return {{
-            x: Math.round(rect.left + rect.width / 2),
-            y: Math.round(rect.top + rect.height / 2),
-          }};
+          const state = window.__aqeGraphStateForTest?.({ord_});
+          const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
+          return state && audio ? {{
+            playbackState: state.playbackState,
+            sourceAttribute: audio.getAttribute('src'),
+          }} : null;
         }})()
         """,
-        lambda value: value is not None,
+        lambda value: value == {"playbackState": "stopped", "sourceAttribute": None},
         timeout=5.0,
     )
-    web_point = QPoint(int(point["x"]), int(point["y"]))
-    target = editor.web.childAt(web_point) or editor.web.focusProxy() or editor.web
-    target_point = target.mapFrom(editor.web, web_point) if target is not editor.web else web_point
-    QTest.mouseClick(
-        target,
-        Qt.MouseButton.LeftButton,
-        Qt.KeyboardModifier.NoModifier,
-        target_point,
-    )
-    _run_event_loop_step()
+
+
+def _trusted_click_selector(editor, selector: str) -> None:
+    trusted_pointer_to_selector(editor.web, selector, click=True)
 
 
 def _install_real_audio_probe(editor, ord_: int = 0) -> None:

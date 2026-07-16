@@ -9,6 +9,8 @@ from types import SimpleNamespace
 
 import aqt
 
+from tests.thread_fakes import ImmediateThread
+
 
 class FakeSignal:
     def __init__(self) -> None:
@@ -105,15 +107,6 @@ class FakeButton:
 
     def setText(self, text: str) -> None:
         self.text = text
-
-
-class ImmediateThread:
-    def __init__(self, target, daemon=True, name="") -> None:
-        del daemon, name
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
 
 
 def test_runtime_installer_dialog_sets_up_modal_controls(request) -> None:

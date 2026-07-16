@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -31,10 +32,36 @@ def front_field(anki_mw, note_id: int) -> str:
 
 def open_browser_for_note(anki_mw, note: Any) -> Any:
     browser = aqt.dialogs.open("Browser", anki_mw, search=(SearchNode(nid=int(note.id)),))
+    browser.show()
     wait_for_condition(
         lambda: browser.isVisible() and browser.table.len() >= 1,
         timeout=10.0,
         message="Browser did not open with the target note search",
+    )
+    return browser
+
+
+def open_browser_for_notes(anki_mw, notes: tuple[Any, ...]) -> Any:
+    search = (SearchNode(nids={"ids": [int(note.id) for note in notes]}),)
+    browser = aqt.dialogs.open("Browser", anki_mw, search=search)
+    browser.show()
+    wait_for_condition(
+        lambda: browser.isVisible() and browser.table.len() == len(notes),
+        timeout=10.0,
+        message="Browser did not open with exactly the requested notes",
+    )
+    browser.table.select_all()
+    expected_note_ids = {int(note.id) for note in notes}
+
+    def select_every_note() -> bool:
+        browser.table.select_all()
+        QApplication.processEvents()
+        return {int(value) for value in browser.selected_notes()} == expected_note_ids
+
+    wait_for_condition(
+        select_every_note,
+        timeout=10.0,
+        message="Browser did not select every requested note",
     )
     return browser
 
@@ -72,6 +99,31 @@ def wait_for_opened_dialog(opened: list[Any]) -> None:
         timeout=10.0,
         message=f"Browser menu action did not open exactly one dialog; saw {len(opened)}",
     )
+
+
+def close_browser(browser: Any) -> None:
+    editor_saved = False
+
+    def mark_editor_saved() -> None:
+        nonlocal editor_saved
+        editor_saved = True
+
+    browser.editor.call_after_note_saved(mark_editor_saved)
+    wait_for_condition(
+        lambda: editor_saved,
+        timeout=10.0,
+        message="Browser editor callbacks did not drain before close",
+    )
+    browser.editor.set_note(None)
+    browser.hide()
+    editor_saved = False
+    browser.editor.call_after_note_saved(mark_editor_saved)
+    wait_for_condition(
+        lambda: editor_saved,
+        timeout=10.0,
+        message="Browser focus-loss callbacks did not drain before close",
+    )
+    QApplication.processEvents()
 
 
 @contextmanager
@@ -122,6 +174,24 @@ def select_batch_operation(dialog: Any, operation: str) -> None:
     )
 
 
+def select_batch_value(dialog: Any, test_id: str, value: str) -> None:
+    selector = f'[data-testid="{test_id}"]'
+    wait_for_js_condition(
+        dialog._webview,
+        f"""
+        (() => {{
+          const node = document.querySelector({json.dumps(selector)});
+          if (!node) return null;
+          node.value = {json.dumps(value)};
+          node.dispatchEvent(new Event('change', {{ bubbles: true }}));
+          return node.value;
+        }})()
+        """,
+        lambda observed: observed == value,
+        timeout=5.0,
+    )
+
+
 def click_batch_start(dialog: Any) -> None:
     click_selector(dialog._webview, '[data-testid="batch-start"]', timeout=5.0)
 
@@ -143,6 +213,17 @@ def open_batch_dialog(
 ):
     browser = open_browser_for_note(anki_mw, note)
     select_browser_note_row(browser, int(note.id))
+    return browser, non_blocking_dialog_exec(dialog_class), action_label
+
+
+def open_batch_dialog_for_notes(
+    anki_mw,
+    notes: tuple[Any, ...],
+    dialog_class: type[Any],
+    *,
+    action_label: str = "Run Audio Batch Operation...",
+):
+    browser = open_browser_for_notes(anki_mw, notes)
     return browser, non_blocking_dialog_exec(dialog_class), action_label
 
 

@@ -40,12 +40,11 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
                 "arch",
                 "test-anki-api",
                 "test",
-                "coverage",
             ],
         ),
         (
             "sequential",
-            ["qodana", "test-svelte"],
+            ["coverage", "qodana", "test-svelte"],
         ),
     ]
 
