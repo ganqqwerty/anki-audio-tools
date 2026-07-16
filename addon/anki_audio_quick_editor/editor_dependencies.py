@@ -241,6 +241,7 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> ProcessingDeps:
         request_history_snapshot_after_edit=frontend_callbacks.request_history_snapshot_after_edit,
         request_playback_after_edit=frontend_callbacks.request_playback_after_edit,
         request_graph_redraw=frontend_callbacks.request_graph_redraw,
+        resolve_requested_field_media=resolve_requested_field_media,
         run_special_audio_transform_async=callbacks.run_special_audio_transform_async,
         session_and_source=editor_runtime.session_and_source,
         sessions=editor_runtime.SESSIONS,

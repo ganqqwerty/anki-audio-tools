@@ -114,7 +114,15 @@ def test_audio_clock_event_callbacks_carry_media_event_facts() -> None:
     source = AUDIO_CLOCK.read_text(encoding="utf-8")
 
     assert "onEndedDuringPlayback?: (durationMs: number) => void;" in source
-    assert "onErrorDuringPlayback?: (cursorMs: number) => void;" in source
+    assert "onErrorDuringPlayback?: (" in source
+    assert "mediaErrorCode: number | null," in source
+    assert "mediaResponseStatus: number | null," in source
+    assert "const mediaErrorCode = audio.error?.code ?? null;" in source
+    assert "mediaResponseStatusFor(failedSrc).then(reportFailure)" in source
+    assert (
+        "callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio), mediaErrorCode, mediaResponseStatus);"
+        in source
+    )
 
 
 def test_audio_clock_playback_event_callbacks_do_not_re_read_field_state() -> None:

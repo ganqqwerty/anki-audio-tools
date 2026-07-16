@@ -6,6 +6,7 @@ import {
   stopOtherHtmlAudioSessions,
 } from "./html-audio-session-controller.js";
 import { htmlAudioReadinessFor } from "./audio-readiness.js";
+import { clearPlaybackWarning } from "./control-status-renderer.js";
 import { logger } from "./logger.js";
 import type {
   HtmlAudioSessionState,
@@ -28,7 +29,7 @@ export function startSourceHtmlPlayback(
   visualizer: VisualizerElement,
   request: PlaybackRequest,
 ): boolean {
-  clearPostEditPlaybackWarning(visualizer);
+  clearPlaybackWarning(request.ord);
   const sourceRequest = sourcePlaybackRequestFor(visualizer, request);
   const field = readFieldState(sourceRequest.ord);
   const sourceFilename = sourceSessionFilename(sourceRequest.ord)
@@ -124,6 +125,8 @@ function dispatchHtmlAudioStartRequest(
   if (htmlAudioReadinessFor(visualizer).failed) {
     dispatchHtmlAudioSessionEvent(request.ord, {
       cursorMs: request.cursorMs,
+      mediaErrorCode: visualizer.__aqeHtmlAudioMediaErrorCode ?? null,
+      mediaResponseStatus: visualizer.__aqeHtmlAudioMediaResponseStatus ?? null,
       reason: "audio_error",
       type: "AudioError",
     });
@@ -184,23 +187,9 @@ function sourceSessionFilename(ord: number): string {
   return state.source.kind === "source" ? state.source.sourceFilename : "";
 }
 
-function clearPostEditPlaybackWarning(visualizer: VisualizerElement): void {
-  const warning = playbackWarningForVisualizer(visualizer);
-  if (!warning) return;
-  warning.textContent = "";
-  delete warning.dataset.kind;
-  warning.hidden = true;
-}
-
 function htmlAudioSourceSessionSummary(state: HtmlAudioSessionState): Record<string, unknown> {
   return {
     kind: state.kind,
     sourceFilename: "source" in state ? state.source?.sourceFilename : null,
   };
-}
-
-function playbackWarningForVisualizer(visualizer: VisualizerElement): HTMLElement | null {
-  return visualizer
-    .closest<HTMLElement>(".aqe-controls")
-    ?.querySelector<HTMLElement>(".aqe-playback-warning") ?? null;
 }

@@ -1,6 +1,6 @@
 import { COMMAND_SLUGS } from "./commands.js";
 import { audioClockFor } from "./audio-clock.js";
-import { htmlAudioReadinessFor } from "./audio-readiness.js";
+import { clearHtmlAudioFailure, htmlAudioReadinessFor } from "./audio-readiness.js";
 import {
   allButtons,
   controlsForOrd,
@@ -85,6 +85,9 @@ export function installAudioPlaybackTestDriver(ord: number): boolean {
     }
     visualizer.__aqeAudioClockAvailable = true;
     visualizer.__aqeAudioClockFallback = false;
+    visualizer.__aqeHtmlAudioMediaErrorCode = null;
+    visualizer.__aqeHtmlAudioMediaResponseStatus = null;
+    clearHtmlAudioFailure(visualizer);
   };
   audio.__aqeTestDriverInstalled = true;
   markReady();

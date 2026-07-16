@@ -199,6 +199,8 @@ export type VisualizerElement = HTMLElement & {
   __aqeAudioClockFallback?: boolean;
   __aqeAudioClockLastSeekedMs?: number;
   __aqeHtmlAudioFailureReason?: HtmlAudioReadinessReason | "";
+  __aqeHtmlAudioMediaErrorCode?: number | null;
+  __aqeHtmlAudioMediaResponseStatus?: number | null;
   __aqeCursorPaintedAtMs?: number;
   __aqeCursorRenderCache?: CursorRenderCache;
   __aqeCursorTextPaintedAtMs?: number;

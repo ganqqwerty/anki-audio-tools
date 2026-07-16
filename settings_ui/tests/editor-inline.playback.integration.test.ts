@@ -367,7 +367,7 @@ afterEach(() => {
 
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "AQE-MEDIA-002: The referenced audio file was not found in Anki's media folder.",
+      "Browser audio is unavailable.",
     );
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
   });

@@ -19,7 +19,14 @@ const request = {
   regionMode: "full" as const,
   source: "user" as const,
 };
-
+function failureTelemetry(reason: string) {
+  return {
+    data: { mediaErrorCode: null, mediaResponseStatus: null, reason, recoveryOffered: false,
+      sourceFilename: source.sourceFilename, sourceKind: source.kind },
+    event: "playback.html_failed",
+    type: "LogPlaybackTelemetry",
+  } as const;
+}
 describe("html audio session machine", () => {
   it("owns source playback transitions from configured source to playing", () => {
     let state: HtmlAudioSessionState = initialHtmlAudioSessionState(0);
@@ -402,6 +409,7 @@ describe("html audio session machine", () => {
 
     expect(transition.state).toEqual({
       kind: "failed",
+      mediaErrorCode: null, mediaResponseStatus: null,
       ord: 0,
       source,
       cursorMs: 250,
@@ -413,11 +421,7 @@ describe("html audio session machine", () => {
       { type: "PauseAudio" },
       { cursorMs: 250, status: "stopped", type: "PublishPlaybackState" },
       { statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" },
-      {
-        data: { reason: "audio_play_rejected" },
-        event: "playback.html_failed",
-        type: "LogPlaybackTelemetry",
-      },
+      failureTelemetry("audio_play_rejected"),
     ]);
   });
 
@@ -442,6 +446,7 @@ describe("html audio session machine", () => {
 
     expect(transition.state).toEqual({
       kind: "failed",
+      mediaErrorCode: null, mediaResponseStatus: null,
       ord: 0,
       source,
       cursorMs: 400,
@@ -453,11 +458,7 @@ describe("html audio session machine", () => {
       { type: "PauseAudio" },
       { cursorMs: 400, status: "stopped", type: "PublishPlaybackState" },
       { statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" },
-      {
-        data: { reason: "audio_seek_failed" },
-        event: "playback.html_failed",
-        type: "LogPlaybackTelemetry",
-      },
+      failureTelemetry("audio_seek_failed"),
     ]);
   });
 

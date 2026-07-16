@@ -41,6 +41,12 @@ const ERROR_COPY = {
     causes: ["The source media is missing.", "ffmpeg failed to render the temporary segment.", "The requested cursor or selection is outside the audio duration."],
     fixes: ["Try playing from the start.", "Redraw the graph and retry.", "Run diagnostics if playback keeps failing."]
   },
+  "AQE-PLAYBACK-002": {
+    title: "Browser audio format is unsupported",
+    meaning: "Anki has the referenced audio file, but the Qt WebEngine media pipeline used by Audio Quick Editor cannot decode it.",
+    causes: ["The file uses AAC in an M4A container and this Anki WebEngine build has no AAC decoder.", "The container or codec is unsupported by Chromium.", "The audio file is damaged even though its filename extension is recognized."],
+    fixes: ["Click Convert to MP3 in the editor error message.", "Keep the original file if you need it; conversion creates a new MP3 and is undoable.", "Run diagnostics if MP3 conversion also fails."]
+  },
   "AQE-GRAPH-001": {
     title: "Graph analysis failed",
     meaning: "Audio Quick Editor could not analyze pitch and loudness for the selected audio.",

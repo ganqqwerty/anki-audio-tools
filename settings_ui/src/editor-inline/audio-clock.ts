@@ -9,7 +9,11 @@ import { logger } from "./logger.js";
 
 export interface AudioClockHandlerCallbacks {
   onEndedDuringPlayback?: (durationMs: number) => void;
-  onErrorDuringPlayback?: (cursorMs: number) => void;
+  onErrorDuringPlayback?: (
+    cursorMs: number,
+    mediaErrorCode: number | null,
+    mediaResponseStatus: number | null,
+  ) => void;
   onLoadedMetadata?: (durationMs: number) => void;
 }
 
@@ -31,6 +35,8 @@ export function resetAudioClockState(visualizer: VisualizerElement): void {
   visualizer.__aqeAudioClockFallback = false;
   visualizer.__aqeAudioClockLastSeekedMs = 0;
   visualizer.__aqeHtmlAudioFailureReason = "";
+  visualizer.__aqeHtmlAudioMediaErrorCode = null;
+  visualizer.__aqeHtmlAudioMediaResponseStatus = null;
   updateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"), (state) => ({
     ...state,
     playback: { ...state.playback, clockMode: "stopped" },
@@ -50,6 +56,8 @@ export function installAudioClockHandlers(
     if (!audio.getAttribute("src")) return;
     visualizer.__aqeAudioClockAvailable = true;
     visualizer.__aqeAudioClockFallback = false;
+    visualizer.__aqeHtmlAudioMediaErrorCode = null;
+    visualizer.__aqeHtmlAudioMediaResponseStatus = null;
     clearHtmlAudioFailure(visualizer);
     const durationSeconds = Number(audio.duration);
     logger.debug("audio_clock.loadedmetadata", {
@@ -63,15 +71,31 @@ export function installAudioClockHandlers(
     }
   });
   audio.addEventListener("error", () => {
-    markHtmlAudioFailure(visualizer, "audio_error");
-    logger.debug("audio_clock.error", {
-      currentTimeMs: audioCurrentTimeMs(audio),
-      errorCode: audio.error?.code ?? null,
-      ord,
-      readyState: audio.readyState,
-      src: audio.getAttribute("src") || "",
-    });
-    callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio));
+    if (audio.__aqeTestDriverInstalled) return;
+    const mediaErrorCode = audio.error?.code ?? null;
+    visualizer.__aqeHtmlAudioMediaErrorCode = mediaErrorCode;
+    const failedSrc = audio.getAttribute("src") || "";
+    const reportFailure = (mediaResponseStatus: number | null): void => {
+      if (audio.__aqeTestDriverInstalled) return;
+      if (audio.getAttribute("src") !== failedSrc) return;
+      visualizer.__aqeHtmlAudioMediaErrorCode = mediaErrorCode;
+      visualizer.__aqeHtmlAudioMediaResponseStatus = mediaResponseStatus;
+      markHtmlAudioFailure(visualizer, "audio_error");
+      logger.debug("audio_clock.error", {
+        currentTimeMs: audioCurrentTimeMs(audio),
+        errorCode: mediaErrorCode,
+        mediaResponseStatus,
+        ord,
+        readyState: audio.readyState,
+        src: failedSrc,
+      });
+      callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio), mediaErrorCode, mediaResponseStatus);
+    };
+    if (mediaErrorCode === 3 || mediaErrorCode === 4) {
+      void mediaResponseStatusFor(failedSrc).then(reportFailure);
+    } else {
+      reportFailure(null);
+    }
   });
   audio.addEventListener("play", () => {
     logger.debug("audio_clock.play", audioClockEventContext(audio, ord));
@@ -95,6 +119,16 @@ export function installAudioClockHandlers(
   audio.addEventListener("seeked", () => {
     visualizer.__aqeAudioClockLastSeekedMs = Math.round((Number(audio.currentTime) || 0) * 1000);
   });
+}
+
+async function mediaResponseStatusFor(src: string): Promise<number | null> {
+  if (!src) return null;
+  try {
+    const response = await fetch(src, { cache: "no-store", method: "HEAD" });
+    return response.status;
+  } catch {
+    return null;
+  }
 }
 
 function audioClockEventContext(audio: AudioClockElement, ord: number): Record<string, unknown> {

@@ -376,3 +376,21 @@ body.nightMode .aqe-controls,
   font-size: 12px;
   min-width: 0;
 }
+
+.aqe-error-recovery-action,
+.aqe-ui-root .aqe-error-recovery-action {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: LinkText;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.aqe-error-recovery-action:focus-visible,
+.aqe-ui-root .aqe-error-recovery-action:focus-visible {
+  outline: 2px solid var(--aqe-accent-border-color);
+  outline-offset: 2px;
+}

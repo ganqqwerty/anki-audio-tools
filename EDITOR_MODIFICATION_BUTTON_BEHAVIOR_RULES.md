@@ -112,6 +112,15 @@ Modification buttons must never overwrite or delete the source media file.
 - Failure must leave the note field and current audio reference unchanged.
 - Convert to the same visible format is an accepted no-op: it does not render, write media, replace the field, push history, or trigger post-edit playback.
 
+An unsupported browser-audio error may expose an editor-only **Convert to MP3**
+recovery action even when the normal Convert toolbar button is hidden. The
+error itself is non-mutating. Only the explicit click dispatches `aqe:convert`,
+with a source-bound MP3 override that does not change the field-local or saved
+Convert output-format default. The backend must reject the action if its field
+or source filename is stale. A successful recovery follows every normal
+conversion rule in this document, including new-file creation, field
+replacement, history, graph refresh, and post-modification playback.
+
 ## Undo And Redo
 
 Every successful modification must be reversible through the editor undo/redo buttons. History is saved in sqllite db. 
@@ -244,7 +253,7 @@ Current e2e behavior references:
 | Denoise and special transform success/failure | `e2e/test_editor_deep_filter_workflow.py`, `e2e/test_editor_deep_filter_failure_workflow.py`, `e2e/test_dpdfnet_attenuation_integration.py`, `e2e/test_editor_status_operation_variants_workflow.py` |
 | Region delete and delete-rest | `e2e/test_editor_region_delete_workflow.py`, `e2e/test_editor_region_resize_workflow.py`, `settings_ui/tests/editor-inline.selection-delete.integration.test.ts` |
 | Graph redraw after edits and graph parameter behavior | `e2e/test_editor_graph_visualizer_workflow.py`, `e2e/test_editor_graph_visualizer_edges_workflow.py`, `e2e/test_editor_graph_parameters_workflow.py` |
-| Playback, repeat, and post-edit playback | `e2e/test_editor_playback_workflow.py`, `e2e/test_editor_region_loop_playback_workflow.py`, `settings_ui/tests/editor-inline.post-edit-playback.integration.test.ts` |
+| Playback, repeat, and post-edit playback | `e2e/test_editor_playback_workflow.py`, `e2e/test_editor_region_loop_playback_one_shot_workflow.py`, `e2e/test_editor_region_loop_playback_repeat_workflow.py`, `settings_ui/tests/editor-inline.post-edit-playback.integration.test.ts` |
 | Learner recording comparison | `e2e/test_editor_voice_recording_comparison_workflow.py`, `settings_ui/tests/editor-inline.recording.integration.test.ts`, `tests/test_audio_recording.py`, `tests/test_editor_recording.py`, `tests/test_editor_recording_state.py` |
 | Share non-mutation and per-field target state | `e2e/test_editor_share_workflow.py`, `settings_ui/tests/editor-inline.command-splits.integration.test.ts` |
 

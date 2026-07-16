@@ -1,5 +1,6 @@
 import { sendGraphAnalysisRequest } from "./bridge.js";
 import { setStatusForOrd } from "./control-actions.js";
+import { clearPlaybackWarning, renderPlaybackWarning } from "./control-status-renderer.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { readFieldState, setCachedProgressMs } from "./field-state-store.js";
 import { audioProgressMsForOrd, createHtmlAudioElementOperations } from "./html-audio-session-audio-element.js";
@@ -67,6 +68,9 @@ export function htmlAudioSessionSourceFilename(ord: number): string {
 }
 
 export function dispatchHtmlAudioSessionEvent(ord: number, event: HtmlAudioSessionEvent): void {
+  if (event.type === "SourceConfigured" || event.type === "PlayResolved") {
+    clearPlaybackWarning(ord);
+  }
   const current = readHtmlAudioSessionState(ord);
   const transition = transitionHtmlAudioSession(current, event);
   sessionStates.set(ord, transition.state);
@@ -119,10 +123,7 @@ function htmlAudioSessionStateSummary(state: HtmlAudioSessionState): Record<stri
     };
   }
   if (state.kind === "failed") {
-    return {
-      ...base,
-      reason: state.reason,
-    };
+    return { ...base, mediaErrorCode: state.mediaErrorCode, mediaResponseStatus: state.mediaResponseStatus, reason: state.reason };
   }
   return base;
 }
@@ -173,8 +174,15 @@ function htmlAudioSessionEventSummary(event: HtmlAudioSessionEvent): Record<stri
     case "PlayRejected":
       return { reason: event.reason, sourceFilename: event.sourceFilename, type: event.type };
     case "SeekFailed":
-    case "AudioError":
       return { cursorMs: event.cursorMs, reason: event.reason, type: event.type };
+    case "AudioError":
+      return {
+        cursorMs: event.cursorMs,
+        mediaErrorCode: event.mediaErrorCode,
+        mediaResponseStatus: event.mediaResponseStatus,
+        reason: event.reason,
+        type: event.type,
+      };
     case "PauseRequested":
     case "StopRequested":
       return { cursorMs: event.cursorMs, type: event.type };
@@ -308,7 +316,7 @@ function executeHtmlAudioSessionEffect(ord: number, effect: HtmlAudioSessionEffe
       );
       return;
     case "ShowPostEditPlaybackWarning":
-      showPostEditPlaybackWarning(ord, t(effect.statusKey));
+      renderPlaybackWarning(ord, playbackStatusMessage(effect));
       return;
     case "LogPlaybackTelemetry":
       logger.debug(effect.event, { ...effect.data, ord });
@@ -318,21 +326,15 @@ function executeHtmlAudioSessionEffect(ord: number, effect: HtmlAudioSessionEffe
   }
 }
 
-function showPostEditPlaybackWarning(ord: number, message: string): void {
-  const warning = visualizerForOrd(ord)
-    ?.closest<HTMLElement>(".aqe-controls")
-    ?.querySelector<HTMLElement>(".aqe-playback-warning") ?? null;
-  if (!warning) return;
-  warning.textContent = message;
-  warning.dataset.kind = "warning";
-  warning.hidden = false;
-}
-
 function playbackStatusMessage(
-  effect: Extract<HtmlAudioSessionEffect, { type: "ShowPlaybackStatus" }>,
+  effect: Extract<HtmlAudioSessionEffect, {
+    type: "ShowPlaybackStatus" | "ShowPostEditPlaybackWarning";
+  }>,
 ): EditorStatusMessage {
   const message = t(effect.statusKey);
-  return effect.statusCode ? { code: effect.statusCode, message } : message;
+  return effect.statusCode
+    ? { code: effect.statusCode, message, ...(effect.recovery ? { recovery: effect.recovery } : {}) }
+    : message;
 }
 
 function startProgressFrame(ord: number, cursorMs: number, endMs: number): void {

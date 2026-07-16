@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, cast
 
@@ -13,6 +14,8 @@ from .i18n import t
 
 if TYPE_CHECKING:
     from .editor_deps_protocols import ProcessingDeps
+
+logger = logging.getLogger(__name__)
 
 
 def convert_async(
@@ -28,6 +31,11 @@ def convert_async(
     if existing and _has_blocking_work(existing):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
+    if command is not None and command.source_filename is not None:
+        if not _source_bound_command_is_current(editor, command, deps):
+            deps.set_busy(editor, False)
+            deps.eval_status(editor, t("editor.status.playback_recovery_stale"), kind="warning")
+            return
     config = AudioProcessingConfig.from_config(deps.config(editor))
     target_format = (
         command.overrides.target_format
@@ -71,3 +79,32 @@ def convert_async(
 
 def _has_blocking_work(session: EditorSession) -> bool:
     return session.processing.active
+
+
+def _source_bound_command_is_current(
+    editor: Any,
+    command: EditorCommandPayload,
+    deps: ProcessingDeps,
+) -> bool:
+    current_field_ord = deps.current_field_index(editor)
+    if command.field_ord is None or current_field_ord != command.field_ord:
+        logger.info(
+            "playback recovery conversion rejected: requested_field=%s current_field=%s requested_source=%r",
+            command.field_ord,
+            current_field_ord,
+            command.source_filename,
+        )
+        return False
+    source_matches = deps.resolve_requested_field_media(
+        editor,
+        command.field_ord,
+        command.source_filename,
+    ) is not None
+    if not source_matches:
+        logger.info(
+            "playback recovery conversion rejected: requested_field=%s current_field=%s requested_source=%r source_match=false",
+            command.field_ord,
+            current_field_ord,
+            command.source_filename,
+        )
+    return source_matches

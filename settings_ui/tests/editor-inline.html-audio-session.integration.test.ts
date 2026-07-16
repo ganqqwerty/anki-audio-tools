@@ -32,6 +32,7 @@ describe("editor inline html audio session controller", () => {
     clearAllHtmlAudioSessions();
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("stores source playback session state between events", async () => {
@@ -189,7 +190,7 @@ describe("editor inline html audio session controller", () => {
     expect(audio.play).not.toHaveBeenCalled();
   });
 
-  it("surfaces audio element load errors while source playback is starting", () => {
+  it("surfaces unclassified audio element errors without claiming the media is missing", async () => {
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
     audio.play = vi.fn<() => Promise<void>>(() => new Promise(() => undefined));
     audio.pause = vi.fn<() => void>(() => undefined);
@@ -217,13 +218,110 @@ describe("editor inline html audio session controller", () => {
 
     audio.dispatchEvent(new Event("error"));
 
+    await vi.waitFor(() => expect(readHtmlAudioSessionState(0).kind).toBe("failed"));
+
     expect(readHtmlAudioSessionState(0)).toMatchObject({
       kind: "failed",
       reason: "audio_error",
     });
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "AQE-MEDIA-002: The referenced audio file was not found in Anki's media folder.",
+      "Browser audio is unavailable.",
     );
+  });
+
+  it("offers MP3 recovery when Chromium reports an unsupported M4A source", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200 }));
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    audio.play = vi.fn<() => Promise<void>>(() => new Promise(() => undefined));
+    audio.pause = vi.fn<() => void>(() => undefined);
+    Object.defineProperty(audio, "error", {
+      configurable: true,
+      value: { code: 4 },
+    });
+
+    dispatchHtmlAudioSessionEvent(0, {
+      cursorMs: 0,
+      source: { kind: "source", sourceFilename: "clip.m4a" },
+      type: "SourceConfigured",
+    });
+    dispatchHtmlAudioSessionEvent(0, { durationMs: 1000, type: "MetadataLoaded" });
+    dispatchHtmlAudioSessionEvent(0, {
+      request: {
+        cursorMs: 0,
+        endMs: 1000,
+        loop: false,
+        ord: 0,
+        regionMode: "full",
+        source: "user",
+      },
+      type: "StartRequested",
+    });
+
+    audio.dispatchEvent(new Event("error"));
+
+    await vi.waitFor(() => expect(readHtmlAudioSessionState(0).kind).toBe("failed"));
+
+    expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "failed",
+      mediaErrorCode: 4,
+      mediaResponseStatus: 200,
+      reason: "audio_error",
+    });
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "AQE-PLAYBACK-002: This audio format cannot be played in Audio Quick Editor. Help Convert to MP3",
+    );
+    expect(document.querySelector('[data-testid="aqe-convert-to-mp3-0"]')).toBeInstanceOf(HTMLButtonElement);
+  });
+
+  it("keeps the error code paired with a delayed route response after metadata races", async () => {
+    let resolveFetch = (_value: { status: number }): void => undefined;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => {
+      resolveFetch = resolve;
+    })));
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    const visualizer = audio.closest<HTMLElement>(".aqe-visualizer") as HTMLElement & {
+      __aqeHtmlAudioMediaErrorCode?: number | null;
+      __aqeHtmlAudioMediaResponseStatus?: number | null;
+    };
+    Object.defineProperty(audio, "error", { configurable: true, value: { code: 4 } });
+
+    audio.dispatchEvent(new Event("error"));
+    audio.dispatchEvent(new Event("loadedmetadata"));
+    resolveFetch({ status: 200 });
+
+    await vi.waitFor(() => expect(visualizer.__aqeHtmlAudioMediaResponseStatus).toBe(200));
+    expect(visualizer.__aqeHtmlAudioMediaErrorCode).toBe(4);
+  });
+
+  it("keeps recovery actionable when post-edit autoplay restores an unsupported source", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200 }));
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "error", { configurable: true, value: { code: 4 } });
+    dispatchHtmlAudioSessionEvent(0, {
+      cursorMs: 0,
+      source: { kind: "source", sourceFilename: "restored.m4a" },
+      type: "SourceConfigured",
+    });
+    dispatchHtmlAudioSessionEvent(0, { durationMs: 1000, type: "MetadataLoaded" });
+    dispatchHtmlAudioSessionEvent(0, {
+      intent: {
+        fieldOrd: 0,
+        generation: 2,
+        requireGraphRedraw: true,
+        sourceFilename: "restored.m4a",
+        sourceKind: "existing_media",
+      },
+      request: { cursorMs: 0, endMs: 1000, loop: false, ord: 0, regionMode: "full", source: "post_edit" },
+      type: "PostEditAutoplayRequested",
+    });
+
+    audio.dispatchEvent(new Event("error"));
+
+    await vi.waitFor(() => expect(readHtmlAudioSessionState(0).kind).toBe("failed"));
+    expect(document.querySelector('[data-testid="aqe-playback-warning-0"]')).toHaveTextContent(
+      "AQE-PLAYBACK-002: The edited audio format cannot be played in Audio Quick Editor. Help Convert to MP3",
+    );
+    expect(document.querySelector('[data-testid="aqe-convert-to-mp3-0"]')).toBeInstanceOf(HTMLButtonElement);
   });
 
   it("ignores a stale play resolve after source reconfiguration", async () => {

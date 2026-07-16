@@ -62,6 +62,8 @@ export function installLearnerAudioHandlers(
     }
     dispatchEvent(ord, {
       cursorMs: current.kind === "playing" ? current.request.cursorMs : 0,
+      mediaErrorCode: audio.error?.code ?? null,
+      mediaResponseStatus: null,
       reason: "audio_error",
       type: "AudioError",
     });

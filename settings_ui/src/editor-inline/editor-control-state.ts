@@ -1,8 +1,12 @@
 import type { UserFacingError } from "../lib/user-facing-error.js";
+import type { PlaybackRecoveryAction } from "./playback-recovery-types.js";
 import type { HistorySnapshot } from "./types.js";
 
 export type StatusOwner = "edit" | "error" | "graph" | "playback";
-export type EditorStatusMessage = string | UserFacingError;
+export interface ActionableEditorError extends UserFacingError {
+  recovery?: PlaybackRecoveryAction;
+}
+export type EditorStatusMessage = string | ActionableEditorError;
 
 export interface StoredEditorStatus {
   command: string;
@@ -14,6 +18,7 @@ export interface StoredEditorStatus {
 interface FieldControlState {
   currentStatus: StoredEditorStatus;
   historySnapshot: HistorySnapshot;
+  playbackWarning: EditorStatusMessage;
   stableStatus: StoredEditorStatus;
 }
 
@@ -49,6 +54,7 @@ function controlStateFor(ord: number): FieldControlState {
   const initial = {
     currentStatus: emptyStatus(),
     historySnapshot: emptyHistorySnapshot(),
+    playbackWarning: "",
     stableStatus: emptyStatus(),
   };
   fieldControls.set(ord, initial);
@@ -128,6 +134,19 @@ export function currentStatusState(ord: number): StoredEditorStatus {
 
 export function stableStatusState(ord: number): StoredEditorStatus {
   return controlStateFor(ord).stableStatus;
+}
+
+export function setPlaybackWarningState(ord: number, message: EditorStatusMessage): EditorStatusMessage {
+  controlStateFor(ord).playbackWarning = message;
+  return message;
+}
+
+export function clearPlaybackWarningState(ord: number): void {
+  controlStateFor(ord).playbackWarning = "";
+}
+
+export function playbackWarningState(ord: number): EditorStatusMessage {
+  return controlStateFor(ord).playbackWarning;
 }
 
 export function setHistorySnapshotState(ord: number, snapshot: HistorySnapshot, limit: number): HistorySnapshot {

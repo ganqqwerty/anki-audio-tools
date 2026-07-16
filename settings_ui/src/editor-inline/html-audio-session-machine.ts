@@ -291,7 +291,13 @@ export function transitionHtmlAudioSession(
       return restartLoopTransition(state, true);
     case "AudioError":
       if (state.kind === "empty" || state.kind === "failed") return noChange(state);
-      return failedTransition(state, event.cursorMs, event.reason);
+      return failedTransition(
+        state,
+        event.cursorMs,
+        event.reason,
+        event.mediaErrorCode,
+        event.mediaResponseStatus,
+      );
     case "RuntimeDisposed":
       if (state.kind === "empty") return noChange(state);
       return {

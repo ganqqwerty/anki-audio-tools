@@ -10,6 +10,8 @@ export function failedTransition(
   state: Exclude<HtmlAudioSessionState, { kind: "empty" | "failed" }>,
   cursorMs: number,
   reason: HtmlAudioFailureReason,
+  mediaErrorCode: number | null = null,
+  mediaResponseStatus: number | null = null,
 ): HtmlAudioSessionTransition {
   return {
     state: {
@@ -18,6 +20,8 @@ export function failedTransition(
       source: state.source,
       cursorMs,
       reason,
+      mediaErrorCode,
+      mediaResponseStatus,
     },
     effects: [
       { type: "ClearProgressFrame" },
@@ -25,11 +29,18 @@ export function failedTransition(
       { type: "ClearMetadataTimer" },
       { type: "PauseAudio" },
       { type: "PublishPlaybackState", status: "stopped", cursorMs },
-      ...playbackFailureStatusEffects(state, reason),
+      ...playbackFailureStatusEffects(state, reason, mediaErrorCode, mediaResponseStatus),
       {
         type: "LogPlaybackTelemetry",
         event: "playback.html_failed",
-        data: { reason },
+        data: {
+          mediaErrorCode,
+          mediaResponseStatus,
+          reason,
+          recoveryOffered: playbackRecoveryFor(state, reason, mediaErrorCode, mediaResponseStatus) !== undefined,
+          sourceFilename: state.source.sourceFilename,
+          sourceKind: state.source.kind,
+        },
       },
     ],
   };
@@ -121,12 +132,12 @@ export function currentCursorMs(state: Exclude<HtmlAudioSessionState, { kind: "e
 function playbackFailureStatusEffects(
   state: Exclude<HtmlAudioSessionState, { kind: "empty" | "failed" }>,
   reason: HtmlAudioFailureReason,
+  mediaErrorCode: number | null,
+  mediaResponseStatus: number | null,
 ): HtmlAudioSessionEffect[] {
   const request = "request" in state ? state.request : state.kind === "loading" ? state.pendingStart : null;
-  if (request?.source === "post_edit") {
-    return [{ statusKey: "editor.status.browser_audio_unavailable", type: "ShowPostEditPlaybackWarning" }];
-  }
-  if (state.source.kind === "source" && reason === "audio_error") {
+  const recovery = playbackRecoveryFor(state, reason, mediaErrorCode, mediaResponseStatus);
+  if (reason === "audio_error" && mediaResponseIsMissing(mediaResponseStatus)) {
     return [{
       kind: "error",
       statusCode: "AQE-MEDIA-002",
@@ -134,7 +145,46 @@ function playbackFailureStatusEffects(
       type: "ShowPlaybackStatus",
     }];
   }
+  if (request?.source === "post_edit") {
+    return [{
+      ...(recovery ? { recovery, statusCode: "AQE-PLAYBACK-002" } : {}),
+      statusKey: recovery
+        ? "editor.status.browser_audio_format_unsupported_after_edit"
+        : "editor.status.browser_audio_unavailable",
+      type: "ShowPostEditPlaybackWarning",
+    }];
+  }
+  if (state.source.kind === "source" && reason === "audio_error" && (mediaErrorCode === 3 || mediaErrorCode === 4)) {
+    return [{
+      kind: "error",
+      ...(recovery ? { recovery } : {}),
+      statusCode: "AQE-PLAYBACK-002",
+      statusKey: "editor.status.browser_audio_format_unsupported",
+      type: "ShowPlaybackStatus",
+    }];
+  }
   return [{ statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" }];
+}
+
+function playbackRecoveryFor(
+  state: Exclude<HtmlAudioSessionState, { kind: "empty" | "failed" }>,
+  reason: HtmlAudioFailureReason,
+  mediaErrorCode: number | null,
+  mediaResponseStatus: number | null,
+) {
+  if (state.source.kind !== "source" || reason !== "audio_error") return undefined;
+  if (mediaResponseIsMissing(mediaResponseStatus)) return undefined;
+  if (mediaErrorCode !== 3 && mediaErrorCode !== 4) return undefined;
+  if (/\.mp3(?:[\s.]*)$/i.test(state.source.sourceFilename)) return undefined;
+  return {
+    fieldOrd: state.ord,
+    kind: "convert_to_mp3" as const,
+    sourceFilename: state.source.sourceFilename,
+  };
+}
+
+function mediaResponseIsMissing(status: number | null): boolean {
+  return status === 404 || status === 410;
 }
 
 export function exhaustive(value: never): never {

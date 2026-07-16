@@ -12,14 +12,7 @@ from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.errors import AudioAlreadyCompactError
-
-
-class ImmediateThread:
-    def __init__(self, target, daemon=True):
-        self._target = target
-
-    def start(self) -> None:
-        self._target()
+from tests.thread_fakes import ImmediateThread
 
 
 def _setup_editor(
@@ -174,6 +167,158 @@ def test_convert_uses_payload_target_format_override(tmp_path: Path, monkeypatch
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     assert rendered == [(source, "m4a", ".m4a")]
     assert saved_name.endswith(".m4a")
+
+
+def test_source_bound_convert_recovery_forces_explicit_mp3_without_changing_config(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    editor, source = _setup_editor(
+        tmp_path,
+        source_filename="clip.m4a",
+        config={"output_format": "flac"},
+    )
+    rendered: list[tuple[Path, str, str]] = []
+
+    def fake_render_converted_audio(
+        source_path: Path,
+        _config: AudioProcessingConfig,
+        target_format: str,
+        output_path: Path,
+        **_kwargs,
+    ) -> None:
+        rendered.append((source_path, target_format, output_path.suffix))
+        output_path.write_bytes(b"converted")
+
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_converted_audio",
+        fake_render_converted_audio,
+    )
+
+    handle_bridge_command(
+        editor,
+        json.dumps(
+            {
+                "command": "aqe:convert",
+                "fieldOrd": 0,
+                "sourceFilename": "clip.m4a",
+                "overrides": {"targetFormat": "mp3"},
+            }
+        ),
+    )
+
+    saved_name = editor.mw.col.media.write_data.call_args.args[0]
+    assert rendered == [(source, "mp3", ".mp3")]
+    assert saved_name.endswith(".mp3")
+    assert editor.mw.addonManager.getConfig.return_value == {"output_format": "flac"}
+    assert [entry.filename for entry in SESSIONS[editor].undo_history.entries] == ["clip.m4a"]
+    assert SESSIONS[editor].redo_history.entries == []
+
+
+def test_source_bound_convert_recovery_reports_a_genuinely_missing_file(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    editor, source = _setup_editor(tmp_path, source_filename="missing.m4a")
+    source.unlink()
+    _patch_common(monkeypatch)
+    renderer = MagicMock()
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_converted_audio",
+        renderer,
+    )
+
+    handle_bridge_command(
+        editor,
+        json.dumps(
+            {
+                "command": "aqe:convert",
+                "fieldOrd": 0,
+                "sourceFilename": "missing.m4a",
+                "overrides": {"targetFormat": "mp3"},
+            }
+        ),
+    )
+
+    renderer.assert_not_called()
+    editor.mw.col.media.write_data.assert_not_called()
+    assert editor.note.fields == ["[sound:missing.m4a]"]
+    assert any(
+        "AQE-AUDIO-001" in call.args[0] and "original audio file was not found" in call.args[0].lower()
+        for call in editor.web.eval.call_args_list
+    )
+    assert SESSIONS[editor].undo_history.entries == []
+
+
+def test_source_bound_convert_recovery_rejects_stale_filename_without_mutation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    editor, _source = _setup_editor(
+        tmp_path,
+        source_filename="current.m4a",
+        config={"output_format": "flac"},
+    )
+    _patch_common(monkeypatch)
+    renderer = MagicMock()
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_converted_audio",
+        renderer,
+    )
+
+    handle_bridge_command(
+        editor,
+        json.dumps(
+            {
+                "command": "aqe:convert",
+                "fieldOrd": 0,
+                "sourceFilename": "stale.m4a",
+                "overrides": {"targetFormat": "mp3"},
+            }
+        ),
+    )
+
+    renderer.assert_not_called()
+    editor.mw.col.media.write_data.assert_not_called()
+    assert editor.note.fields == ["[sound:current.m4a]"]
+    assert SESSIONS[editor].undo_history.entries == []
+    assert SESSIONS[editor].processing.active is False
+    assert any(
+        "audio changed before conversion" in call.args[0].lower()
+        for call in editor.web.eval.call_args_list
+    )
+
+
+def test_source_bound_convert_recovery_rejects_stale_field_without_mutation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    editor, _source = _setup_editor(tmp_path, source_filename="current.m4a")
+    _patch_common(monkeypatch)
+    renderer = MagicMock()
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_converted_audio",
+        renderer,
+    )
+
+    handle_bridge_command(
+        editor,
+        json.dumps(
+            {
+                "command": "aqe:convert",
+                "fieldOrd": 1,
+                "sourceFilename": "current.m4a",
+                "overrides": {"targetFormat": "mp3"},
+            }
+        ),
+    )
+
+    renderer.assert_not_called()
+    editor.mw.col.media.write_data.assert_not_called()
+    assert editor.note.fields == ["[sound:current.m4a]"]
+    assert SESSIONS[editor].undo_history.entries == []
+    assert SESSIONS[editor].processing.active is False
 
 
 def test_convert_same_visible_extension_is_noop(tmp_path: Path, monkeypatch) -> None:

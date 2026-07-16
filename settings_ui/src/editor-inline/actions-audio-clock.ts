@@ -90,13 +90,15 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
       }
       renderCursor(visualizer, readFieldState(ord).cursor.ms, durationMs);
     },
-    onErrorDuringPlayback(cursorMs) {
+    onErrorDuringPlayback(cursorMs, mediaErrorCode, mediaResponseStatus) {
       const ord = fieldOrd(visualizer);
       const session = readHtmlAudioSessionState(ord);
       if (!htmlAudioErrorBelongsToActiveSession(session) && !fieldPlaybackUsesAudioClock(ord)) return;
       logger.warn("audio clock failed during playback", { ord });
       dispatchHtmlAudioSessionEvent(ord, {
         cursorMs: cursorMs || htmlAudioErrorCursorMs(ord, session),
+        mediaErrorCode,
+        mediaResponseStatus,
         reason: "audio_error",
         type: "AudioError",
       });
@@ -146,7 +148,7 @@ function fieldPlaybackEngineIsHtml(ord: number): boolean {
 
 function htmlAudioErrorBelongsToActiveSession(session: ReturnType<typeof readHtmlAudioSessionState>): boolean {
   if (session.kind === "loading") return session.pendingStart !== null;
-  return session.kind === "starting" || session.kind === "playing";
+  return session.kind === "starting" || session.kind === "playing" || session.kind === "post_edit_waiting";
 }
 
 function htmlAudioErrorCursorMs(ord: number, session: ReturnType<typeof readHtmlAudioSessionState>): number {

@@ -1,17 +1,28 @@
 import { errorHelpUrl } from "../lib/error-links.js";
+import { t } from "../lib/i18n.js";
 import { setTooltipContent } from "../lib/rich-tooltip.js";
 import { isUserFacingError } from "../lib/user-facing-error.js";
 import {
+  clearPlaybackWarningState,
   restoreStableStatusState,
+  setPlaybackWarningState,
   stableStatusState,
   type EditorStatusMessage,
   type StatusOwner,
 } from "./editor-control-state.js";
 import { controlsForOrd } from "./dom-selectors.js";
 import { openEditorExternalLink } from "./external-links.js";
+import {
+  PLAYBACK_RECOVERY_REQUESTED_EVENT,
+  type PlaybackRecoveryRequestedDetail,
+} from "./playback-recovery-types.js";
 
 export function statusForOrd(ord: number): HTMLElement | null {
   return controlsForOrd(ord)?.querySelector<HTMLElement>(".aqe-status") ?? null;
+}
+
+export function playbackWarningForOrd(ord: number): HTMLElement | null {
+  return controlsForOrd(ord)?.querySelector<HTMLElement>(".aqe-playback-warning") ?? null;
 }
 
 export function defaultStatusOwner(kind: string): StatusOwner {
@@ -27,7 +38,7 @@ export function renderStatus(
   command: string,
   owner: StatusOwner,
 ): void {
-  renderStatusContent(status, message);
+  renderStatusContent(status, message, "status");
   status.dataset.kind = kind;
   status.dataset.statusOwner = owner;
   setTooltipContent(status, command);
@@ -63,7 +74,11 @@ function statusText(message: EditorStatusMessage): string {
   return isUserFacingError(message) ? message.message : message;
 }
 
-function renderStatusContent(status: HTMLElement, message: EditorStatusMessage): void {
+function renderStatusContent(
+  status: HTMLElement,
+  message: EditorStatusMessage,
+  surface: PlaybackRecoveryRequestedDetail["surface"],
+): void {
   status.textContent = "";
   if (!isUserFacingError(message)) {
     status.textContent = message;
@@ -80,4 +95,42 @@ function renderStatusContent(status: HTMLElement, message: EditorStatusMessage):
   link.textContent = "Help";
   link.addEventListener("click", (event) => openEditorExternalLink(event, link.href));
   status.append(code, ` ${message.message} `, link);
+  if (!message.recovery) return;
+  const action = document.createElement("button");
+  action.className = "aqe-error-recovery-action";
+  action.type = "button";
+  const recovery = message.recovery;
+  action.dataset.testid = `aqe-convert-to-mp3-${recovery.fieldOrd}`;
+  action.textContent = t("editor.action.convert_to_mp3");
+  action.addEventListener("click", () => {
+    window.dispatchEvent(new CustomEvent<PlaybackRecoveryRequestedDetail>(
+      PLAYBACK_RECOVERY_REQUESTED_EVENT,
+      {
+        detail: {
+          node: action,
+          ord: recovery.fieldOrd,
+          surface,
+        },
+      },
+    ));
+  });
+  status.append(" ", action);
+}
+
+export function renderPlaybackWarning(ord: number, message: EditorStatusMessage): void {
+  const warning = playbackWarningForOrd(ord);
+  setPlaybackWarningState(ord, message);
+  if (!warning) return;
+  renderStatusContent(warning, message, "warning");
+  warning.dataset.kind = "warning";
+  warning.hidden = message === "";
+}
+
+export function clearPlaybackWarning(ord: number): void {
+  clearPlaybackWarningState(ord);
+  const warning = playbackWarningForOrd(ord);
+  if (!warning) return;
+  warning.textContent = "";
+  delete warning.dataset.kind;
+  warning.hidden = true;
 }

@@ -1,3 +1,5 @@
+import type { PlaybackRecoveryAction } from "./playback-recovery-types.js";
+
 export type HtmlAudioSource =
   | { kind: "source"; sourceFilename: string }
   | { kind: "learner_recording"; sourceFilename: string; startCursorMs: number; generation: number };
@@ -72,7 +74,15 @@ export type HtmlAudioSessionState =
       graphDurationMs: number | null;
       readyDispatched: boolean;
     }
-  | { kind: "failed"; ord: number; source: HtmlAudioSource | null; cursorMs: number; reason: HtmlAudioFailureReason };
+  | {
+      kind: "failed";
+      ord: number;
+      source: HtmlAudioSource | null;
+      cursorMs: number;
+      reason: HtmlAudioFailureReason;
+      mediaErrorCode: number | null;
+      mediaResponseStatus: number | null;
+    };
 
 export type HtmlAudioSessionEvent =
   | { type: "SourceConfigured"; source: HtmlAudioSource; cursorMs: number }
@@ -99,7 +109,13 @@ export type HtmlAudioSessionEvent =
       repeatEnabled?: boolean;
     }
   | { type: "RepeatDelayElapsed"; repeatEnabled?: boolean }
-  | { type: "AudioError"; reason: "audio_error"; cursorMs: number }
+  | {
+      type: "AudioError";
+      reason: "audio_error";
+      cursorMs: number;
+      mediaErrorCode: number | null;
+      mediaResponseStatus: number | null;
+    }
   | { type: "RuntimeDisposed" };
 
 export type HtmlAudioSessionEffect =
@@ -120,8 +136,19 @@ export type HtmlAudioSessionEffect =
   | { type: "PublishPlaybackState"; status: "stopped" | "playing" | "paused"; cursorMs?: number }
   | { type: "PublishRepeatWaitingState"; cursorMs: number }
   | { type: "CompletePlayback"; cursorMs: number }
-  | { type: "ShowPlaybackStatus"; kind?: "error" | "warning"; statusCode?: string; statusKey: string }
-  | { type: "ShowPostEditPlaybackWarning"; statusKey: string }
+  | {
+      type: "ShowPlaybackStatus";
+      kind?: "error" | "warning";
+      statusCode?: string;
+      statusKey: string;
+      recovery?: PlaybackRecoveryAction;
+    }
+  | {
+      type: "ShowPostEditPlaybackWarning";
+      statusKey: string;
+      statusCode?: string;
+      recovery?: PlaybackRecoveryAction;
+    }
   | { type: "LogPlaybackTelemetry"; event: string; data: Record<string, unknown> };
 
 export interface HtmlAudioSessionTransition {

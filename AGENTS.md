@@ -70,6 +70,17 @@ Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not co
 `scripts/dev.py` output is concise by default. Pytest-backed commands print failure-only diagnostics in concise mode.
 Add `--verbose` when you need live subprocess output or full command diagnostics, for example `python3 scripts/dev.py check --verbose`.
 
+Playback changes require addressable-audio E2E coverage whenever correctness
+depends on what the user actually hears rather than only projected UI/session
+state. This includes source start/end position, seeks while playing, selection
+changes, repeat passes and termination, pause/resume, source replacement,
+processing during playback, codec decoding, and absence of stale, overlapping,
+or post-stop audio. Name such tests with `audible`, `acoustic`, or `emitted_pcm`;
+Rule 36 then requires real WebView PCM capture and the independent oracle.
+State-only reducer, DOM, layout, and command-routing tests do not need an
+addressable fixture unless they make an emitted-audio claim. See
+[`docs/architecture/html-audio-observability.md`](docs/architecture/html-audio-observability.md#when-addressable-audio-is-required).
+
 Consider dev.py check to be relatively cheap operation, feel free to run it often: it works for 4-6 minutes. 
 Try `scripts/dev.py test-e2e-parallel` first, it's faster. parallel typically passes in 4-6 minutes, non-parallel - for 7-10 minutes.
 

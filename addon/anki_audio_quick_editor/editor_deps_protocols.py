@@ -171,6 +171,7 @@ class ProcessingDeps(Protocol):
     request_history_availability_after_edit: Callable[..., None]
     request_history_snapshot_after_edit: Callable[..., None]
     request_playback_after_edit: Callable[..., None]
+    resolve_requested_field_media: Callable[..., Any]
     run_special_audio_transform_async: Callable[..., None]
     session_and_source: Callable[[Any], tuple[Any, Path]]
     sessions: dict[Any, Any]

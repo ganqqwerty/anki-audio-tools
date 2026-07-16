@@ -14,6 +14,32 @@ The session state is the behavioral source of truth. Browser audio element
 state, graph state, field state, and runtime DOM state are observations or UI
 projections unless they are converted into explicit session events.
 
+### Decode failures and explicit recovery
+
+Anki Reviewer playback and Audio Quick Editor playback do not establish the
+same codec support. Reviewer sound tags can be handed to Anki's native player,
+while Audio Quick Editor deliberately uses the WebView `HTMLAudioElement` for
+addressable playback. A file can therefore play during review but fail in the
+editor when Qt WebEngine was built without its codec, notably AAC-LC in M4A.
+
+The audio element's native `MediaError.code` and media-route response status
+must survive into the HTML audio session event and failure telemetry. Chromium
+uses code `4` both for an unsupported codec and for a missing media route, so
+code alone is not a sufficient classifier. On code `3` or `4`, the audio clock
+probes the same source with `HEAD`: `404`/`410` remains `AQE-MEDIA-002`, while a
+present canonical non-MP3 source produces `AQE-PLAYBACK-002` and a typed
+**Convert to MP3** recovery action. The probe runs only after failure; normal
+playback makes no extra request. Aborted, network, and unknown errors remain
+generic browser-audio failures.
+
+Recovery is explicit and non-destructive. Until the user clicks the action,
+the note reference, media files, graph, history, and sync-visible state do not
+change. The click sends the existing source-bound `aqe:convert` payload with a
+local MP3 override. Python revalidates the field ordinal and filename before
+the normal conversion pipeline writes media or history. This preserves normal
+busy locking, graph refresh, post-edit autoplay, undo/redo, and persistent undo
+without introducing native playback or a transparent proxy file.
+
 ## Why This Exists
 
 The 2026-06 post-edit repeat failure was not visible from sound/no-sound checks
@@ -53,6 +79,9 @@ Log browser audio lifecycle events that can affect state:
 
 Audio lifecycle logs should include field ordinal, `src`, `readyState`,
 `currentTimeMs`, `durationMs`, `paused`, and `ended` when available.
+For `error`, also log `MediaError.code`, whether recovery was offered, and the
+canonical source filename and source kind. Stale recovery rejection logs must
+include requested and current field identity plus the requested filename.
 
 Log post-edit bridge lifecycle events:
 

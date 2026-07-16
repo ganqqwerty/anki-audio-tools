@@ -1,5 +1,5 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
-import type { UserFacingError } from "../lib/user-facing-error.js";
+import type { EditorStatusMessage } from "./editor-control-state.js";
 import type { GraphSettings } from "./graph-settings.js";
 import type {
   CursorIntent,
@@ -22,8 +22,6 @@ import type {
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 import type { StatusOwner } from "./control-actions.js";
-
-type EditorStatusMessage = string | UserFacingError;
 
 declare global {
   var pycmd: ((cmd: string) => void) | undefined;

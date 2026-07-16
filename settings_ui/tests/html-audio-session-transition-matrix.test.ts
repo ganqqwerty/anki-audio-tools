@@ -39,6 +39,8 @@ const states = {
   failed: {
     cursorMs: 0,
     kind: "failed",
+    mediaErrorCode: null,
+    mediaResponseStatus: null,
     ord: 0,
     reason: "audio_error",
     source,
@@ -70,7 +72,7 @@ const eventInventory = [
   { cursorMs: 0, type: "StopRequested" },
   { cursorMs: 1000, type: "BoundaryReached" },
   { type: "RepeatDelayElapsed" },
-  { cursorMs: 0, reason: "audio_error", type: "AudioError" },
+  { cursorMs: 0, mediaErrorCode: null, mediaResponseStatus: null, reason: "audio_error", type: "AudioError" },
   { type: "RuntimeDisposed" },
 ] satisfies HtmlAudioSessionEvent[];
 
@@ -98,6 +100,8 @@ describe("html audio session transition matrix", () => {
       {
         cursorMs: 0,
         kind: "failed",
+        mediaErrorCode: null,
+        mediaResponseStatus: null,
         ord: 0,
         reason: "audio_error",
         source,
@@ -203,6 +207,8 @@ describe("html audio session transition matrix", () => {
     expect(rejected.state).toEqual({
       cursorMs: 0,
       kind: "failed",
+      mediaErrorCode: null,
+      mediaResponseStatus: null,
       ord: 0,
       reason: "audio_play_rejected",
       source,
@@ -304,6 +310,8 @@ describe("html audio session transition matrix", () => {
     for (const kind of ["empty", "failed"] as const) {
       expect(transitionHtmlAudioSession(states[kind], {
         cursorMs: 88,
+        mediaErrorCode: null,
+        mediaResponseStatus: null,
         reason: "audio_error",
         type: "AudioError",
       }))

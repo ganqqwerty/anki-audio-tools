@@ -183,7 +183,9 @@ def test_aac_full_repeat_stops_with_warning_when_browser_audio_rejects_after_gra
             wait_for_js_condition(
                 editor.web,
                 "document.querySelector('[data-testid=\"aqe-status-0\"]')?.textContent || ''",
-                lambda text: text == "Browser audio is unavailable." or "AQE-MEDIA-002:" in text,
+                lambda text: text == "Browser audio is unavailable."
+                or "AQE-MEDIA-002:" in text
+                or "AQE-PLAYBACK-002:" in text,
                 timeout=5.0,
             )
             wait_for_condition(

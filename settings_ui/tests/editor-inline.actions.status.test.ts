@@ -182,6 +182,42 @@ describe("editor inline status workflows", () => {
     });
   });
 
+  it("routes a typed playback recovery through the existing MP3 conversion command", async () => {
+    const visualizer = await mountTrack(0);
+    window.__aqeActiveField = 0;
+
+    window.__aqeSetStatus?.(
+      {
+        code: "AQE-PLAYBACK-002",
+        message: "This audio format cannot be played in Audio Quick Editor.",
+        recovery: {
+          fieldOrd: 0,
+          kind: "convert_to_mp3",
+          sourceFilename: "clip.m4a",
+        },
+      },
+      "error",
+    );
+
+    const controls = visualizer.closest<HTMLElement>(".aqe-controls")!;
+    const status = controls.querySelector<HTMLElement>(".aqe-status")!;
+    const action = status.querySelector<HTMLButtonElement>('[data-testid="aqe-convert-to-mp3-0"]')!;
+
+    expect(status).toHaveTextContent(
+      "AQE-PLAYBACK-002: This audio format cannot be played in Audio Quick Editor. Help Convert to MP3",
+    );
+    expect(action).toHaveAttribute("type", "button");
+    action.click();
+
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(peekPendingCommandPayload()).toEqual({
+      command: "aqe:convert",
+      fieldOrd: 0,
+      sourceFilename: "clip.m4a",
+      overrides: { targetFormat: "mp3" },
+    });
+  });
+
   it("keeps status tooltips reserved for explicit command details", async () => {
     const visualizer = await mountTrack(0);
     const controls = visualizer.closest<HTMLElement>(".aqe-controls")!;
