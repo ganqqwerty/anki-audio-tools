@@ -176,7 +176,7 @@ def test_audible_transform_during_repeat_stops_old_audio_and_autoplays_new_sourc
             },
             oracle_options={"transitionMaxMs": 40},
         )
-        assert verdict["pass"], json.dumps(verdict["segments"], indent=2)
+        assert verdict["pass"], json.dumps(verdict, indent=2)
     finally:
         _stop_real_audio_playback(editor)
         editor.set_note(None)

@@ -28,14 +28,30 @@ import {isEditorBusy, resetEditorControlState} from "./editor-control-state.js";
 import {clearLearnerRecordingStateStore} from "./recording-state-store.js";
 import {stopAllLearnerRecordingHtmlPlayback} from "./learner-recording-playback.js";
 import {clearVisualizerRuntimeStates} from "./visualizer-runtime-state.js";
-import {AUDIO_CLOCK_READINESS_CHANGED_EVENT} from "./audio-readiness.js";
 import {projectEditorBusyState} from "./control-actions.js";
 import {
-    clearPostEditPlaybackReadinessTimers,
     disposePostEditPlaybackReadiness,
-    installPostEditPlaybackReadinessListener,
+    notifyPostEditPlaybackReady,
+    resetPostEditPlaybackReadiness,
 } from "./post-edit-playback.js";
-import {clearAllHtmlAudioSessions} from "./html-audio-session-controller.js";
+import {
+    clearAllHtmlAudioSessions,
+    htmlAudioSessionSourceFilename,
+    initializeHtmlAudioTransportRuntime,
+    setHtmlAudioTransportSnapshotSink,
+} from "./html-audio-session-controller.js";
+import type {TransportSnapshot} from "./transport/index.js";
+import {
+    disposeEditorPracticeRuntime,
+    initializeEditorPracticeRuntime,
+} from "./editor-practice-controller.js";
+import {
+    disposeEditorIntentController,
+    initializeEditorIntentController,
+} from "./editor-intent-controller.js";
+import {disposeGraphCountdownOverlays} from "./graph-countdown-overlay.js";
+import {disposeRecordingProjections} from "./recording-actions-state.js";
+import {clearChorusingStates} from "./chorusing-state-store.js";
 
 let scheduledScanTimers: number[] = [];
 let mutationScanTimer: number | null = null;
@@ -48,14 +64,16 @@ export {audioSourceForNode} from "./sound-source.js";
 
 export function initializeEditorRuntime(config: EditorRuntimeConfig = editorRuntimeConfig()): void {
     disposeEditorRuntime();
+    initializeHtmlAudioTransportRuntime();
+    setHtmlAudioTransportSnapshotSink(handleHtmlTransportSnapshot);
+    initializeEditorPracticeRuntime();
     setEditorRuntimeConfig(config);
+    initializeEditorIntentController();
     configureI18n(config.locale, config.direction, config.messages);
     installGlobalErrorHandlers();
     installEditorWindowContract();
-    installAudioReadinessProjection();
-    installPostEditPlaybackReadinessListener();
     prepareForNewNote();
-    clearPostEditPlaybackReadinessTimers();
+    resetPostEditPlaybackReadiness();
     clearDefaultGraphQueue();
     window.__aqeEditorDispose = disposeEditorRuntime;
     logger.info("editor runtime initialized", {
@@ -98,9 +116,14 @@ export function disposeEditorRuntime(): void {
     }
     editorDomObserver?.disconnect();
     editorDomObserver = null;
-    window.removeEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handleAudioReadinessChanged);
+    setHtmlAudioTransportSnapshotSink(null);
     disposePostEditPlaybackReadiness();
+    disposeEditorIntentController();
+    disposeEditorPracticeRuntime();
     clearAllHtmlAudioSessions();
+    disposeGraphCountdownOverlays();
+    disposeRecordingProjections();
+    clearChorusingStates();
     stopAllLearnerRecordingHtmlPlayback();
     disposeAllControllers();
     resetEditorControlState();
@@ -108,13 +131,12 @@ export function disposeEditorRuntime(): void {
     clearVisualizerRuntimeStates();
 }
 
-function installAudioReadinessProjection(): void {
-    window.removeEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handleAudioReadinessChanged);
-    window.addEventListener(AUDIO_CLOCK_READINESS_CHANGED_EVENT, handleAudioReadinessChanged);
-}
-
-function handleAudioReadinessChanged(): void {
+function handleHtmlTransportSnapshot(snapshot: TransportSnapshot): void {
     projectEditorBusyState();
+    notifyPostEditPlaybackReady(
+        snapshot.fieldOrd,
+        htmlAudioSessionSourceFilename(snapshot.fieldOrd),
+    );
 }
 
 export function scan(config: EditorRuntimeConfig = editorRuntimeConfig()): void {

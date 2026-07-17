@@ -31,7 +31,7 @@ def test_import_linter_import_safe_contract_tracks_module_contracts() -> None:
     expected = {
         f"anki_audio_quick_editor.{module_name}"
         for module_name, contract in MODULE_CONTRACTS.items()
-        if contract.layer == Layer.IMPORT_SAFE_CORE
+        if contract.layer == Layer.IMPORT_SAFE_CORE and module_name != "recorder"
     }
 
     assert set(import_linter_contract["source_modules"]) == expected

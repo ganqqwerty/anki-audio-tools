@@ -7,8 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent.parent
 EDITOR_INLINE = ROOT / "settings_ui" / "src" / "editor-inline"
 FIELD_STATE_STORE = EDITOR_INLINE / "field-state-store.ts"
-ACTIONS_AUDIO_CLOCK = EDITOR_INLINE / "actions-audio-clock.ts"
-AUDIO_CLOCK = EDITOR_INLINE / "audio-clock.ts"
+HTML_AUDIO_PORT = EDITOR_INLINE / "html-audio-session-audio-element.ts"
+HTML_AUDIO_PORT_EVENTS = EDITOR_INLINE / "html-audio-session-port-events.ts"
 
 ALLOWED_FIELD_STATE_STORE_DATASET_LINES = {
     "target.dataset.progressMs = String(rounded);",
@@ -111,27 +111,29 @@ def test_aqe_source_filename_dataset_is_limited_to_discovery_and_projection() ->
 
 
 def test_audio_clock_event_callbacks_carry_media_event_facts() -> None:
-    source = AUDIO_CLOCK.read_text(encoding="utf-8")
+    source = HTML_AUDIO_PORT.read_text(encoding="utf-8")
 
-    assert "onEndedDuringPlayback?: (durationMs: number) => void;" in source
-    assert "onErrorDuringPlayback?: (" in source
+    assert "onEnded: (ord: number, identity: TransportAttemptIdentity, cursorMs: number) => void;" in source
+    assert "onAudioError: (" in source
     assert "mediaErrorCode: number | null," in source
     assert "mediaResponseStatus: number | null," in source
     assert "const mediaErrorCode = audio.error?.code ?? null;" in source
-    assert "mediaResponseStatusFor(failedSrc).then(reportFailure)" in source
+    assert "mediaResponseStatusFor(failedSrc).then(report)" in source
     assert (
-        "callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio), mediaErrorCode, mediaResponseStatus);"
+        "callbacks.onAudioError(ord, identity, audioCurrentTimeMs(audio), mediaErrorCode, mediaResponseStatus);"
         in source
     )
 
 
 def test_audio_clock_playback_event_callbacks_do_not_re_read_field_state() -> None:
-    source = ACTIONS_AUDIO_CLOCK.read_text(encoding="utf-8")
+    source = HTML_AUDIO_PORT_EVENTS.read_text(encoding="utf-8")
     violations: list[str] = []
-    for callback_name in ("onErrorDuringPlayback", "onEndedDuringPlayback"):
+    for callback_name in ("onAudioError", "onEnded"):
         body = _object_method_body(source, callback_name)
         if "readFieldState(" in body:
-            violations.append(f"{ACTIONS_AUDIO_CLOCK.relative_to(ROOT)}:{callback_name} re-reads field state")
+            violations.append(
+                f"{HTML_AUDIO_PORT_EVENTS.relative_to(ROOT)}:{callback_name} re-reads field state"
+            )
 
     assert violations == [], "\n".join(violations)
 

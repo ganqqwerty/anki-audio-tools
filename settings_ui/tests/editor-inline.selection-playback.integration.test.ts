@@ -64,11 +64,15 @@ afterEach(() => {
     });
   });
 
-  it("marks paused cursor drags for playback restart", () => {
+  it("marks paused cursor drags for playback restart", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 100);
-    window.__aqeSetPlaybackState?.(0, "paused", 100);
+    prepareHtmlAudio();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     setFullGraphViewport();
@@ -99,11 +103,12 @@ afterEach(() => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     setFullGraphViewport();
-    prepareHtmlAudio();
+    const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     await Promise.resolve();
+    audio.currentTime = 0.25;
     now = 1250;
     frames.shift()?.(now);
     expect(window.__aqeGraphStateForTest?.(0)?.progressMs).toBe(250);
@@ -120,7 +125,7 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       cursorMs: 750,
       playbackState: "playing",
-      progressMs: 800,
+      progressMs: 750,
     });
 
     now = 1350;
@@ -159,13 +164,12 @@ afterEach(() => {
       playbackStartMs: 250,
       playbackEndMs: 750,
       playbackRegionMode: "selection",
-      repeatPauseWaiting: false,
     });
     expect(audio.loop).toBe(false);
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 
-  it("preempts full-source HTML repeat before browser EOF", async () => {
+  it("rearms an exhausted full-source decoder before browser EOF", async () => {
     const frames = mockAnimationFrames();
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
@@ -189,7 +193,7 @@ afterEach(() => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     await Promise.resolve();
-    audio.currentTime = 0.97;
+    audio.currentTime = 1;
     frames.shift()?.(performance.now() + 970);
 
     expect(audio.loop).toBe(false);
@@ -265,7 +269,7 @@ afterEach(() => {
       cursorMs: 250,
       repeatEnabled: false,
     });
-    expect(bridgeCommands()).toContain("aqe:play-ended");
+    expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 
   it("keeps stopped selections during processing and selects the full graph on successful redraw", async () => {
@@ -319,6 +323,7 @@ afterEach(() => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     await Promise.resolve();
+    audio.currentTime = 0.5;
     now = 1250;
     frames.shift()?.(now);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
@@ -368,6 +373,7 @@ afterEach(() => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     await Promise.resolve();
+    audio.currentTime = 0.5;
     now = 1250;
     frames.shift()?.(now);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
@@ -401,7 +407,11 @@ afterEach(() => {
     setGraphBounds(svg);
     setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
-    window.__aqeSetPlaybackState?.(0, "paused", 500);
+    const audio = prepareHtmlAudio();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    audio.currentTime = 0.5;
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
 
     dragSelectionHandle(svg, "start", 0.1);
 
@@ -415,7 +425,6 @@ afterEach(() => {
       playbackEndMs: 750,
     });
 
-    const audio = prepareHtmlAudio();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
 
@@ -425,7 +434,7 @@ afterEach(() => {
       playbackStartMs: 100,
       playbackEndMs: 750,
     });
-    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(audio.play).toHaveBeenCalledTimes(2);
   });
 
 });

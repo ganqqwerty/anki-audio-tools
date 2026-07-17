@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
@@ -17,8 +16,6 @@ from anki_audio_quick_editor.editor_session import (
     AnalysisState,
     EditorSession,
     GraphVisualizationState,
-    PlaybackState,
-    PostEditPlaybackState,
     ProcessingState,
     reset_for_note_load,
 )
@@ -108,21 +105,6 @@ def test_note_load_reset_clears_all_fields() -> None:
             filenames_by_field={2: "generated.mp3"},
             durations_by_field={2: 1200},
         ),
-        playback=PlaybackState(
-            active=True,
-            paused=True,
-            preparing=True,
-            preserve_status=True,
-            generation=4,
-            temp_path=Path("/tmp/playback.mp3"),
-        ),
-        post_edit_playback=PostEditPlaybackState(
-            generation=5,
-            pending_field_index=2,
-            pending_generation=3,
-            pending_requires_graph_redraw=True,
-            pending_source_filename="generated.mp3",
-        ),
         status_summary="current",
     )
     session.undo_history.push(AudioEditState("old.mp3"), "old.mp3")
@@ -148,42 +130,19 @@ def test_note_load_reset_clears_all_fields() -> None:
     assert session.graph.visualized_duration_ms is None
     assert session.graph.filenames_by_field == {}
     assert session.graph.durations_by_field == {}
-    assert session.playback.active is False
-    assert session.playback.paused is False
-    assert session.playback.preparing is False
-    assert session.playback.generation == 4
-    assert session.post_edit_playback.generation == 6
-    assert session.post_edit_playback.pending_field_index is None
-    assert session.post_edit_playback.pending_generation is None
-    assert session.post_edit_playback.pending_requires_graph_redraw is False
-    assert session.post_edit_playback.pending_source_filename is None
+    assert session.pending_editor_intent is None
     assert session.processing.next_status_summary == ""
     assert session.status_summary == ""
     assert session.pending_status is None
     assert session.undo_history.pop() is None
     assert session.redo_history.pop() is None
-    assert session.learner_recording.status == "idle"
-    assert session.learner_recording.generation == 1
-    assert session.learner_recording.media_path is None
-    assert session.learner_recording_controller is None
+    assert session.recorder.status == "idle"
+    assert session.learner_take is None
 
 
 # ---------------------------------------------------------------------------
 # 3. Runtime invariant assertions
 # ---------------------------------------------------------------------------
-
-def test_invariant_assertion_fires_on_processing_playback_conflict() -> None:
-    import pytest
-
-    session = EditorSession()
-    session.processing.active = True
-    session.playback.active = True
-    try:
-        session._assert_invariants()
-        pytest.fail("Expected AssertionError")
-    except AssertionError as exc:
-        assert "X1 violated" in str(exc)
-
 
 def test_invariant_assertion_passes_for_clean_session() -> None:
     session = EditorSession()

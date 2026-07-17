@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
+from anki_audio_quick_editor.contracts_generated import AutoplayKind
 from anki_audio_quick_editor.editor_callbacks import (
     _parse_region_delete_request,
     _replace_current_field_after_region_delete,
@@ -159,6 +160,19 @@ def test_region_delete_request_parser_accepts_delete_rest_operation() -> None:
     assert request.operation == "delete-rest"
     assert request.selection_start_ms == 250
     assert request.selection_end_ms == 750
+
+
+def test_region_delete_request_parser_accepts_post_edit_practice_program() -> None:
+    request = _parse_region_delete_request(
+        _region_request(
+            postEditAutoplay={"kind": "repeat", "repeatPauseMs": 500},
+        )
+    )
+
+    assert request is not None
+    assert request.post_edit_autoplay is not None
+    assert request.post_edit_autoplay.kind.value == AutoplayKind.REPEAT.value
+    assert request.post_edit_autoplay.repeat_pause_ms == 500
 
 
 def test_delete_rest_removed_duration_counts_outside_selection() -> None:
@@ -366,9 +380,9 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
         "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list
     )
-    assert session.post_edit_playback.pending_field_index == 1
-    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
-    assert session.post_edit_playback.pending_source_filename == "clip__aqe_cut.mp3"
+    assert session.pending_editor_intent is not None
+    assert session.pending_editor_intent.target.field_ord == 1
+    assert session.pending_editor_intent.target.source_filename == "clip__aqe_cut.mp3"
     persistent_recorder.assert_called_once()
     call = persistent_recorder.call_args.kwargs
     assert call["field_index"] == 1

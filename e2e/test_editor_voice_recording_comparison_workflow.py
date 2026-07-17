@@ -29,6 +29,8 @@ class _FakeRecorderFactory:
         self.fixture_path = fixture_path
         self.output_path: Path | None = None
         self.generation: int | None = None
+        self.cancelled: list[str] = []
+        self.disposed = False
         self.started = False
         self.stopped = False
 
@@ -52,6 +54,13 @@ class _FakeRecorderFactory:
         self.stopped = True
         self.output_path.write_bytes(self.fixture_path.read_bytes())
         on_completed(recording_result(path=self.output_path, generation=self.generation, duration_ms=1600))
+
+    def cancel(self, reason: str) -> None:
+        if not self.cancelled and not self.disposed:
+            self.cancelled.append(reason)
+
+    def dispose(self) -> None:
+        self.disposed = True
 
 
 def _has_ready_learner_overlay(value: dict[str, Any] | None) -> bool:

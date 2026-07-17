@@ -9,10 +9,24 @@ import {
   setVisualizerStatusFromPython,
 } from "../src/editor-inline/actions.js";
 import { PLOT, xForMs } from "../src/editor-inline/plot.js";
+import {
+  dispatchHtmlAudioSessionEvent,
+  dispatchHtmlAudioSessionSourceFact,
+  readHtmlAudioTransportSourceIdentity,
+} from "../src/editor-inline/html-audio-session-controller.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
+import {
+  editorRuntimeConfig,
+  updateEditorRuntimeConfig,
+} from "../src/editor-inline/editor-runtime-config.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, mountTrack, track } from "./editor-inline.actions.helpers.js";
-import { peekPendingCommandPayload, setFullGraphViewport } from "./editor-inline.integration.helpers.js";
+import {
+  bridgeEnvelopes,
+  clearPendingCommandPayload,
+  peekPendingCommandPayload,
+  setFullGraphViewport,
+} from "./editor-inline.integration.helpers.js";
 
 describe("editor inline status workflows", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -184,20 +198,31 @@ describe("editor inline status workflows", () => {
 
   it("routes a typed playback recovery through the existing MP3 conversion command", async () => {
     const visualizer = await mountTrack(0);
+    clearPendingCommandPayload();
+    updateEditorRuntimeConfig({
+      backendEditorContext: {
+        backendMediaGeneration: 4,
+        editorSessionId: 7,
+        mediaTargetsByField: {
+          0: { backendMediaGeneration: 4, sourceFilename: "clip.m4a" },
+        },
+        noteId: 11,
+      },
+    });
     window.__aqeActiveField = 0;
 
-    window.__aqeSetStatus?.(
-      {
-        code: "AQE-PLAYBACK-002",
-        message: "This audio format cannot be played in Audio Quick Editor.",
-        recovery: {
-          fieldOrd: 0,
-          kind: "convert_to_mp3",
-          sourceFilename: "clip.m4a",
-        },
-      },
-      "error",
-    );
+    dispatchHtmlAudioSessionEvent(0, {
+      cursorMs: 0,
+      source: { kind: "source", sourceFilename: "clip.m4a" },
+      type: "SourceConfigured",
+    });
+    dispatchHtmlAudioSessionSourceFact(0, readHtmlAudioTransportSourceIdentity(0)!, {
+      cursorMs: 0,
+      mediaErrorCode: 4,
+      mediaResponseStatus: 200,
+      reason: "audio_error",
+      type: "AudioError",
+    });
 
     const controls = visualizer.closest<HTMLElement>(".aqe-controls")!;
     const status = controls.querySelector<HTMLElement>(".aqe-status")!;
@@ -209,13 +234,46 @@ describe("editor inline status workflows", () => {
     expect(action).toHaveAttribute("type", "button");
     action.click();
 
-    expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(peekPendingCommandPayload()).toEqual({
-      command: "aqe:convert",
-      fieldOrd: 0,
-      sourceFilename: "clip.m4a",
-      overrides: { targetFormat: "mp3" },
+    expect(bridgeEnvelopes("editor.source-mutation")).toContainEqual({
+      command: "editor.source-mutation",
+      payload: expect.objectContaining({
+        kind: "convert_to_mp3",
+        schemaVersion: 1,
+        target: {
+          backendMediaGeneration: 4,
+          editorSessionId: 7,
+          fieldOrd: 0,
+          noteId: 11,
+          sourceFilename: "clip.m4a",
+        },
+      }),
     });
+    expect(bridgeCommands()).toContain("focus:0");
+    expect(peekPendingCommandPayload()).toBeNull();
+    action.click();
+    expect(bridgeEnvelopes("editor.source-mutation")).toHaveLength(1);
+  });
+
+  it("adopts authoritative graph media generations without regressing them", async () => {
+    await mountTrack(0);
+    updateEditorRuntimeConfig({
+      backendEditorContext: {
+        backendMediaGeneration: 4,
+        editorSessionId: 7,
+        mediaTargetsByField: {
+          0: { backendMediaGeneration: 4, sourceFilename: track.sourceFilename },
+        },
+        noteId: 11,
+      },
+    });
+
+    window.__aqeSetVisualizer?.(0, track, 0, 6);
+    expect(editorRuntimeConfig().backendEditorContext?.backendMediaGeneration).toBe(6);
+    expect(editorRuntimeConfig().backendEditorContext?.mediaTargetsByField?.[0]?.backendMediaGeneration).toBe(6);
+
+    window.__aqeSetVisualizer?.(0, track, 0, 5);
+    expect(editorRuntimeConfig().backendEditorContext?.backendMediaGeneration).toBe(6);
+    expect(editorRuntimeConfig().backendEditorContext?.mediaTargetsByField?.[0]?.backendMediaGeneration).toBe(6);
   });
 
   it("keeps status tooltips reserved for explicit command details", async () => {

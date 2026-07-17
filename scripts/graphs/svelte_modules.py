@@ -221,8 +221,6 @@ def _build_bridge_registry() -> list[dict]:
         "aqe:scan": "eval_status + window.__aqeScan()",
         "aqe:analyze": "analyze_current_async()",
         "aqe:set-cursor": "set_cursor_from_web()",
-        "aqe:play": "play()",
-        "aqe:play-ended": "play_ended()",
         "aqe:frontend-log": "handle_editor_frontend_log()",
         "aqe:show-file": "show_current_audio_file()",
         "aqe:undo": "undo()",

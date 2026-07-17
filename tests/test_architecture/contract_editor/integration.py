@@ -11,6 +11,7 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "editor_actions",
             "editor_callbacks",
+            "editor_runtime",
         ),
         notes="Anki editor bridge command callback wiring.",
     ),
@@ -19,6 +20,7 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "editor_bridge_hooks",
+            "editor_lifecycle_bridge",
             "editor_note_load_hooks",
             "editor_runtime",
         ),
@@ -28,11 +30,23 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allow_any_anki_imports=True,
     ),
+    "editor_lifecycle_bridge": contract(
+        "editor_lifecycle_bridge",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "contracts_generated",
+            "editor_actions",
+            "editor_callbacks",
+            "editor_pending_intent",
+            "editor_runtime",
+            "errors",
+            "webview_bridge",
+        ),
+    ),
     "editor_note_load_hooks": contract(
         "editor_note_load_hooks",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
-            "editor_callbacks",
             "editor_runtime",
             "editor_session",
             "editor_webview_injection",

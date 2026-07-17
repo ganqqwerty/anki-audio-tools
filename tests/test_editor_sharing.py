@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.editor_actions import EditorCommandPayload
-from anki_audio_quick_editor.editor_session import EditorSession, LearnerRecordingState
+from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.editor_sharing import (
     finish_shared_audio,
     share_current_audio_file,
@@ -14,6 +14,7 @@ from anki_audio_quick_editor.editor_sharing import (
     share_learner_recording_file,
 )
 from anki_audio_quick_editor.errors import AudioProcessingError, MissingMediaError
+from tests.recorder_test_helpers import learner_take
 from tests.thread_fakes import ImmediateThread as _ImmediateThread
 
 
@@ -216,17 +217,8 @@ def test_share_learner_recording_uploads_ready_sidecar(tmp_path: Path, monkeypat
     editor.mw = MagicMock()
     media_path = tmp_path / "target__aqe_voice.wav"
     media_path.write_bytes(b"RIFFfakeWAVE")
-    session = EditorSession(
-        learner_recording=LearnerRecordingState(
-            status="ready",
-            field_index=0,
-            generation=2,
-            source_filename="target.wav",
-            target_duration_ms=1000,
-            media_filename=media_path.name,
-            media_path=media_path,
-        )
-    )
+    session = EditorSession()
+    session.learner_take = learner_take(media_path, editor_session_id=session.editor_session_id)
     busy_calls: list[tuple[bool, str, str]] = []
     finished: list[tuple[str, str, str]] = []
 
@@ -274,17 +266,8 @@ def test_share_learner_recording_reports_upload_failures_with_share_code(
     editor.mw = MagicMock()
     media_path = tmp_path / "target__aqe_voice.wav"
     media_path.write_bytes(b"RIFFfakeWAVE")
-    session = EditorSession(
-        learner_recording=LearnerRecordingState(
-            status="ready",
-            field_index=0,
-            generation=2,
-            source_filename="target.wav",
-            target_duration_ms=1000,
-            media_filename=media_path.name,
-            media_path=media_path,
-        )
-    )
+    session = EditorSession()
+    session.learner_take = learner_take(media_path, editor_session_id=session.editor_session_id)
     statuses: list[tuple[object, str]] = []
     busy_calls: list[tuple[bool, str, str]] = []
 

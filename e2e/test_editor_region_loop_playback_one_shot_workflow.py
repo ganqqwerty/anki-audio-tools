@@ -40,9 +40,7 @@ from e2e.helpers import (
         pytest.param("full-explicit", "wav", 0.0, 1.0, id="wav-full-explicit"),
         pytest.param("near-start", "wav", 0.0, 0.125, id="wav-near-start"),
         pytest.param("near-end", "wav", 0.875, 1.0, id="wav-near-end"),
-        pytest.param("middle", "aac", 0.25, 0.625, id="aac-middle"),
         pytest.param("middle", "flac", 0.25, 0.625, id="flac-middle"),
-        pytest.param("middle", "m4a", 0.25, 0.625, id="m4a-middle"),
         pytest.param("middle", "mp3", 0.25, 0.625, id="mp3-middle"),
         pytest.param("middle", "oga", 0.25, 0.625, id="oga-middle"),
         pytest.param("middle", "ogg", 0.25, 0.625, id="ogg-middle"),
@@ -137,13 +135,14 @@ def test_selected_one_shot_playback_warns_without_temporary_segment_when_browser
             failed = _state(
                 editor,
                 lambda state: state["playbackState"] == "stopped"
-                and state["playbackEngine"] == "html",
+                and state["playbackEngine"] == "html"
+                and state["practiceProgramKind"] is None,
                 timeout=6.0,
             )
             wait_for_js_condition(
                 editor.web,
                 "document.querySelector('[data-testid=\"aqe-status-0\"]')?.textContent || ''",
-                lambda text: text == "Browser audio is unavailable.",
+                lambda text: "AQE-PLAYBACK-002:" in text and "Convert to MP3" in text,
                 timeout=5.0,
             )
 

@@ -3,7 +3,6 @@ import type {
   CursorIntent,
   EditorCommandPayload,
   GraphAnalysisRequest,
-  PlaybackRequest,
   RegionDeleteRequest,
 } from "./types.js";
 import type { SourceMetadataRequest } from "./source-metadata-types.js";
@@ -11,7 +10,6 @@ import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
 const pendingGraphAnalysisRequests: GraphAnalysisRequest[] = [];
-const pendingPlaybackRequests: PlaybackRequest[] = [];
 const pendingRegionDeleteRequests: RegionDeleteRequest[] = [];
 const pendingSourceMetadataRequests: SourceMetadataRequest[] = [];
 const pendingSplitDefaultSaveRequests: SplitDefaultSaveRequest[] = [];
@@ -65,25 +63,10 @@ export function popEditorFrontendLog(): FrontendLogPayload | null {
   return frontendLogs.shift() ?? null;
 }
 
-export function setPendingPlaybackRequest(request: PlaybackRequest): void {
-  pendingPlaybackRequests.push(request);
-  window.__aqePendingPlaybackRequest = request;
-  window.__aqeLastPlaybackRequest = request;
-}
-
-export function popPendingPlaybackRequest(): PlaybackRequest | null {
-  const request = pendingPlaybackRequests.shift() ?? null;
-  window.__aqePendingPlaybackRequest = pendingPlaybackRequests[0] ?? null;
-  return request;
-}
-
 export function clearPendingNoteScopedBridgeRequests(): void {
   pendingGraphAnalysisRequests.length = 0;
-  pendingPlaybackRequests.length = 0;
   pendingRegionDeleteRequests.length = 0;
   pendingSourceMetadataRequests.length = 0;
-  window.__aqePendingPlaybackRequest = null;
-  window.__aqeLastPlaybackRequest = null;
 }
 
 export function popPendingGraphAnalysisRequest(): GraphAnalysisRequest | null {

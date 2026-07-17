@@ -1,6 +1,22 @@
 import { t } from "../lib/i18n.js";
 import type { VisualizerElement } from "./types.js";
 
+class CountdownOverlayRuntime {
+  readonly repeatPauseTimers = new Map<VisualizerElement, number>();
+
+  dispose(): void {
+    for (const timer of this.repeatPauseTimers.values()) window.clearTimeout(timer);
+    this.repeatPauseTimers.clear();
+  }
+}
+
+let activeRuntime: CountdownOverlayRuntime | null = null;
+
+function overlayRuntime(): CountdownOverlayRuntime {
+  activeRuntime ??= new CountdownOverlayRuntime();
+  return activeRuntime;
+}
+
 export function renderGraphCountdownOverlay(
   visualizer: VisualizerElement,
   seconds: number,
@@ -37,15 +53,22 @@ export function startRepeatPauseCountdownOverlay(visualizer: VisualizerElement, 
       t("editor.playback.repeat_countdown", { seconds: remainingSeconds }),
     );
     remainingSeconds -= 1;
-    visualizer.__aqeRepeatPauseOverlayTimer = window.setTimeout(tick, 1000);
+    const timer = window.setTimeout(tick, 1000);
+    overlayRuntime().repeatPauseTimers.set(visualizer, timer);
   };
   tick();
 }
 
 export function clearRepeatPauseCountdownOverlay(visualizer: VisualizerElement): void {
-  if (visualizer.__aqeRepeatPauseOverlayTimer) {
-    window.clearTimeout(visualizer.__aqeRepeatPauseOverlayTimer);
-    visualizer.__aqeRepeatPauseOverlayTimer = null;
+  const timer = overlayRuntime().repeatPauseTimers.get(visualizer);
+  if (timer !== undefined) {
+    window.clearTimeout(timer);
+    overlayRuntime().repeatPauseTimers.delete(visualizer);
   }
   clearGraphCountdownOverlay(visualizer);
+}
+
+export function disposeGraphCountdownOverlays(): void {
+  activeRuntime?.dispose();
+  activeRuntime = null;
 }

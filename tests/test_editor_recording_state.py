@@ -2,152 +2,77 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from anki_audio_quick_editor.editor_session import (
-    EditorSession,
-    LearnerRecordingState,
-    begin_learner_recording_state,
-    learner_recording_is_current,
-    reset_for_note_load,
-    reset_learner_playback_state,
+from anki_audio_quick_editor.editor_recording_state import (
+    RecorderProjection,
+    clear_recorder_projection,
+    projection_for_attempt,
+    recorder_projection_is_current,
+)
+from anki_audio_quick_editor.editor_session import EditorSession, reset_for_note_load
+from anki_audio_quick_editor.recorder.model import (
+    BackendMediaGeneration,
+    CaptureSpec,
+    RecorderTarget,
+    RecordingAttempt,
+    RecordingAttemptId,
 )
 
 
-def test_editor_session_starts_with_idle_learner_recording_state() -> None:
-    session = EditorSession()
-
-    assert session.learner_recording == LearnerRecordingState()
-
-
-def test_begin_learner_recording_state_records_attempt_data_and_generation() -> None:
-    session = EditorSession()
-    media_path = Path("/tmp/learner.wav")
-
-    state = begin_learner_recording_state(
-        session,
-        field_index=2,
-        source_filename="target.wav",
-        target_duration_ms=1234,
-        media_filename="learner.wav",
-        media_path=media_path,
-        start_cursor_ms=456,
-        started_at=10.0,
+def _attempt(tmp_path: Path) -> RecordingAttempt:
+    return RecordingAttempt(
+        RecordingAttemptId(7),
+        RecorderTarget(1, 2, 0, "target.wav", BackendMediaGeneration(4)),
+        CaptureSpec("take.wav", tmp_path / "take.wav", 1000, 125),
     )
 
-    assert state == LearnerRecordingState(
+
+def test_projection_contains_attempt_identity_without_native_resources(tmp_path: Path) -> None:
+    state = projection_for_attempt(_attempt(tmp_path), "recording")
+
+    assert state == RecorderProjection(
         status="recording",
-        field_index=2,
-        generation=1,
-        source_filename="target.wav",
-        media_filename="learner.wav",
-        media_path=media_path,
-        target_duration_ms=1234,
-        start_cursor_ms=456,
-        recording_started_at_monotonic=10.0,
-    )
-    assert session.learner_recording == state
-
-
-def test_reset_for_note_load_clears_learner_recording_and_invalidates_generation() -> None:
-    session = EditorSession(note_id=1)
-    begin_learner_recording_state(
-        session,
+        attempt_id=7,
         field_index=0,
         source_filename="target.wav",
-        target_duration_ms=2000,
-        media_filename="learner.wav",
-        media_path=Path("/tmp/learner.wav"),
-    )
-    session.learner_recording = LearnerRecordingState(
-        status="ready",
-        field_index=0,
-        generation=session.learner_recording.generation,
-        source_filename="target.wav",
-        target_duration_ms=2000,
-        media_filename="learner.wav",
-        media_path=Path("/tmp/learner.wav"),
-        prosody_payload={"durationMs": 2000},
-    )
-
-    changed = reset_for_note_load(session, note_id=2)
-
-    assert changed is True
-    assert session.learner_recording == LearnerRecordingState(generation=2)
-    assert session.learner_recording_controller is None
-
-
-def test_reset_for_same_note_keeps_learner_recording_state() -> None:
-    session = EditorSession(note_id=1)
-    state = begin_learner_recording_state(
-        session,
-        field_index=0,
-        source_filename="target.wav",
-        target_duration_ms=2000,
-        media_filename="learner.wav",
-        media_path=Path("/tmp/learner.wav"),
-    )
-
-    changed = reset_for_note_load(session, note_id=1)
-
-    assert changed is False
-    assert session.learner_recording == state
-
-
-def test_reset_learner_playback_state_invalidates_active_playback() -> None:
-    session = EditorSession()
-    session.learner_recording = LearnerRecordingState(
-        status="ready",
-        field_index=0,
-        generation=3,
-        source_filename="target.wav",
+        backend_media_generation=4,
         target_duration_ms=1000,
-        media_filename="learner.wav",
-        media_path=Path("/tmp/learner.wav"),
-        playback_status="playing",
-        playback_position_ms=250,
-        playback_started_at_monotonic=10.0,
-        playback_generation=4,
+        start_cursor_ms=125,
     )
-
-    state = reset_learner_playback_state(session)
-
-    assert state.playback_status == "stopped"
-    assert state.playback_position_ms == 0
-    assert state.playback_started_at_monotonic is None
-    assert state.playback_generation == 5
+    assert not hasattr(state, "media_path")
+    assert not hasattr(state, "playback_status")
 
 
-def test_learner_recording_is_current_rejects_stale_generation_field_or_source() -> None:
-    session = EditorSession()
-    state = begin_learner_recording_state(
+def test_clear_projection_does_not_retain_attempt_or_take(tmp_path: Path) -> None:
+    session = EditorSession(recorder=projection_for_attempt(_attempt(tmp_path), "recording"))
+    cleared = clear_recorder_projection(session)
+
+    assert cleared == RecorderProjection()
+    assert session.learner_take is None
+
+
+def test_projection_current_check_uses_attempt_field_and_source(tmp_path: Path) -> None:
+    session = EditorSession(recorder=projection_for_attempt(_attempt(tmp_path), "recording"))
+    assert recorder_projection_is_current(
         session,
-        field_index=1,
-        source_filename="target.wav",
-        target_duration_ms=2000,
-        media_filename="learner.wav",
-        media_path=Path("/tmp/learner.wav"),
-    )
-
-    assert learner_recording_is_current(
-        session,
-        generation=state.generation,
-        field_index=1,
+        attempt_id=7,
+        field_index=0,
         source_filename="target.wav",
     )
-    assert not learner_recording_is_current(
+    assert not recorder_projection_is_current(
         session,
-        generation=state.generation - 1,
-        field_index=1,
+        attempt_id=8,
+        field_index=0,
         source_filename="target.wav",
     )
-    assert not learner_recording_is_current(
-        session,
-        generation=state.generation,
-        field_index=2,
-        source_filename="target.wav",
+
+
+def test_note_change_clears_projection_and_advances_media_generation(tmp_path: Path) -> None:
+    session = EditorSession(
+        note_id=1,
+        backend_media_generation=3,
+        recorder=projection_for_attempt(_attempt(tmp_path), "failed"),
     )
-    assert not learner_recording_is_current(
-        session,
-        generation=state.generation,
-        field_index=1,
-        source_filename="other.wav",
-    )
+
+    assert reset_for_note_load(session, note_id=2)
+    assert session.recorder == RecorderProjection()
+    assert session.backend_media_generation == 4

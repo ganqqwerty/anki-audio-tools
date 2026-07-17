@@ -14,6 +14,7 @@ from anki_audio_quick_editor.audio_operations import (
     OP_VOLUME_UP,
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
+from anki_audio_quick_editor.contracts_generated import AutoplayKind
 from anki_audio_quick_editor.editor_actions import (
     BRIDGE_COMMAND_TO_OPERATION,
     BRIDGE_COMMANDS,
@@ -62,6 +63,26 @@ def test_decode_graph_command_accepts_graph_settings() -> None:
     assert decoded.graph_settings == {"voiceRange": "bass", "smoothness": "very_smooth"}
 
 
+def test_decode_processing_command_accepts_post_edit_practice_program() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:faster","fieldOrd":0,'
+        '"postEditAutoplay":{"kind":"repeat","repeatPauseMs":500}}'
+    )
+
+    assert decoded.post_edit_autoplay is not None
+    assert decoded.post_edit_autoplay.kind.value == AutoplayKind.REPEAT.value
+    assert decoded.post_edit_autoplay.repeat_pause_ms == 500
+
+
+def test_decode_processing_command_rejects_invalid_post_edit_practice_program() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:faster","fieldOrd":0,'
+        '"postEditAutoplay":{"kind":"repeat","repeatPauseMs":-1}}'
+    )
+
+    assert decoded.post_edit_autoplay is None
+
+
 def test_decode_history_jump_payload() -> None:
     payload = decode_editor_command_payload(
         '{"command":"aqe:history-jump","fieldOrd":2,"direction":"undo","steps":5}'
@@ -105,18 +126,6 @@ def test_decode_record_voice_payload_accepts_start_cursor() -> None:
 def test_learner_recording_sidecar_commands_are_registered_bridge_commands() -> None:
     assert "aqe:share-recording" in BRIDGE_COMMANDS
     assert "aqe:show-recording-file" in BRIDGE_COMMANDS
-
-
-def test_decode_post_edit_playback_ready_payload() -> None:
-    decoded = decode_editor_command_payload(
-        '{"command":"aqe:post-edit-playback-ready","fieldOrd":2,'
-        '"generation":5,"sourceFilename":"clip__aqe.mp3"}'
-    )
-
-    assert decoded.command == "aqe:post-edit-playback-ready"
-    assert decoded.field_ord == 2
-    assert decoded.generation == 5
-    assert decoded.source_filename == "clip__aqe.mp3"
 
 
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
@@ -276,7 +285,7 @@ def test_apply_processing_command_returns_none_for_non_processing_command() -> N
     config = AudioProcessingConfig()
     state = AudioEditState("clip.mp3")
 
-    assert apply_processing_command("aqe:play", state, config) is None
+    assert apply_processing_command("aqe:settings", state, config) is None
 
 
 def test_apply_processing_command_returns_none_for_convert_command() -> None:
@@ -293,11 +302,8 @@ def test_apply_processing_command_returns_none_for_size_reduction_command() -> N
     assert apply_processing_command("aqe:reduce-size", state, config) is None
 
 
-def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
+def test_non_processing_commands_are_disjoint_from_processing_commands() -> None:
     assert {
-        "aqe:play",
-        "aqe:play-ended",
-        "aqe:stop-playback",
         "aqe:show-file",
         "aqe:share",
         "aqe:analyze",

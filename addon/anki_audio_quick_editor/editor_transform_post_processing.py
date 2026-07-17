@@ -61,7 +61,6 @@ def replace_current_field_after_special_transform(
     )
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
-    deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
         deps.request_graph_redraw(editor, saved_name, preserve_learner_overlay=True)
     else:

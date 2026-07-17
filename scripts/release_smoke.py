@@ -86,6 +86,7 @@ def _run_tool(path: Path, args: list[str]) -> None:
 def smoke_archive(archive: Path) -> None:
     original_modules = _anki_audio_modules()
     original_sys_path = list(sys.path)
+    original_path = os.environ.get("PATH")
     with tempfile.TemporaryDirectory(prefix="anki-audio-smoke-") as tmp:
         try:
             _restore_anki_audio_modules({})
@@ -137,6 +138,10 @@ def smoke_archive(archive: Path) -> None:
             _run_tool(deep_filter, tools["deep-filter"].get("diagnostic_args", ["--version"]))
             _run_tool(rnnoise, tools["rnnoise-cli"].get("diagnostic_args", ["--version"]))
         finally:
+            if original_path is None:
+                os.environ.pop("PATH", None)
+            else:
+                os.environ["PATH"] = original_path
             sys.path[:] = original_sys_path
             _restore_anki_audio_modules(original_modules)
 

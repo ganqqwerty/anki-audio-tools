@@ -11,7 +11,10 @@
     startSelectionResizeGesture,
   } from "./actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
-  import { notifyPostEditPlaybackReady } from "./post-edit-playback.js";
+  import {
+    notifyPostEditPlaybackReady,
+    postEditPlaybackIntentForOrd,
+  } from "./post-edit-playback.js";
   import { PLOT } from "./plot.js";
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
@@ -43,6 +46,9 @@
     target: FieldTarget;
     visibleCommands: EditorCommand[] | undefined;
   } = $props();
+  const effectiveRepeatDefault = $derived(
+    postEditPlaybackIntentForOrd(target.ord)?.repeat ?? repeatDefault,
+  );
   const plotClipId = $derived(`aqe-plot-clip-${target.ord}`);
   const plotClipUrl = $derived(`url(#${plotClipId})`);
 
@@ -81,7 +87,7 @@
     const stopGraphLayoutObserver = installGraphLayoutObserver(visualizer);
     const stopChorusingHandlers = installChorusingHandlers(visualizer);
     resetAudioClockState(visualizer);
-    initializePlaybackRegionState(visualizer);
+    initializePlaybackRegionState(visualizer, effectiveRepeatDefault);
     installAudioClockHandlers(visualizer);
     updateFieldState(target.ord, (state) => ({
       ...state,
@@ -117,7 +123,7 @@
   data-playback-end-ms="0"
   data-playback-region-mode="full"
   data-playback-reset-cursor-ms="0"
-  data-playback-loop={repeatDefault ? "true" : "false"}
+  data-playback-loop={effectiveRepeatDefault ? "true" : "false"}
   data-resume-requires-restart="false"
   data-selection-active="false"
   data-selection-start-ms=""
@@ -126,7 +132,7 @@
   data-selection-draft-start-ms=""
   data-selection-draft-end-ms=""
   data-selection-marker-shift-buttons-enabled={selectionMarkerShiftButtonsEnabled ? "true" : "false"}
-  data-repeat-enabled={repeatDefault ? "true" : "false"}
+  data-repeat-enabled={effectiveRepeatDefault ? "true" : "false"}
   data-repeat-pause-seconds={repeatPauseDefault}
   data-repeat-pause-waiting="false"
   data-chorusing-active-marker-index=""

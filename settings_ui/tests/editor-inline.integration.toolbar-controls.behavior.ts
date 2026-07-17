@@ -101,6 +101,10 @@ describe("editor inline toolbar controls", () => {
       command: "aqe:history-jump",
       direction: "undo",
       fieldOrd: 0,
+      postEditAutoplay: {
+        kind: "once",
+        repeatPauseMs: 0,
+      },
       steps: 2,
     });
     expect(bridgeCommands()).toContain("aqe:command-payload");

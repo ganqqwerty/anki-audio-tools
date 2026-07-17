@@ -1,60 +1,207 @@
-import { sendGraphAnalysisRequest } from "./bridge.js";
-import { setStatusForOrd } from "./control-actions.js";
-import { clearPlaybackWarning, renderPlaybackWarning } from "./control-status-renderer.js";
-import { visualizerForOrd } from "./dom-selectors.js";
-import { readFieldState, setCachedProgressMs } from "./field-state-store.js";
-import { audioProgressMsForOrd, createHtmlAudioElementOperations } from "./html-audio-session-audio-element.js";
+import { clearPlaybackWarning } from "./control-status-renderer.js";
+import {
+  createHtmlAudioElementOperations,
+  type HtmlAudioPortSnapshot,
+} from "./html-audio-session-audio-element.js";
 import {
   initialHtmlAudioSessionState,
   transitionHtmlAudioSession,
-  type HtmlAudioSessionEffect,
+  type HtmlAudioFailureReason,
   type HtmlAudioSessionEvent,
   type HtmlAudioSessionState,
   type HtmlAudioStartRequest,
 } from "./html-audio-session-machine.js";
+import { createHtmlAudioPortEventHandlers } from "./html-audio-session-port-events.js";
+import { createHtmlAudioSessionEffectExecutor } from "./html-audio-session-effect-executor.js";
+import { HtmlAudioSessionDispatcher } from "./html-audio-session-dispatcher.js";
 import {
-  clearPostEditReadyDispatches,
-  dispatchPostEditReady,
-} from "./html-audio-session-post-edit-dispatch.js";
-import { completePlayback, publishPlaybackState, publishRepeatWaitingState } from "./html-audio-session-field-projection.js";
+  htmlAudioSessionEventSummary,
+  htmlAudioSessionStateSummary,
+} from "./html-audio-session-logging.js";
+import { HtmlAudioSessionResources } from "./html-audio-session-resources.js";
+import { HtmlAudioSessionReader } from "./html-audio-session-reader.js";
+import { HtmlAudioSessionRecovery } from "./html-audio-session-recovery.js";
 import {
-  htmlAudioProgressDecision,
-  type HtmlAudioProgressClock,
-} from "./html-audio-session-progress.js";
+  requireTransportAttemptIdentity,
+  requireTransportFailureIdentity,
+  requireTransportSourceIdentity,
+} from "./html-audio-session-identities.js";
 import {
-  clearLearnerAudioHandler,
-  renderLearnerPlaybackCursor,
-} from "./html-audio-session-learner-projection.js";
+  enforceTransportInvariants,
+  type TransportInvariantRecovery,
+} from "./html-audio-session-invariants.js";
 import { logger } from "./logger.js";
-import type { EditorStatusMessage } from "./control-actions.js";
-import { t } from "../lib/i18n.js";
+import { htmlAudioSessionPosition, htmlAudioSourceBindingKey } from "./html-audio-session-types.js";
 import {
-  readRepeatPauseSecondsRuntime,
-  setPlaybackClockRuntime,
-  setPlaybackPassRuntime,
-  setRepeatPauseWaitingRuntime,
-} from "./visualizer-runtime-state.js";
-import { clearRepeatPauseCountdownOverlay, startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
-import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
-import { renderPlaybackCursor } from "./visualizer-renderer.js";
-import type { PlaybackPass } from "./playback-model.js";
-import type { VisualizerElement } from "./types.js";
+  TransportIdentityRegistry,
+  type TransportAttemptIdentity,
+  type TransportFailureIdentity,
+  type TransportSourceIdentity,
+  validateTransportOwnership,
+  validateTransportResources,
+  validateTransportState,
+  transportLifecycleIsActive,
+  type TransportSnapshot,
+} from "./transport/index.js";
+import type { PlaybackRecoveryAction } from "./playback-recovery-types.js";
 
 const sessionStates = new Map<number, HtmlAudioSessionState>();
-const progressFrames = new Map<number, number | null>();
-const progressClocks = new Map<number, HtmlAudioProgressClock>();
-const metadataTimers = new Map<number, number>();
-const repeatTimers = new Map<number, number>();
-let sourceBoundaryHandler: ((visualizer: VisualizerElement, request: HtmlAudioStartRequest) => boolean) | null = null;
-const audioElementOperations = createHtmlAudioElementOperations(
-  readHtmlAudioSessionState,
-  dispatchHtmlAudioSessionEvent,
-);
+const activeMediaPositions = new Map<number, number>();
+let activeTransportOrd: number | null = null;
+let passCompletedSink: ((ord: number, request: HtmlAudioStartRequest) => boolean) | null = null;
+let transportFailureSink: ((fact: HtmlAudioTransportFailureFact) => void) | null = null;
+let transportSnapshotSink: ((snapshot: TransportSnapshot) => void) | null = null;
+let transportIdentities = new TransportIdentityRegistry();
+const audioElementOperations = createHtmlAudioElementOperations(createHtmlAudioPortEventHandlers({
+  acceptsAttempt: (ord, identity) => transportIdentities.acceptsAttempt(ord, identity),
+  dispatchAttemptFact: dispatchHtmlAudioSessionAttemptFact,
+  dispatchSourceFact: dispatchHtmlAudioSessionSourceFact,
+  readAttemptIdentity: (ord) => transportIdentities.currentAttempt(ord),
+  readState: readHtmlAudioSessionState,
+}));
+const sessionReader = new HtmlAudioSessionReader({
+  audio: audioElementOperations,
+  readActiveOrd: () => activeTransportOrd,
+  readAttemptIdentity: (ord) => transportIdentities.currentAttempt(ord),
+  readFailureIdentity: (ord) => transportIdentities.currentFailure(ord),
+  readSession: readHtmlAudioSessionState,
+  readSourceIdentity: (ord) => transportIdentities.currentSource(ord),
+  readStoredPosition: (ord) => activeMediaPositions.get(ord),
+});
+const sessionRecovery = new HtmlAudioSessionRecovery({
+  acceptsFailure: (ord, identity) => transportIdentities.acceptsFailure(ord, identity),
+  claimFailure: (ord, identity) => transportIdentities.claimFailure(ord, identity),
+  dispatchFailureFact: dispatchHtmlAudioSessionFailureFact,
+  readState: readHtmlAudioSessionState,
+});
+const sessionResources = new HtmlAudioSessionResources({
+  acceptsAttempt: (ord, identity) => transportIdentities.acceptsAttempt(ord, identity),
+  dispatchAttemptFact: dispatchHtmlAudioSessionAttemptFact,
+  dispatchSourceFact: dispatchHtmlAudioSessionSourceFact,
+  readAttemptIdentity: (ord) => requireTransportAttemptIdentity(transportIdentities, ord),
+  publishPosition: (ord, positionMs) => activeMediaPositions.set(ord, positionMs),
+  readSourceIdentity: (ord) => requireTransportSourceIdentity(transportIdentities, ord),
+  readState: readHtmlAudioSessionState,
+});
+const executeHtmlAudioSessionEffect = createHtmlAudioSessionEffectExecutor({
+  audio: audioElementOperations,
+  readAttemptIdentity: (ord) => requireTransportAttemptIdentity(transportIdentities, ord),
+  readFailureIdentity: (ord) => requireTransportFailureIdentity(transportIdentities, ord),
+  readRequest: requestForFieldUpdate,
+  readSourceIdentity: (ord) => requireTransportSourceIdentity(transportIdentities, ord),
+  readState: readHtmlAudioSessionState,
+  reportPassCompleted: (ord, request) => passCompletedSink?.(ord, request) === true,
+  resources: sessionResources,
+});
+const invariantRecovery: TransportInvariantRecovery = {
+  clearAttempt: (ord) => transportIdentities.clearAttempt(ord),
+  clearAudioSource: (ord) => audioElementOperations.clearAudioSource(ord),
+  clearMetadataTimer: (ord) => sessionResources.clearMetadataTimer(ord),
+  clearPosition: (ord) => activeMediaPositions.delete(ord),
+  clearProgressFrame: (ord) => sessionResources.clearProgressFrame(ord),
+  commitFailedState: (ord, state) => {
+    sessionStates.set(ord, state);
+    if (state.kind !== "failed") return;
+    const failureIdentity = transportIdentities.currentFailure(ord)
+      ?? transportIdentities.registerFailure(ord);
+    if (failureIdentity) {
+      transportFailureSink?.({ fieldOrd: ord, failureIdentity, reason: state.reason });
+    }
+  },
+  pauseAudio: (ord) => audioElementOperations.pauseAudio(ord),
+  publishSnapshot: (ord) => transportSnapshotSink?.(readHtmlAudioTransportSnapshot(ord)),
+  releaseActiveOwner: (ord) => {
+    if (activeTransportOrd === ord) activeTransportOrd = null;
+  },
+};
 
-export function setHtmlAudioSourceBoundaryHandler(
-  handler: ((visualizer: VisualizerElement, request: HtmlAudioStartRequest) => boolean) | null,
+interface HtmlAudioTransportFailureFact {
+  readonly failureIdentity: TransportFailureIdentity;
+  readonly fieldOrd: number;
+  readonly reason: HtmlAudioFailureReason;
+}
+const eventDispatcher = new HtmlAudioSessionDispatcher({
+  identities: () => transportIdentities,
+  process: processHtmlAudioSessionEvent,
+});
+
+export function initializeHtmlAudioTransportRuntime(): void {
+  transportIdentities.dispose();
+  transportIdentities = new TransportIdentityRegistry();
+  activeMediaPositions.clear();
+  activeTransportOrd = null;
+}
+export function mountHtmlAudioTransportField(ord: number): void {
+  transportIdentities.mountField(ord);
+}
+export function remountHtmlAudioTransportField(ord: number): void {
+  transportIdentities.remountField(ord);
+}
+export function unmountHtmlAudioTransportField(ord: number): void {
+  clearHtmlAudioSession(ord);
+  transportIdentities.unmountField(ord);
+}
+
+export function readHtmlAudioTransportSourceIdentity(ord: number): TransportSourceIdentity | null {
+  return transportIdentities.currentSource(ord);
+}
+export function readHtmlAudioTransportAttemptIdentity(ord: number): TransportAttemptIdentity | null {
+  return transportIdentities.currentAttempt(ord);
+}
+export function readHtmlAudioTransportFailureIdentity(ord: number): TransportFailureIdentity | null {
+  return transportIdentities.currentFailure(ord);
+}
+
+export function readHtmlAudioTransportSnapshot(ord: number): TransportSnapshot {
+  return sessionReader.snapshot(ord);
+}
+
+export function readActiveHtmlAudioTransportSnapshot(): TransportSnapshot | null {
+  return sessionReader.activeSnapshot();
+}
+export function stopAndQuiesceHtmlAudioTransport(): number | null {
+  const ord = activeTransportOrd;
+  if (ord === null) return null;
+  stopActiveTransportOwner();
+  return ord;
+}
+
+export function readHtmlAudioTransportPosition(ord: number): number {
+  return sessionReader.position(ord);
+}
+
+export function previewHtmlAudioTransportPosition(
+  ord: number,
+  cursorMs: number,
+  durationMs: number,
+): boolean {
+  return sessionReader.previewPosition(ord, cursorMs, durationMs);
+}
+
+export function readHtmlAudioPortSnapshot(ord: number): HtmlAudioPortSnapshot {
+  return sessionReader.portSnapshot(ord);
+}
+
+export function claimHtmlAudioPlaybackRecovery(action: PlaybackRecoveryAction): boolean {
+  return sessionRecovery.claim(action);
+}
+
+export function setHtmlAudioTransportPassCompletedSink(
+  sink: ((ord: number, request: HtmlAudioStartRequest) => boolean) | null,
 ): void {
-  sourceBoundaryHandler = handler;
+  passCompletedSink = sink;
+}
+
+export function setHtmlAudioTransportFailureSink(
+  sink: ((fact: HtmlAudioTransportFailureFact) => void) | null,
+): void {
+  transportFailureSink = sink;
+}
+
+export function setHtmlAudioTransportSnapshotSink(
+  sink: ((snapshot: TransportSnapshot) => void) | null,
+): void {
+  transportSnapshotSink = sink;
 }
 
 export function readHtmlAudioSessionState(ord: number): HtmlAudioSessionState {
@@ -68,12 +215,80 @@ export function htmlAudioSessionSourceFilename(ord: number): string {
 }
 
 export function dispatchHtmlAudioSessionEvent(ord: number, event: HtmlAudioSessionEvent): void {
+  eventDispatcher.event(ord, event);
+}
+
+export function dispatchHtmlAudioSessionSourceFact(
+  ord: number,
+  identity: TransportSourceIdentity,
+  event: HtmlAudioSessionEvent,
+): void {
+  eventDispatcher.sourceFact(ord, identity, event);
+}
+
+export function dispatchHtmlAudioSessionAttemptFact(
+  ord: number,
+  identity: TransportAttemptIdentity,
+  event: HtmlAudioSessionEvent,
+): void {
+  eventDispatcher.attemptFact(ord, identity, event);
+}
+
+export function dispatchHtmlAudioSessionFailureFact(
+  ord: number,
+  identity: TransportFailureIdentity,
+  event: HtmlAudioSessionEvent,
+): void {
+  eventDispatcher.failureFact(ord, identity, event);
+}
+
+function processHtmlAudioSessionEvent(ord: number, event: HtmlAudioSessionEvent): void {
+  if ((event.type === "StartRequested" || event.type === "ResumeRequested") && activeTransportOrd !== ord) {
+    stopActiveTransportOwner();
+  }
   if (event.type === "SourceConfigured" || event.type === "PlayResolved") {
     clearPlaybackWarning(ord);
   }
   const current = readHtmlAudioSessionState(ord);
+  if (event.type === "SourceConfigured") {
+    transportIdentities.bindSource(
+      ord,
+      htmlAudioSourceBindingKey(event.source),
+      event.replace === true || current.kind === "failed",
+    );
+  }
   const transition = transitionHtmlAudioSession(current, event);
+  if (!enforceTransportInvariants(
+    ord, transition.state, validateTransportState(transition.state), invariantRecovery,
+  )) {
+    return;
+  }
   sessionStates.set(ord, transition.state);
+  if (!enforceTransportInvariants(
+    ord, transition.state, validateTransportOwnership(sessionStates), invariantRecovery,
+  )) {
+    return;
+  }
+  activeMediaPositions.set(ord, htmlAudioSessionPosition(transition.state));
+  if (transportLifecycleIsActive(transition.state)) {
+    activeTransportOrd = ord;
+  } else if (activeTransportOrd === ord) {
+    activeTransportOrd = null;
+  }
+  let failureFact: HtmlAudioTransportFailureFact | null = null;
+  if (transition.effects.some((effect) => effect.type === "PlayAudio")) {
+    transportIdentities.beginAttempt(ord);
+  } else if (transition.state.kind === "failed" && current.kind !== "failed") {
+    const failureIdentity = transportIdentities.registerFailure(ord);
+    if (failureIdentity) {
+      failureFact = { fieldOrd: ord, failureIdentity, reason: transition.state.reason };
+    }
+  } else if (
+    transition.state.kind === "empty"
+    || transition.state.kind === "ready"
+  ) {
+    transportIdentities.clearAttempt(ord);
+  }
   logger.debug("html_audio_session.transition", {
     effects: transition.effects.map((effect) => effect.type),
     event: htmlAudioSessionEventSummary(event),
@@ -81,402 +296,42 @@ export function dispatchHtmlAudioSessionEvent(ord: number, event: HtmlAudioSessi
     ord,
     to: htmlAudioSessionStateSummary(transition.state),
   });
-  const expectedState = transition.state;
-  for (const effect of transition.effects) {
-    executeHtmlAudioSessionEffect(ord, effect);
-    if (readHtmlAudioSessionState(ord) !== expectedState) {
-      break;
-    }
-  }
-}
-
-function htmlAudioSessionStateSummary(state: HtmlAudioSessionState): Record<string, unknown> {
-  const base = {
-    cursorMs: "cursorMs" in state ? state.cursorMs : null,
-    durationMs: "durationMs" in state ? state.durationMs : null,
-    kind: state.kind,
-    sourceFilename: "source" in state ? state.source?.sourceFilename : null,
-  };
-  if (state.kind === "loading") {
-    return {
-      ...base,
-      pendingStart: state.pendingStart ? htmlAudioRequestSummary(state.pendingStart) : null,
-    };
-  }
-  if (state.kind === "post_edit_waiting") {
-    return {
-      ...base,
-      postEdit: {
-        generation: state.postEdit.generation,
-        requireGraphRedraw: state.postEdit.requireGraphRedraw,
-        sourceFilename: state.postEdit.sourceFilename,
-        sourceKind: state.postEdit.sourceKind,
-      },
-      readyDispatched: state.readyDispatched,
-      request: htmlAudioRequestSummary(state.request),
-    };
-  }
-  if ("request" in state) {
-    return {
-      ...base,
-      request: htmlAudioRequestSummary(state.request),
-    };
-  }
-  if (state.kind === "failed") {
-    return { ...base, mediaErrorCode: state.mediaErrorCode, mediaResponseStatus: state.mediaResponseStatus, reason: state.reason };
-  }
-  return base;
-}
-
-function htmlAudioSessionEventSummary(event: HtmlAudioSessionEvent): Record<string, unknown> {
-  switch (event.type) {
-    case "SourceConfigured":
-      return {
-        cursorMs: event.cursorMs,
-        sourceFilename: event.source.sourceFilename,
-        sourceKind: event.source.kind,
-        type: event.type,
-      };
-    case "StartRequested":
-      return { request: htmlAudioRequestSummary(event.request), type: event.type };
-    case "PostEditAutoplayRequested":
-      return {
-        intent: {
-          generation: event.intent.generation,
-          requireGraphRedraw: event.intent.requireGraphRedraw,
-          sourceFilename: event.intent.sourceFilename,
-          sourceKind: event.intent.sourceKind,
-        },
-        request: htmlAudioRequestSummary(event.request),
-        type: event.type,
-      };
-    case "BoundaryReached":
-      return {
-        cursorMs: event.cursorMs,
-        repeatEnabled: event.repeatEnabled,
-        repeatPauseMs: event.repeatPauseMs,
-        request: event.request ? htmlAudioRequestSummary(event.request) : null,
-        resetCursorMs: event.resetCursorMs,
-        restartAudio: event.restartAudio,
-        type: event.type,
-      };
-    case "GraphRenderedForSource":
-    case "PostEditReadyConfirmed":
-      return {
-        durationMs: event.durationMs,
-        sourceFilename: event.sourceFilename,
-        type: event.type,
-      };
-    case "MetadataLoaded":
-      return { durationMs: event.durationMs, type: event.type };
-    case "PlayResolved":
-      return { sourceFilename: event.sourceFilename, type: event.type };
-    case "PlayRejected":
-      return { reason: event.reason, sourceFilename: event.sourceFilename, type: event.type };
-    case "SeekFailed":
-      return { cursorMs: event.cursorMs, reason: event.reason, type: event.type };
-    case "AudioError":
-      return {
-        cursorMs: event.cursorMs,
-        mediaErrorCode: event.mediaErrorCode,
-        mediaResponseStatus: event.mediaResponseStatus,
-        reason: event.reason,
-        type: event.type,
-      };
-    case "PauseRequested":
-    case "StopRequested":
-      return { cursorMs: event.cursorMs, type: event.type };
-    case "RepeatDelayElapsed":
-      return { repeatEnabled: event.repeatEnabled, type: event.type };
-    default:
-      return { type: (event as { type: string }).type };
-  }
-}
-
-function htmlAudioRequestSummary(request: HtmlAudioStartRequest): Record<string, unknown> {
-  return {
-    cursorMs: request.cursorMs,
-    endMs: request.endMs,
-    loop: request.loop,
-    ord: request.ord,
-    regionMode: request.regionMode,
-    resetCursorMs: request.resetCursorMs,
-    source: request.source,
-  };
+  eventDispatcher.executeEffects(ord, transition.effects, executeHtmlAudioSessionEffect);
+  if (!enforceTransportInvariants(
+    ord,
+    transition.state,
+    validateTransportResources(transition.state, sessionResources.snapshot(ord)),
+    invariantRecovery,
+  )) return;
+  if (event.type === "SourceCleared") transportIdentities.clearSource(ord);
+  if (event.type === "RuntimeDisposed") transportIdentities.unmountField(ord);
+  if (failureFact) transportFailureSink?.(failureFact);
+  transportSnapshotSink?.(readHtmlAudioTransportSnapshot(ord));
 }
 
 export function clearHtmlAudioSession(ord: number): void {
   audioElementOperations.pauseAudio(ord);
   audioElementOperations.clearAudioSource(ord);
-  clearProgressFrame(ord);
-  clearMetadataTimer(ord);
-  clearRepeatTimer(ord);
-  clearLearnerAudioHandler(ord);
+  audioElementOperations.dispose(ord);
+  sessionResources.clearProgressFrame(ord);
+  sessionResources.clearMetadataTimer(ord);
   sessionStates.delete(ord);
+  activeMediaPositions.delete(ord);
+  if (activeTransportOrd === ord) activeTransportOrd = null;
+  transportIdentities.clearSource(ord);
+  eventDispatcher.clear(ord);
 }
 
 export function clearAllHtmlAudioSessions(): void {
   for (const ord of new Set([
     ...sessionStates.keys(),
-    ...progressFrames.keys(),
-    ...metadataTimers.keys(),
-    ...repeatTimers.keys(),
+    ...sessionResources.activeOrds(),
   ])) {
     clearHtmlAudioSession(ord);
   }
-  clearPostEditReadyDispatches();
-}
-
-export function stopOtherHtmlAudioSessions(activeOrd: number): void {
-  for (const [ord, state] of sessionStates) {
-    if (ord === activeOrd || !htmlAudioSessionIsActive(state)) continue;
-    dispatchHtmlAudioSessionEvent(ord, {
-      cursorMs: readFieldState(ord).cursor.ms,
-      type: "StopRequested",
-    });
-  }
-}
-
-function executeHtmlAudioSessionEffect(ord: number, effect: HtmlAudioSessionEffect): void {
-  switch (effect.type) {
-    case "ConfigureAudioSource":
-      audioElementOperations.configureAudioSource(ord, effect.sourceFilename);
-      return;
-    case "SeekAudio":
-      audioElementOperations.seekAudio(ord, effect.cursorMs);
-      return;
-    case "ReloadAudioSource":
-      audioElementOperations.reloadAudioSource(ord);
-      return;
-    case "PlayAudio":
-      audioElementOperations.playAudio(ord);
-      return;
-    case "PauseAudio":
-      audioElementOperations.pauseAudio(ord);
-      return;
-    case "ClearAudioSource":
-      audioElementOperations.clearAudioSource(ord);
-      return;
-    case "StartProgressFrame":
-      startProgressFrame(ord, effect.cursorMs, effect.endMs);
-      return;
-    case "ClearProgressFrame":
-      clearProgressFrame(ord);
-      return;
-    case "StartRepeatTimer":
-      startRepeatTimer(ord, effect.pauseMs);
-      return;
-    case "ClearRepeatTimer":
-      clearRepeatTimer(ord);
-      return;
-    case "StartMetadataTimer":
-      startMetadataTimer(ord, effect.timeoutMs);
-      return;
-    case "ClearMetadataTimer":
-      clearMetadataTimer(ord);
-      return;
-    case "RequestGraphForSource":
-      sendGraphAnalysisRequest({
-        ord: effect.ord,
-        sourceFilename: effect.sourceFilename,
-      });
-      return;
-    case "DispatchPostEditReady":
-      dispatchPostEditReady({
-        command: "aqe:post-edit-playback-ready",
-        fieldOrd: effect.ord,
-        generation: effect.generation,
-        sourceFilename: effect.sourceFilename,
-      });
-      return;
-    case "PublishPlaybackState":
-      publishPlaybackState({
-        cursorMs: effect.cursorMs,
-        dispatchEvent: dispatchHtmlAudioSessionEvent,
-        ord,
-        readState: readHtmlAudioSessionState,
-        request: requestForFieldUpdate(ord),
-        session: readHtmlAudioSessionState(ord),
-        status: effect.status,
-      });
-      return;
-    case "PublishRepeatWaitingState":
-      publishRepeatWaitingState(ord, effect.cursorMs, requestForFieldUpdate(ord));
-      return;
-    case "CompletePlayback":
-      completePlayback(ord, effect.cursorMs);
-      return;
-    case "ShowPlaybackStatus":
-      setStatusForOrd(
-        ord,
-        playbackStatusMessage(effect),
-        effect.kind ?? "warning",
-        "",
-        effect.kind === "error" ? "error" : "playback",
-      );
-      return;
-    case "ShowPostEditPlaybackWarning":
-      renderPlaybackWarning(ord, playbackStatusMessage(effect));
-      return;
-    case "LogPlaybackTelemetry":
-      logger.debug(effect.event, { ...effect.data, ord });
-      return;
-    default:
-      return exhaustive(effect);
-  }
-}
-
-function playbackStatusMessage(
-  effect: Extract<HtmlAudioSessionEffect, {
-    type: "ShowPlaybackStatus" | "ShowPostEditPlaybackWarning";
-  }>,
-): EditorStatusMessage {
-  const message = t(effect.statusKey);
-  return effect.statusCode
-    ? { code: effect.statusCode, message, ...(effect.recovery ? { recovery: effect.recovery } : {}) }
-    : message;
-}
-
-function startProgressFrame(ord: number, cursorMs: number, endMs: number): void {
-  clearProgressFrame(ord);
-  const visualizer = visualizerForOrd(ord);
-  const session = readHtmlAudioSessionState(ord);
-  const request = "request" in session ? session.request : null;
-  if (visualizer && request && "source" in session && session.source?.kind === "source") {
-    setPlaybackClockRuntime(visualizer, cursorMs);
-    setPlaybackPassRuntime(visualizer, playbackPassForRequest(request));
-    ensurePlaybackCursorVisible(visualizer, cursorMs);
-  }
-  setCachedProgressMs(ord, cursorMs, visualizer);
-  if (typeof window.requestAnimationFrame !== "function") {
-    progressFrames.set(ord, null);
-    return;
-  }
-  progressClocks.set(ord, { cursorMs, endMs, startedAtMs: performance.now() });
-  const tick = (): void => {
-    const nowMs = performance.now();
-    const state = readHtmlAudioSessionState(ord);
-    if (state.kind !== "starting" && state.kind !== "playing") {
-      clearProgressFrame(ord);
-      return;
-    }
-    const clock = progressClocks.get(ord);
-    if (!clock) return;
-    const field = state.source.kind === "source" ? readFieldState(ord) : null;
-    const currentVisualizer = state.source.kind === "source" ? visualizerForOrd(ord) : null;
-    const graphDurationMs = field?.graph.durationMs ?? state.durationMs;
-    const decision = htmlAudioProgressDecision({
-      audioProgressMs: audioProgressMsForOrd(ord),
-      clock,
-      graphDurationMs,
-      nowMs,
-      repeatEnabled: field?.playback.repeat ?? false,
-      repeatPauseMs: currentVisualizer ? readRepeatPauseSecondsRuntime(currentVisualizer) * 1000 : 0,
-      state,
-    });
-    if (decision.kind === "learner_progress") {
-      renderLearnerPlaybackCursor(ord, decision.learnerCursorMs);
-    } else {
-      setCachedProgressMs(ord, decision.progressMs, currentVisualizer);
-      if (currentVisualizer) {
-        ensurePlaybackCursorVisible(currentVisualizer, decision.progressMs);
-        renderPlaybackCursor(currentVisualizer, decision.progressMs, graphDurationMs, nowMs);
-      }
-      if (decision.kind === "boundary") {
-        if (
-          currentVisualizer
-          && state.source.kind === "source"
-          && sourceBoundaryHandler?.(currentVisualizer, state.request)
-        ) {
-          return;
-        }
-        dispatchHtmlAudioSessionEvent(ord, decision.event);
-        return;
-      }
-    }
-    progressFrames.set(ord, window.requestAnimationFrame(tick));
-  };
-  progressFrames.set(ord, window.requestAnimationFrame(tick));
-}
-
-function playbackPassForRequest(request: HtmlAudioStartRequest): PlaybackPass {
-  return {
-    endMs: request.endMs,
-    loop: request.loop,
-    regionMode: request.regionMode,
-    resetCursorMs: resetCursorMsForRequest(request),
-    startMs: request.cursorMs,
-  };
-}
-
-function resetCursorMsForRequest(request: HtmlAudioStartRequest): number {
-  if (request.resetCursorMs !== undefined) return Math.round(request.resetCursorMs);
-  if (request.regionMode === "selection") {
-    const selectionStartMs = readFieldState(request.ord).selection.startMs;
-    if (selectionStartMs !== null) return Math.round(selectionStartMs);
-  }
-  return request.cursorMs;
-}
-
-function clearProgressFrame(ord: number): void {
-  const frame = progressFrames.get(ord);
-  if (frame !== undefined && frame !== null && typeof window.cancelAnimationFrame === "function") {
-    window.cancelAnimationFrame(frame);
-  }
-  progressFrames.delete(ord);
-  progressClocks.delete(ord);
-}
-
-function startMetadataTimer(ord: number, timeoutMs: number): void {
-  clearMetadataTimer(ord);
-  metadataTimers.set(ord, window.setTimeout(() => {
-    metadataTimers.delete(ord);
-    dispatchHtmlAudioSessionEvent(ord, { type: "MetadataTimeout" });
-  }, Math.max(0, timeoutMs)));
-}
-
-function clearMetadataTimer(ord: number): void {
-  const timer = metadataTimers.get(ord);
-  if (timer !== undefined) {
-    window.clearTimeout(timer);
-  }
-  metadataTimers.delete(ord);
-}
-
-function startRepeatTimer(ord: number, pauseMs: number): void {
-  clearRepeatTimer(ord);
-  const visualizer = visualizerForOrd(ord);
-  if (visualizer) {
-    setRepeatPauseWaitingRuntime(visualizer, true);
-    startRepeatPauseCountdownOverlay(visualizer, pauseMs);
-  }
-  repeatTimers.set(ord, window.setTimeout(() => {
-    repeatTimers.delete(ord);
-    const currentVisualizer = visualizerForOrd(ord);
-    if (currentVisualizer) {
-      setRepeatPauseWaitingRuntime(currentVisualizer, false);
-      clearRepeatPauseCountdownOverlay(currentVisualizer);
-    }
-    const field = readFieldState(ord);
-    if (field.playback.state !== "playing") return;
-    dispatchHtmlAudioSessionEvent(ord, {
-      repeatEnabled: field.playback.repeat,
-      type: "RepeatDelayElapsed",
-    });
-  }, Math.max(0, pauseMs)));
-}
-
-function clearRepeatTimer(ord: number): void {
-  const timer = repeatTimers.get(ord);
-  if (timer !== undefined) {
-    window.clearTimeout(timer);
-  }
-  const visualizer = visualizerForOrd(ord);
-  if (visualizer) {
-    setRepeatPauseWaitingRuntime(visualizer, false);
-    clearRepeatPauseCountdownOverlay(visualizer);
-  }
-  repeatTimers.delete(ord);
+  transportIdentities.dispose();
+  activeMediaPositions.clear();
+  activeTransportOrd = null;
 }
 
 function requestForFieldUpdate(ord: number): HtmlAudioStartRequest | null {
@@ -484,13 +339,11 @@ function requestForFieldUpdate(ord: number): HtmlAudioStartRequest | null {
   return "request" in state ? state.request : null;
 }
 
-function htmlAudioSessionIsActive(state: HtmlAudioSessionState): boolean {
-  return state.kind === "starting" ||
-    state.kind === "playing" ||
-    state.kind === "paused" ||
-    state.kind === "repeat_waiting";
-}
-
-function exhaustive(value: never): never {
-  throw new Error(`Unhandled html audio session effect: ${JSON.stringify(value)}`);
+function stopActiveTransportOwner(): void {
+  const ord = activeTransportOrd;
+  if (ord === null) return;
+  dispatchHtmlAudioSessionEvent(ord, {
+    cursorMs: readHtmlAudioTransportPosition(ord),
+    type: "StopRequested",
+  });
 }

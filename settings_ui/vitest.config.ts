@@ -28,22 +28,22 @@ export default defineConfig({
           statements: 90,
         },
         "src/editor-inline/html-audio-session-machine.ts": {
-          branches: 70,
-          functions: 80,
-          lines: 75,
-          statements: 75,
+          branches: 90,
+          functions: 95,
+          lines: 95,
+          statements: 95,
         },
-        "src/editor-inline/playback-controller-audio.ts": {
-          branches: 45,
-          functions: 50,
-          lines: 50,
-          statements: 50,
+        "src/editor-inline/practice/{chorusing,model,once,record-once,reducer,repeat}.ts": {
+          branches: 90,
+          functions: 95,
+          lines: 95,
+          statements: 95,
         },
-        "src/editor-inline/playback-controller.ts": {
-          branches: 55,
-          functions: 70,
-          lines: 75,
-          statements: 75,
+        "src/editor-inline/transport/**/*.ts": {
+          branches: 85,
+          functions: 90,
+          lines: 90,
+          statements: 90,
         },
         "src/editor-inline/region-delete-state.ts": {
           branches: 55,

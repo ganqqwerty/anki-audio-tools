@@ -1,4 +1,4 @@
-import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
+import type { FrontendLogPayload, ProsodyPayload, RecorderSnapshot } from "../lib/generated/contracts.js";
 import type { EditorStatusMessage } from "./editor-control-state.js";
 import type { GraphSettings } from "./graph-settings.js";
 import type {
@@ -9,9 +9,6 @@ import type {
   FieldSplitButtonState,
   GraphAnalysisRequest,
   GraphStateForTest,
-  PlaybackRequest,
-  PlaybackState,
-  PostEditPlaybackIntent,
   RegionDeleteRequest,
 } from "./types.js";
 import type { EditorFieldState } from "./field-state.js";
@@ -19,7 +16,6 @@ import type {
   SourceMetadataRequest,
   SourceMetadataResponse,
 } from "./source-metadata-types.js";
-import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 import type { StatusOwner } from "./control-actions.js";
 
@@ -34,26 +30,17 @@ declare global {
     __aqeGetCursorMs?: (() => number) | undefined;
     __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
     __aqeFieldState?: ((ord: number) => EditorFieldState | null) | undefined;
-    __aqeGetPlaybackRequest?: (() => PlaybackRequest) | undefined;
     __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;
     __aqeHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }> | undefined;
     __aqeHistorySnapshotsByField?: Record<number, import("./types.js").HistorySnapshot> | undefined;
     __aqeInstallAudioPlaybackTestDriverForTest?: ((ord: number) => boolean) | undefined;
     __aqeLastCursorIntent?: CursorIntent | null;
-    __aqeLastPlaybackRequest?: PlaybackRequest | null;
     __aqePendingGraphRedrawField?: number | null;
     __aqePendingGraphRedrawPreserveLearnerOverlay?: boolean;
     __aqePendingGraphRedrawSource?: string | null;
     __aqePendingCommandPayload?: EditorCommandPayload | null;
-    __aqePendingPlaybackRequest?: PlaybackRequest | null;
-    __aqePostEditPlaybackIntents?: Record<number, PostEditPlaybackIntent> | undefined;
-    __aqeDispatchPostEditPlaybackReadyForTest?: ((
-      payload: EditorCommandPayload,
-      dispatch: () => void,
-    ) => boolean | void) | undefined;
     __aqeSplitButtonStates?: Record<number, FieldSplitButtonState> | undefined;
-    __aqePlayAfterEdit?: ((ord: number) => boolean) | undefined;
     __aqePopPendingGraphAnalysisRequest?: (() => GraphAnalysisRequest | null) | undefined;
     __aqePopPendingRegionDeleteRequest?: (() => RegionDeleteRequest | null) | undefined;
     __aqePopPendingSplitDefaultSaveRequest?: (() => SplitDefaultSaveRequest | null) | undefined;
@@ -73,15 +60,18 @@ declare global {
     __aqeSetFieldStateForTest?: ((ord: number, patch: Partial<EditorFieldState>) => EditorFieldState | null) | undefined;
     __aqeSetHistoryAvailability?: ((ord: number, canUndo: boolean, canRedo: boolean) => void) | undefined;
     __aqeSetHistorySnapshot?: ((ord: number, snapshot: import("./types.js").HistorySnapshot) => void) | undefined;
-    __aqeSetLearnerRecordingState?: ((payload: LearnerRecordingStatePayload) => void) | undefined;
+    __aqeSetLearnerRecordingState?: ((payload: RecorderSnapshot) => void) | undefined;
     __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;
-    __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;
     __aqeSetStatus?: ((message: EditorStatusMessage, kind?: string, owner?: StatusOwner) => void) | undefined;
     __aqeSetTimeViewportForTest?: ((ord: number, startMs: number, endMs: number) => boolean) | undefined;
-    __aqeSetVisualizer?: ((ord: number, track: ProsodyPayload, cursorMs: number) => void) | undefined;
+    __aqeSetVisualizer?: ((
+      ord: number,
+      track: ProsodyPayload,
+      cursorMs: number,
+      backendMediaGeneration?: number,
+    ) => void) | undefined;
     __aqeSetVisualizerStatus?: ((ord: number, message: EditorStatusMessage, kind?: string) => void) | undefined;
     __aqeReceiveSourceMetadataResponse?: ((payload: SourceMetadataResponse) => void) | undefined;
-    __aqeStopEditorPlayback?: ((ord: number) => boolean) | undefined;
   }
 }
 

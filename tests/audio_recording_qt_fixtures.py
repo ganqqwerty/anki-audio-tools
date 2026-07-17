@@ -18,6 +18,14 @@ class FakeSignal:
     def connect(self, callback: object) -> None:
         self._callbacks.append(callback)
 
+    def disconnect(self, callback: object) -> None:
+        if callback in self._callbacks:
+            self._callbacks.remove(callback)
+
+    @property
+    def callback_count(self) -> int:
+        return len(self._callbacks)
+
     def emit(self) -> None:
         for callback in list(self._callbacks):
             assert callable(callback)
@@ -109,6 +117,28 @@ class FakeFuture:
             raise self._error
 
 
+def _fake_timer_type(state: SimpleNamespace) -> type:
+    class QTimer:
+        def __init__(self, parent: object) -> None:
+            self.parent = parent
+            self.timeout = FakeSignal()
+            self.started_ms: int | None = None
+            self.single_shot = False
+            self.stopped = False
+            state.timers.append(self)
+
+        def setSingleShot(self, single_shot: bool) -> None:
+            self.single_shot = single_shot
+
+        def start(self, timeout_ms: int) -> None:
+            self.started_ms = timeout_ms
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    return QTimer
+
+
 def install_fake_qt(
     monkeypatch: pytest.MonkeyPatch,
     *,
@@ -144,6 +174,7 @@ def install_fake_qt(
             self.selected_format = selected_format
             self.parent = parent
             self.stopped = False
+            self.stop_count = 0
             state.audio_sources.append(self)
 
         def format(self) -> FakeAudioFormat:
@@ -154,6 +185,7 @@ def install_fake_qt(
 
         def stop(self) -> None:
             self.stopped = True
+            self.stop_count += 1
 
         def error(self) -> object:
             return state.audio_error
@@ -163,25 +195,11 @@ def install_fake_qt(
         def defaultAudioInput() -> FakeAudioDevice:
             return state.device
 
-    class QTimer:
-        def __init__(self, parent: object) -> None:
-            self.parent = parent
-            self.timeout = FakeSignal()
-            self.started_ms: int | None = None
-            self.single_shot = False
-            state.timers.append(self)
-
-        def setSingleShot(self, single_shot: bool) -> None:
-            self.single_shot = single_shot
-
-        def start(self, timeout_ms: int) -> None:
-            self.started_ms = timeout_ms
-
     qt_multimedia.QAudio = QAudio
     qt_multimedia.QAudioFormat = FakeAudioFormat
     qt_multimedia.QAudioSource = QAudioSource
     qt_multimedia.QMediaDevices = QMediaDevices
-    qt_core.QTimer = QTimer
+    qt_core.QTimer = _fake_timer_type(state)
     pyqt6.QtMultimedia = qt_multimedia
     pyqt6.QtCore = qt_core
 

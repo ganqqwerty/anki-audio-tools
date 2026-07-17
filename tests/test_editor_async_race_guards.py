@@ -69,9 +69,7 @@ def _standard_deps(tmp_path: Path, barrier: BarrierCall) -> SimpleNamespace:
     )
     deps.replace_current_field_after_render = MagicMock()
     deps.render_failed = MagicMock()
-    deps.stop_session_playback = MagicMock()
     deps.set_busy = MagicMock()
-    deps.eval_playback_state = MagicMock()
     deps.format_ffmpeg_command = lambda command: " ".join(command)
     deps.artifact_root = lambda _editor: None
     return deps
@@ -104,9 +102,7 @@ def _region_deps(tmp_path: Path, barrier: BarrierCall) -> SimpleNamespace:
     deps.temp_final_path = lambda desired_name: temp_dir / desired_name
     deps.replace_current_field_after_region_delete = MagicMock()
     deps.render_failed = MagicMock()
-    deps.stop_session_playback = MagicMock()
     deps.set_busy_for_field = MagicMock()
-    deps.eval_playback_state = MagicMock()
     deps.format_ffmpeg_command = lambda command: " ".join(command)
     return deps
 
@@ -129,11 +125,9 @@ def _special_deps(tmp_path: Path, session: EditorSession, source: Path) -> Simpl
     deps.replace_current_field_after_special_transform = MagicMock()
     deps.render_failed = MagicMock()
     deps.log_special_transform_failure = MagicMock()
-    deps.stop_session_playback = MagicMock()
     deps.set_busy = MagicMock()
     deps.eval_status = MagicMock()
     deps.still_processing_message = "Still processing"
-    deps.eval_playback_state = MagicMock()
     deps.format_ffmpeg_command = lambda command: " ".join(command)
     return deps
 

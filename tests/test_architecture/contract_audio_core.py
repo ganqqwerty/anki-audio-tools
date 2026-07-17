@@ -293,13 +293,8 @@ AUDIO_CORE_CONTRACTS: dict[str, ModuleContract] = {
     "audio_recording": contract(
         "audio_recording",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("errors",),
-        allowed_side_effects=(
-            SideEffect.ANKI_IMPORTS_ANYWHERE,
-            SideEffect.BACKGROUND_TASK_DISPATCH,
-        ),
-        allow_any_anki_imports=True,
-        notes="Lazy native recorder adapter; Qt/Anki imports stay inside runtime methods.",
+        allowed_addon_deps=("recorder.native_backend", "recorder.native_types"),
+        notes="Recorder controller delegates platform capture to native adapter modules.",
     ),
     "audio_rendering": contract(
         "audio_rendering",

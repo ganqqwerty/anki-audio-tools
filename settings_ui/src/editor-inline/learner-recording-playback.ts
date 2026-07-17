@@ -1,10 +1,11 @@
 import { t } from "../lib/i18n.js";
-import { audioClockFor } from "./audio-clock.js";
 import { setStatusForOrd } from "./control-actions.js";
-import { visualizerForOrd } from "./dom-selectors.js";
 import {
   clearHtmlAudioSession,
   dispatchHtmlAudioSessionEvent,
+  dispatchHtmlAudioSessionSourceFact,
+  readHtmlAudioTransportSourceIdentity,
+  readHtmlAudioTransportPosition,
   readHtmlAudioSessionState,
 } from "./html-audio-session-controller.js";
 import type { HtmlAudioStartRequest } from "./html-audio-session-machine.js";
@@ -84,7 +85,7 @@ function configureLearnerSession(
   const session = readHtmlAudioSessionState(ord);
   const source = {
     kind: "learner_recording" as const,
-    generation: recording.generation ?? 0,
+    attemptId: recording.attemptId ?? 0,
     sourceFilename: recording.mediaFilename,
     startCursorMs: recording.startCursorMs,
   };
@@ -93,7 +94,7 @@ function configureLearnerSession(
     session.kind === "failed" ||
     session.source.kind !== "learner_recording" ||
     session.source.sourceFilename !== source.sourceFilename ||
-    session.source.generation !== source.generation
+    session.source.attemptId !== source.attemptId
   ) {
     dispatchHtmlAudioSessionEvent(ord, {
       cursorMs: 0,
@@ -103,7 +104,9 @@ function configureLearnerSession(
   }
   const current = readHtmlAudioSessionState(ord);
   if (current.kind === "loading") {
-    dispatchHtmlAudioSessionEvent(ord, {
+    const identity = readHtmlAudioTransportSourceIdentity(ord);
+    if (!identity) return;
+    dispatchHtmlAudioSessionSourceFact(ord, identity, {
       durationMs: learnerDurationMs(recording),
       type: "MetadataLoaded",
     });
@@ -128,7 +131,7 @@ function learnerStartRequest(
 function readyLearnerRecording(recording: ReturnType<typeof readLearnerRecordingState>): boolean {
   return recording.recordingStatus === "ready"
     && recording.mediaFilename.length > 0
-    && recording.generation !== null;
+    && recording.attemptId !== null;
 }
 
 function learnerDurationMs(recording: ReturnType<typeof readLearnerRecordingState>): number {
@@ -136,8 +139,7 @@ function learnerDurationMs(recording: ReturnType<typeof readLearnerRecordingStat
 }
 
 function learnerAudioCurrentTimeMs(ord: number, durationMs: number): number {
-  const audio = audioClockFor(visualizerForOrd(ord));
-  const currentMs = Math.round(Math.max(0, Number(audio?.currentTime) || 0) * 1000);
+  const currentMs = readHtmlAudioTransportPosition(ord);
   return Math.max(0, Math.min(currentMs, Math.max(0, durationMs)));
 }
 

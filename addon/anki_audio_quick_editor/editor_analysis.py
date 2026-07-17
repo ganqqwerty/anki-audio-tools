@@ -216,6 +216,9 @@ def analysis_finished(
     session = deps.sessions.get(editor)
     if session is None or not is_current_field_analysis(session, field_index, generation):
         return
+    if getattr(editor, "web", None) is None:
+        end_field_analysis(session, field_index)
+        return
     end_field_analysis(session, field_index)
     session.graph.filenames_by_field[field_index] = track.source_filename
     session.graph.durations_by_field[field_index] = track.duration_ms
@@ -229,7 +232,8 @@ def analysis_finished(
     cursor_payload = json.dumps(cursor_ms)
     editor.web.eval(
         "window.__aqeSetVisualizer && window.__aqeSetVisualizer("
-        f"{json.dumps(int(field_index))}, {payload}, {cursor_payload})"
+        f"{json.dumps(int(field_index))}, {payload}, {cursor_payload}, "
+        f"{json.dumps(session.backend_media_generation_for(field_index, track.source_filename))})"
     )
     deps.set_busy_for_field(editor, field_index, False)
 
@@ -238,6 +242,9 @@ def analysis_failed(editor: Any, generation: int, field_index: int, message: str
     """Report a failed prosody analysis result."""
     session = deps.sessions.get(editor)
     if session is None or not is_current_field_analysis(session, field_index, generation):
+        return
+    if getattr(editor, "web", None) is None:
+        end_field_analysis(session, field_index)
         return
     end_field_analysis(session, field_index)
     deps.set_busy_for_field(editor, field_index, False)

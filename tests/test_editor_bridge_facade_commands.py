@@ -1,14 +1,9 @@
-"""Editor bridge facade, defaults, sharing, and playback command tests."""
+"""Editor bridge facade, defaults, and sharing command tests."""
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 from anki_audio_quick_editor import editor_callbacks, editor_frontend_callbacks
-from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
-from anki_audio_quick_editor.editor_runtime import SESSIONS
-from anki_audio_quick_editor.editor_session import EditorSession, PlaybackState
 from anki_audio_quick_editor.editor_split_defaults import split_default_config_updates
 from tests.editor_bridge_command_fixtures import make_editor
 
@@ -127,53 +122,3 @@ def test_bridge_routes_show_learner_recording_file(monkeypatch) -> None:
     handle_bridge_command(editor, "aqe:show-recording-file")
 
     assert called["editor"] is editor
-
-
-def test_bridge_passes_start_cursor_to_learner_recording(monkeypatch) -> None:
-    editor = make_editor()
-    called: dict[str, object] = {}
-
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_callbacks._record_learner_voice",
-        lambda _editor, **kwargs: called.update(editor=_editor, kwargs=kwargs),
-    )
-
-    handle_bridge_command(
-        editor,
-        '{"command":"aqe:record-voice","fieldOrd":0,"startCursorMs":450}',
-    )
-
-    assert called["editor"] is editor
-    assert called["kwargs"]["start_cursor_ms"] == 450
-
-
-def test_stop_playback_command_stops_session_without_clearing_status() -> None:
-    editor = make_editor()
-    session = EditorSession(
-        state=AudioEditState("clip.mp3"),
-        field_index=0,
-        playback=PlaybackState(active=True, paused=True, generation=4),
-    )
-    SESSIONS[editor] = session
-
-    handle_bridge_command(editor, "aqe:stop-playback")
-
-    assert session.playback.active is False
-    assert session.playback.paused is False
-    assert session.playback.generation == 5
-    assert any(
-        "window.__aqeSetPlaybackState" in call.args[0] and '(0, "stopped"' in call.args[0]
-        for call in editor.web.eval.call_args_list
-    )
-    assert not any("window.__aqeSetStatus" in call.args[0] for call in editor.web.eval.call_args_list)
-
-
-def test_stop_playback_command_without_session_stops_audio(monkeypatch) -> None:
-    editor = make_editor()
-    stop_audio = MagicMock()
-    monkeypatch.setattr("anki_audio_quick_editor.editor_callbacks._stop_audio_playback", stop_audio)
-
-    handle_bridge_command(editor, "aqe:stop-playback")
-
-    stop_audio.assert_called_once_with()
-    assert not any("window.__aqeSetStatus" in call.args[0] for call in editor.web.eval.call_args_list)

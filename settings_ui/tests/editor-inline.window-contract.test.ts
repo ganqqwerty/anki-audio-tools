@@ -25,11 +25,9 @@ describe("editor inline window contract", () => {
       "__aqeFieldState",
       "__aqeGetCursorIntent",
       "__aqeGetCursorMs",
-      "__aqeGetPlaybackRequest",
       "__aqeGraphPixelBoundsForTest",
       "__aqeGraphStateForTest",
       "__aqeInstallAudioPlaybackTestDriverForTest",
-      "__aqePlayAfterEdit",
       "__aqePopFrontendLog",
       "__aqePopPendingGraphAnalysisRequest",
       "__aqePopPendingRegionDeleteRequest",
@@ -47,12 +45,10 @@ describe("editor inline window contract", () => {
       "__aqeSetHistorySnapshot",
       "__aqeSetLearnerRecordingState",
       "__aqeSetLearnerVisualizer",
-      "__aqeSetPlaybackState",
       "__aqeSetStatus",
       "__aqeSetTimeViewportForTest",
       "__aqeSetVisualizer",
       "__aqeSetVisualizerStatus",
-      "__aqeStopEditorPlayback",
     ]);
     expect([...installed].filter((name) => !declared.has(name))).toEqual([]);
   });

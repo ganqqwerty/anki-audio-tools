@@ -40,7 +40,7 @@ def _parse_bridge_handlers_dict(path: Path, dict_name: str) -> dict[str, str]:
     Handles patterns like:
         handlers = {
             CMD_SLOWER: deps.update_state_and_render,
-            "aqe:play": deps.play,
+            "aqe:show-file": deps.show_current_audio_file,
         }
     """
     if not path.is_file():

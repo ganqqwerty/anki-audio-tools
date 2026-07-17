@@ -1,4 +1,4 @@
-"""Editor post-edit playback tests."""
+"""Retryable editor bootstrap-intent tests."""
 
 from __future__ import annotations
 
@@ -8,157 +8,177 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor import editor_frontend
 from anki_audio_quick_editor.audio_state import AudioEditState
+from anki_audio_quick_editor.contracts_generated import (
+    AutoplayKind,
+    EditorIntentReceipt,
+    Outcome,
+)
 from anki_audio_quick_editor.editor_callbacks import _replace_current_field_after_render
+from anki_audio_quick_editor.editor_pending_intent import (
+    consume_editor_intent_receipt,
+    create_pending_editor_intent,
+    pending_editor_intent_payload,
+)
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import (
     EditorSession,
     PendingEditorStatus,
-    PostEditPlaybackState,
     ProcessingState,
 )
+from anki_audio_quick_editor.editor_session_types import PostEditAutoplayPreference
 
 
-def test_standard_render_replacement_records_pending_post_edit_playback(
+def test_standard_render_replacement_records_target_bound_pending_intent(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    media_dir = tmp_path / "media"
-    media_dir.mkdir()
-    (media_dir / "clip.mp3").write_bytes(b"source")
-
-    class Editor:
-        pass
-
-    editor = Editor()
-    editor.currentField = 0
-    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
-    editor.web = MagicMock()
-    editor.loadNote = MagicMock()
-    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
-    SESSIONS[editor] = EditorSession(
-        state=AudioEditState("clip.mp3"),
-        field_index=0,
-        current_filename="clip.mp3",
-        processing=ProcessingState(next_status_summary="Increased volume by 15 dB."),
-    )
+    editor, session = _editor_with_session(tmp_path, field_index=0, filename="clip.mp3")
+    session.processing = ProcessingState(next_status_summary="Increased volume by 15 dB.")
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
-    _replace_current_field_after_render(editor, AudioEditState("clip.mp3", volume_db=3.0), "clip__aqe.mp3")
+    _replace_current_field_after_render(
+        editor,
+        AudioEditState("clip.mp3", volume_db=3.0),
+        "clip__aqe.mp3",
+    )
 
-    session = SESSIONS[editor]
+    intent = session.pending_editor_intent
     assert editor.note.fields == ["[sound:clip__aqe.mp3]"]
     assert session.pending_status == PendingEditorStatus(0, message="Increased volume by 15 dB.")
-    assert any(
-        "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
-        for call in editor.web.evalWithCallback.call_args_list
-    )
-    assert session.post_edit_playback.pending_field_index == 0
-    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
-    assert session.post_edit_playback.pending_requires_graph_redraw is False
-    assert session.post_edit_playback.pending_source_filename == "clip__aqe.mp3"
-    assert session.post_edit_playback.pending_source_kind == "generated_edit"
+    assert intent is not None
+    assert intent.source_kind.value == "generated_edit"
+    assert intent.target.field_ord == 0
+    assert intent.target.source_filename == "clip__aqe.mp3"
+    assert intent.target.backend_media_generation == session.backend_media_generation
 
 
 def test_standard_render_replacement_uses_session_field_when_focus_changes(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    media_dir = tmp_path / "media"
-    media_dir.mkdir()
-    (media_dir / "first.mp3").write_bytes(b"first")
-    (media_dir / "second.mp3").write_bytes(b"second")
-
-    class Editor:
-        pass
-
-    editor = Editor()
+    editor, session = _editor_with_session(tmp_path, field_index=1, filename="second.mp3")
     editor.currentField = 0
-    editor.note = SimpleNamespace(fields=["[sound:first.mp3]", "[sound:second.mp3]"])
-    editor.web = MagicMock()
-    editor.loadNote = MagicMock()
-    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
-    SESSIONS[editor] = EditorSession(
-        state=AudioEditState("second.mp3"),
-        field_index=1,
-        current_filename="second.mp3",
-    )
+    editor.note.fields = ["[sound:first.mp3]", "[sound:second.mp3]"]
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
-    _replace_current_field_after_render(editor, AudioEditState("second.mp3", left_trim_ms=100), "second__aqe.mp3")
+    _replace_current_field_after_render(
+        editor,
+        AudioEditState("second.mp3", left_trim_ms=100),
+        "second__aqe.mp3",
+    )
 
-    session = SESSIONS[editor]
     assert editor.note.fields == ["[sound:first.mp3]", "[sound:second__aqe.mp3]"]
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
-    assert any(
-        "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]
-        for call in editor.web.evalWithCallback.call_args_list
-    )
-    assert session.post_edit_playback.pending_field_index == 1
-    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
-    assert session.post_edit_playback.pending_requires_graph_redraw is False
-    assert session.post_edit_playback.pending_source_filename == "second__aqe.mp3"
-    assert session.post_edit_playback.pending_source_kind == "generated_edit"
+    assert session.pending_editor_intent is not None
+    assert session.pending_editor_intent.target.field_ord == 1
+    assert session.pending_editor_intent.target.source_filename == "second__aqe.mp3"
 
 
-def test_stale_post_edit_playback_ready_event_is_ignored() -> None:
-    class Editor:
-        pass
-
-    editor = Editor()
-    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
-    editor.web = MagicMock()
-    SESSIONS[editor] = EditorSession(
-        post_edit_playback=PostEditPlaybackState(generation=3, pending_field_index=0, pending_generation=3, pending_source_filename="clip.mp3"),
-    )
-    payload = SimpleNamespace(field_ord=0, generation=2, source_filename="clip.mp3")
-    deps = SimpleNamespace(
-        sessions=SESSIONS,
-        eval_with_callback=MagicMock(),
-        playback_after_edit_expression=editor_frontend.playback_after_edit_expression,
-    )
-
-    editor_frontend.handle_post_edit_playback_ready(editor, payload, deps)
-
-    deps.eval_with_callback.assert_not_called()
-
-
-def test_post_edit_playback_request_records_frontend_ready_payload() -> None:
-    class Editor:
-        pass
-
-    editor = Editor()
-    SESSIONS[editor] = EditorSession(
+def test_pending_intent_payload_retries_until_exact_terminal_receipt() -> None:
+    session = EditorSession(
+        note_id=11,
+        field_index=2,
         current_filename="clip__aqe.mp3",
-        post_edit_playback=PostEditPlaybackState(generation=7),
+        backend_media_generation=4,
     )
-    deps = SimpleNamespace(
-        sessions=SESSIONS,
+    create_pending_editor_intent(
+        session,
+        2,
+        require_graph_redraw=True,
+        source_kind="generated_edit",
+        expected_duration_ms=1200,
+        now_epoch_ms=100,
     )
 
-    editor_frontend.request_playback_after_edit(editor, 2, deps)
+    first = pending_editor_intent_payload(session, now_epoch_ms=101)
+    second = pending_editor_intent_payload(session, now_epoch_ms=102)
 
-    session = SESSIONS[editor]
-    assert editor_frontend.pending_post_edit_playback_payload(session) == {
+    assert first == second
+    assert first is not None
+    assert first["schemaVersion"] == 1
+    assert first["target"] == {
+        "backendMediaGeneration": 4,
+        "editorSessionId": session.editor_session_id,
         "fieldOrd": 2,
-        "generation": 7,
-        "requireGraphRedraw": False,
-        "sourceKind": "generated_edit",
+        "noteId": 11,
         "sourceFilename": "clip__aqe.mp3",
     }
+    assert not consume_editor_intent_receipt(
+        session,
+        EditorIntentReceipt("other", session.editor_session_id, Outcome.FAILED, 1),
+    )
+    assert session.pending_editor_intent is not None
+
+    delivery_id = session.pending_editor_intent.delivery_id
+    assert consume_editor_intent_receipt(
+        session,
+        EditorIntentReceipt(
+            delivery_id,
+            session.editor_session_id,
+            Outcome.AUTOPLAY_ACCEPTED,
+            1,
+        ),
+    )
+    assert pending_editor_intent_payload(session, now_epoch_ms=103) is None
+    assert not consume_editor_intent_receipt(
+        session,
+        EditorIntentReceipt(
+            delivery_id,
+            session.editor_session_id,
+            Outcome.AUTOPLAY_ACCEPTED,
+            1,
+        ),
+    )
 
 
-def test_post_edit_playback_request_records_existing_media_metadata() -> None:
+def test_pending_intent_payload_discards_expired_or_retargeted_delivery() -> None:
+    session = EditorSession(
+        note_id=11,
+        field_index=0,
+        current_filename="clip.mp3",
+        backend_media_generation=3,
+    )
+    create_pending_editor_intent(
+        session,
+        0,
+        require_graph_redraw=False,
+        source_kind="existing_media",
+        expected_duration_ms=None,
+        now_epoch_ms=100,
+    )
+    session.backend_media_generation += 1
+
+    assert pending_editor_intent_payload(session, now_epoch_ms=101) is None
+    assert session.pending_editor_intent is None
+
+    create_pending_editor_intent(
+        session,
+        0,
+        require_graph_redraw=False,
+        source_kind="existing_media",
+        expected_duration_ms=None,
+        now_epoch_ms=100,
+    )
+    assert pending_editor_intent_payload(session, now_epoch_ms=30_100) is None
+
+
+def test_frontend_request_adapter_creates_existing_media_intent() -> None:
     class Editor:
         pass
 
     editor = Editor()
-    SESSIONS[editor] = EditorSession(
+    session = EditorSession(
+        note_id=11,
+        field_index=1,
         current_filename="clip.mp3",
-        post_edit_playback=PostEditPlaybackState(generation=8),
+        backend_media_generation=8,
     )
-    deps = SimpleNamespace(
-        sessions=SESSIONS,
+    session.post_edit_autoplay_by_field[1] = PostEditAutoplayPreference(
+        kind=AutoplayKind.REPEAT,
+        repeat_pause_ms=500,
     )
+    SESSIONS[editor] = session
+    deps = SimpleNamespace(sessions=SESSIONS)
 
     editor_frontend.request_playback_after_edit(
         editor,
@@ -168,42 +188,39 @@ def test_post_edit_playback_request_records_existing_media_metadata() -> None:
         expected_duration_ms=1200,
     )
 
-    session = SESSIONS[editor]
-    assert editor_frontend.pending_post_edit_playback_payload(session) == {
-        "expectedDurationMs": 1200,
-        "fieldOrd": 1,
-        "generation": 8,
-        "requireGraphRedraw": False,
-        "sourceKind": "existing_media",
-        "sourceFilename": "clip.mp3",
-    }
+    payload = editor_frontend.pending_editor_intent_payload(session)
+    assert payload is not None
+    assert payload["sourceKind"] == "existing_media"
+    assert payload["autoplay"]["expectedDurationMs"] == 1200
+    assert payload["autoplay"]["kind"] == "repeat"
+    assert payload["autoplay"]["repeatPauseMs"] == 500
+    assert session.post_edit_autoplay_by_field == {}
 
 
-def test_matching_post_edit_playback_ready_event_starts_once_and_clears_pending() -> None:
+def _editor_with_session(
+    tmp_path: Path,
+    *,
+    field_index: int,
+    filename: str,
+) -> tuple[object, EditorSession]:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / filename).write_bytes(b"source")
+
     class Editor:
         pass
 
     editor = Editor()
-    SESSIONS[editor] = EditorSession(
-        post_edit_playback=PostEditPlaybackState(pending_field_index=1, pending_generation=4, pending_source_filename="clip__aqe.mp3"),
+    editor.currentField = field_index
+    editor.note = SimpleNamespace(fields=[f"[sound:{filename}]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    session = EditorSession(
+        note_id=11,
+        state=AudioEditState(filename),
+        field_index=field_index,
+        current_filename=filename,
     )
-    payload = SimpleNamespace(field_ord=1, generation=4, source_filename="clip__aqe.mp3")
-
-    def eval_with_callback(_editor, expression, callback):
-        assert "__aqePlayAfterEdit(1)" in expression
-        callback(True)
-
-    deps = SimpleNamespace(
-        sessions=SESSIONS,
-        eval_with_callback=eval_with_callback,
-        playback_after_edit_expression=editor_frontend.playback_after_edit_expression,
-    )
-
-    editor_frontend.handle_post_edit_playback_ready(editor, payload, deps)
-
-    session = SESSIONS[editor]
-    assert session.post_edit_playback.pending_field_index is None
-    assert session.post_edit_playback.pending_generation is None
-    assert session.post_edit_playback.pending_requires_graph_redraw is False
-    assert session.post_edit_playback.pending_source_filename is None
-    assert session.post_edit_playback.pending_source_kind == "generated_edit"
+    SESSIONS[editor] = session
+    return editor, session

@@ -3,11 +3,10 @@ import { currentAudioSourceForOrd } from "./dom-selectors.js";
 import {
   dispatchHtmlAudioSessionEvent,
   readHtmlAudioSessionState,
-  stopOtherHtmlAudioSessions,
 } from "./html-audio-session-controller.js";
-import { htmlAudioReadinessFor } from "./audio-readiness.js";
 import { clearPlaybackWarning } from "./control-status-renderer.js";
 import { logger } from "./logger.js";
+import { startEditorPlaybackPractice } from "./editor-practice-controller.js";
 import type {
   HtmlAudioSessionState,
   HtmlAudioStartRequest,
@@ -41,15 +40,13 @@ export function startSourceHtmlPlayback(
   const durationMs = field.graph.durationMs || sourceRequest.endMs;
   logger.debug("source_html_playback.start", {
     durationMs,
-    readiness: htmlAudioReadinessFor(visualizer),
     request: htmlAudioStartRequestForSourceRequest(sourceRequest),
     session: htmlAudioSourceSessionSummary(readHtmlAudioSessionState(sourceRequest.ord)),
     sourceFilename,
   });
-  stopOtherHtmlAudioSessions(sourceRequest.ord);
   ensureHtmlAudioSessionSource(sourceRequest.ord, sourceFilename, sourceRequest.cursorMs);
 
-  dispatchHtmlAudioStartRequest(visualizer, htmlRequest, sourceFilename, durationMs);
+  startEditorPlaybackPractice(visualizer, htmlRequest);
   return true;
 }
 
@@ -112,65 +109,6 @@ function ensureHtmlAudioSessionSource(
   });
 }
 
-function dispatchHtmlAudioStartRequest(
-  visualizer: VisualizerElement,
-  request: HtmlAudioStartRequest,
-  sourceFilename: string,
-  durationMs: number,
-): void {
-  dispatchHtmlAudioSessionEvent(request.ord, {
-    request,
-    type: "StartRequested",
-  });
-  if (htmlAudioReadinessFor(visualizer).failed) {
-    dispatchHtmlAudioSessionEvent(request.ord, {
-      cursorMs: request.cursorMs,
-      mediaErrorCode: visualizer.__aqeHtmlAudioMediaErrorCode ?? null,
-      mediaResponseStatus: visualizer.__aqeHtmlAudioMediaResponseStatus ?? null,
-      reason: "audio_error",
-      type: "AudioError",
-    });
-    return;
-  }
-  dispatchKnownMetadataForLoadingSource(request.ord, sourceFilename, durationMs);
-}
-
-function dispatchKnownMetadataForLoadingSource(
-  ord: number,
-  sourceFilename: string,
-  durationMs: number,
-): void {
-  if (durationMs <= 0) {
-    logger.debug("source_html_playback.metadata_known_skipped", {
-      durationMs,
-      ord,
-      reason: "non_positive_duration",
-      sourceFilename,
-    });
-    return;
-  }
-  const state = readHtmlAudioSessionState(ord);
-  if (state.kind === "loading" && state.source.sourceFilename === sourceFilename) {
-    logger.debug("source_html_playback.metadata_known_dispatched", {
-      durationMs,
-      ord,
-      sourceFilename,
-    });
-    dispatchHtmlAudioSessionEvent(ord, {
-      durationMs,
-      type: "MetadataLoaded",
-    });
-    return;
-  }
-  logger.debug("source_html_playback.metadata_known_skipped", {
-    durationMs,
-    ord,
-    reason: state.kind === "loading" ? "source_mismatch" : "state_not_loading",
-    session: htmlAudioSourceSessionSummary(state),
-    sourceFilename,
-  });
-}
-
 function htmlAudioSessionNeedsSource(
   state: HtmlAudioSessionState,
   sourceFilename: string,
@@ -178,7 +116,7 @@ function htmlAudioSessionNeedsSource(
   if (state.kind === "empty" || state.kind === "failed") return true;
   if (state.source.kind !== "source") return true;
   if (state.source.sourceFilename !== sourceFilename) return true;
-  return state.kind !== "ready" && state.kind !== "loading";
+  return false;
 }
 
 function sourceSessionFilename(ord: number): string {

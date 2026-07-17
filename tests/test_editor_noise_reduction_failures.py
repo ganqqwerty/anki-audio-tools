@@ -81,7 +81,6 @@ def test_standard_denoise_failure_logs_renders_error_and_keeps_note(
         "anki_audio_quick_editor.editor_dependencies.render_noise_reduced_audio",
         fake_render_noise_reduced_audio,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
     handle_bridge_command(editor, "aqe:denoise-standard")
@@ -142,7 +141,6 @@ def test_rnnoise_failure_logs_renders_error_and_keeps_note(
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.render_rnnoise_audio", fake_render_rnnoise_audio)
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
     handle_bridge_command(editor, "aqe:rnnoise")
@@ -212,7 +210,6 @@ def test_voice_only_failure_logs_renders_error_and_keeps_note(
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.render_voice_only_audio", fake_render_voice_only_audio)
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
     handle_bridge_command(editor, "aqe:voice-only")

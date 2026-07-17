@@ -1,15 +1,14 @@
-export interface ConvertToMp3RecoveryAction {
+import type { TransportFailureIdentity } from "./transport-public-types.js";
+
+export interface ConvertToMp3RecoveryProposal {
   fieldOrd: number;
   kind: "convert_to_mp3";
   sourceFilename: string;
 }
 
-export type PlaybackRecoveryAction = ConvertToMp3RecoveryAction;
-
-export const PLAYBACK_RECOVERY_REQUESTED_EVENT = "aqe-playback-recovery-requested";
-
-export interface PlaybackRecoveryRequestedDetail {
-  node: HTMLButtonElement;
-  ord: number;
-  surface: "status" | "warning";
+export interface ConvertToMp3RecoveryAction extends ConvertToMp3RecoveryProposal {
+  failureIdentity: TransportFailureIdentity;
 }
+
+export type PlaybackRecoveryProposal = ConvertToMp3RecoveryProposal;
+export type PlaybackRecoveryAction = ConvertToMp3RecoveryAction;

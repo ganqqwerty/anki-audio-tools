@@ -47,8 +47,7 @@ def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Pat
     _set_cursor_from_web(editor)
 
     assert session.cursor_ms == 1400
-    assert session.playback.active is True
-    assert session.playback.paused is False
+    assert not hasattr(session, "playback")
 
 
 def test_unsupported_engine_cursor_restart_intent_updates_cursor_without_restart(
@@ -96,8 +95,7 @@ def test_unsupported_engine_cursor_restart_intent_updates_cursor_without_restart
     _set_cursor_from_web(editor)
 
     assert session.cursor_ms == 700
-    assert session.playback.active is False
-    assert session.playback.paused is False
+    assert not hasattr(session, "playback")
 
 
 def test_late_cursor_intent_is_ignored_after_editor_note_is_cleared(monkeypatch) -> None:

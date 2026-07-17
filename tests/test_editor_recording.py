@@ -12,7 +12,7 @@ from anki_audio_quick_editor.editor_recording import (
     stop_learner_recording,
 )
 from anki_audio_quick_editor.editor_session import (
-    clear_learner_recording_state,
+    clear_recorder_projection,
 )
 from anki_audio_quick_editor.error_codes import AQE_RECORDING_FAILED
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -36,24 +36,24 @@ def test_record_and_explicit_stop_persists_media_and_sets_visualizer(
 
     assert recorder.started is True
     assert recorder.stopped is False
-    assert session.learner_recording.status == "recording"
-    assert session.learner_recording.graph_settings == {"voiceRange": "high"}
-    assert session.learner_recording.media_filename is not None
-    assert session.learner_recording.media_filename.startswith("target__aqe_voice_")
+    assert session.recorder.status == "recording"
+    attempt = deps.recorder_service.active_attempt
+    assert attempt is not None
+    assert attempt.capture.graph_settings == {"voiceRange": "high"}
+    assert attempt.capture.output_filename.startswith("target__aqe_voice_")
     assert editor.note.fields == ["[sound:target.wav]"]
-    assert deps.stopped == [True]
     assert deps.busy_calls == []
 
     stop_learner_recording(editor, deps)
 
-    state = session.learner_recording
+    take = session.learner_take
     assert recorder.stopped is True
-    assert state.status == "ready"
-    assert state.recording_duration_ms == 1500
-    assert state.media_path == source_path.parent / str(state.media_filename)
-    assert state.media_path.read_bytes() == b"RIFFfakeWAVE"
-    assert state.prosody_payload is not None
-    assert state.prosody_payload["sourceFilename"] == state.media_filename
+    assert session.recorder.status == "idle"
+    assert take is not None
+    assert take.finalized_media.duration_ms == 1500
+    assert take.finalized_media.path == source_path.parent / take.finalized_media.filename
+    assert take.finalized_media.path.read_bytes() == b"RIFFfakeWAVE"
+    assert take.analysis_payload["sourceFilename"] == take.finalized_media.filename
     assert editor.note.fields == ["[sound:target.wav]"]
     assert deps.busy_calls[-1] == (0, False, "")
     assert any("__aqeSetLearnerVisualizer" in call for call in editor.web.eval_calls)
@@ -65,7 +65,7 @@ def test_record_learner_voice_clamps_start_cursor_to_target_duration(tmp_path: P
 
     record_learner_voice(editor, deps, start_cursor_ms=2500)
 
-    assert session.learner_recording.start_cursor_ms == 1000
+    assert session.recorder.start_cursor_ms == 1000
     assert any('"startCursorMs": 1000' in call for call in editor.web.eval_calls)
 
 
@@ -111,8 +111,8 @@ def test_record_learner_voice_start_failure_sets_failed_state(tmp_path: Path) ->
 
     record_learner_voice(editor, deps)
 
-    assert session.learner_recording.status == "failed"
-    assert session.learner_recording.failure_message == "microphone unavailable"
+    assert session.recorder.status == "failed"
+    assert session.recorder.failure_message == "microphone unavailable"
     assert deps.statuses[-1] == _error_status(AQE_RECORDING_FAILED, "microphone unavailable")
 
 
@@ -127,8 +127,8 @@ def test_stop_learner_recording_failure_sets_failed_state(tmp_path: Path) -> Non
     record_learner_voice(editor, deps)
     stop_learner_recording(editor, deps)
 
-    assert session.learner_recording.status == "failed"
-    assert session.learner_recording.failure_message == "recorder failed"
+    assert session.recorder.status == "failed"
+    assert session.recorder.failure_message == "recorder failed"
     assert deps.statuses[-1] == _error_status(AQE_RECORDING_FAILED, "recorder failed")
 
 
@@ -142,8 +142,8 @@ def test_stop_learner_recording_empty_file_failure_sets_failed_state(
     record_learner_voice(editor, deps)
     stop_learner_recording(editor, deps)
 
-    assert session.learner_recording.status == "failed"
-    assert "empty" in str(session.learner_recording.failure_message)
+    assert session.recorder.status == "failed"
+    assert "empty" in str(session.recorder.failure_message)
     assert not any("__aqeSetLearnerVisualizer" in call for call in editor.web.eval_calls)
 
 
@@ -160,8 +160,8 @@ def test_stop_learner_recording_analysis_failure_sets_failed_state(
     record_learner_voice(editor, deps)
     stop_learner_recording(editor, deps)
 
-    assert session.learner_recording.status == "failed"
-    assert session.learner_recording.failure_message == "analysis failed"
+    assert session.recorder.status == "failed"
+    assert session.recorder.failure_message == "analysis failed"
     assert not any("__aqeSetLearnerVisualizer" in call for call in editor.web.eval_calls)
 
 
@@ -183,11 +183,43 @@ def test_stop_learner_recording_ignores_stale_completion(tmp_path: Path) -> None
 
     record_learner_voice(editor, deps)
     stop_learner_recording(editor, deps)
-    clear_learner_recording_state(session)
+    deps.recorder_service.clear_owner(session.editor_session_id, "replaced")
+    clear_recorder_projection(session)
     recorder.complete()
 
-    assert session.learner_recording.status == "idle"
+    assert session.recorder.status == "idle"
     assert analyzed == []
+    assert not any("__aqeSetLearnerVisualizer" in call for call in editor.web.eval_calls)
+
+
+def test_late_analysis_cannot_publish_and_cleans_unpublished_media(tmp_path: Path) -> None:
+    editor, session, source_path = _editor_with_target(tmp_path)
+    callbacks: list[Any] = []
+
+    class DeferredThread:
+        def __init__(self, *, target: Any, daemon: bool) -> None:
+            del daemon
+            callbacks.append(target)
+
+        def start(self) -> None:
+            pass
+
+    deps = _deps(editor, session, source_path)
+    deps.threading = type("Threading", (), {"Thread": DeferredThread})
+
+    record_learner_voice(editor, deps)
+    stop_learner_recording(editor, deps)
+    attempt = deps.recorder_service.active_attempt
+    assert attempt is not None
+    unpublished_path = attempt.capture.output_path
+    assert unpublished_path.is_file()
+
+    deps.recorder_service.clear_owner(session.editor_session_id, "note_changed")
+    clear_recorder_projection(session)
+    callbacks[0]()
+
+    assert session.learner_take is None
+    assert not unpublished_path.exists()
     assert not any("__aqeSetLearnerVisualizer" in call for call in editor.web.eval_calls)
 
 
@@ -202,12 +234,11 @@ def test_stop_learner_recording_copies_temp_result_into_generated_media_file(
     record_learner_voice(editor, deps)
     stop_learner_recording(editor, deps)
 
-    state = session.learner_recording
-    assert state.status == "ready"
-    assert state.media_path is not None
-    assert state.media_path.parent == source_path.parent
-    assert state.media_path != temp_result_path
-    assert state.media_path.read_bytes() == b"RIFFfakeWAVE"
+    take = session.learner_take
+    assert take is not None
+    assert take.finalized_media.path.parent == source_path.parent
+    assert take.finalized_media.path != temp_result_path
+    assert take.finalized_media.path.read_bytes() == b"RIFFfakeWAVE"
 
 
 def test_persist_learner_recording_copies_temp_result_without_reading_into_memory(
@@ -245,14 +276,16 @@ def test_ready_learner_recording_state_publishes_media_filename_without_absolute
     record_learner_voice(editor, deps)
     stop_learner_recording(editor, deps)
 
-    state = session.learner_recording
+    take = session.learner_take
     payload = _last_learner_recording_payload(editor)
-    assert state.status == "ready"
+    assert take is not None
     assert payload["status"] == "ready"
-    assert payload["mediaFilename"] == state.media_filename
+    assert payload["mediaFilename"] == take.finalized_media.filename
     assert payload["recordingDurationMs"] == 1500
     assert payload["targetDurationMs"] == 1000
-    assert payload["playbackStatus"] == "stopped"
+    assert payload["attemptId"] == int(take.attempt_id)
+    assert payload["schemaVersion"] == 1
+    assert "playbackStatus" not in payload
     assert str(source_path.parent) not in json.dumps(payload)
 
 
@@ -265,10 +298,11 @@ def test_missing_completed_recording_media_publishes_failed_state(tmp_path: Path
     stop_learner_recording(editor, deps)
 
     payload = _last_learner_recording_payload(editor)
-    assert session.learner_recording.status == "failed"
+    assert session.recorder.status == "failed"
     assert payload["status"] == "failed"
     assert payload["failureMessage"]
-    assert payload["playbackStatus"] == "stopped"
+    assert payload["schemaVersion"] == 1
+    assert "playbackStatus" not in payload
     assert str(source_path.parent) not in json.dumps(payload)
 
 

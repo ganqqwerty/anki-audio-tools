@@ -229,7 +229,10 @@ def _stop_real_audio_playback(editor, ord_: int = 0) -> None:
         editor.web,
         f"""
         (() => {{
-          window.__aqeStopEditorPlayback?.({ord_});
+          const state = window.__aqeGraphStateForTest?.({ord_});
+          if (state?.playbackState === "playing") {{
+            document.querySelector('[data-testid="aqe-button-{ord_}-play"]')?.click();
+          }}
           const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
           if (audio) {{
             try {{ audio.pause(); }} catch (_error) {{}}
@@ -252,7 +255,8 @@ def _stop_real_audio_playback(editor, ord_: int = 0) -> None:
           }} : null;
         }})()
         """,
-        lambda value: value == {"playbackState": "stopped", "sourceAttribute": None},
+        lambda value: value["playbackState"] in {"paused", "stopped"}
+        and value["sourceAttribute"] is None,
         timeout=5.0,
     )
 

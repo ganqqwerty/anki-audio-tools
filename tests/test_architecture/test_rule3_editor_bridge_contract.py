@@ -15,6 +15,12 @@ EDITOR_TOOLBAR_TS = (
     ADDON_DIR.parent.parent / "settings_ui" / "src" / "lib" / "editor-toolbar-buttons.ts"
 )
 LEGACY_COMMANDS = {"aqe:preview", "aqe:save", "aqe:cancel"}
+FRONTEND_ONLY_COMMANDS = {
+    "aqe:play",
+    "aqe:play-recording",
+    "aqe:record-voice",
+    "aqe:stop-recording",
+}
 
 
 def _constant_tuple_assignment(path: Path, name: str) -> set[str]:
@@ -65,8 +71,9 @@ def test_editor_ui_commands_are_registered_by_python_bridge() -> None:
     registered = _constant_tuple_assignment(EDITOR_ACTIONS, "BRIDGE_COMMANDS")
     ui_commands = _editor_ui_commands()
 
-    assert ui_commands <= registered
+    assert ui_commands <= registered | FRONTEND_ONLY_COMMANDS
     assert registered - {"aqe:scan"} <= ui_commands
+    assert registered.isdisjoint(FRONTEND_ONLY_COMMANDS)
 
 
 def test_legacy_manual_preview_save_cancel_commands_are_not_registered() -> None:

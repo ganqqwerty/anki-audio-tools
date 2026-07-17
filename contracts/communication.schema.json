@@ -28,7 +28,12 @@
     "audioExportDestinationPayload": { "$ref": "#/definitions/AudioExportDestinationPayload" },
     "audioExportProgressPayload": { "$ref": "#/definitions/AudioExportProgressPayload" },
     "audioExportFinishPayload": { "$ref": "#/definitions/AudioExportFinishPayload" },
-    "audioExportErrorPayload": { "$ref": "#/definitions/BatchErrorPayload" }
+    "audioExportErrorPayload": { "$ref": "#/definitions/BatchErrorPayload" },
+    "pendingEditorIntent": { "$ref": "#/definitions/PendingEditorIntent" },
+    "editorIntentReceipt": { "$ref": "#/definitions/EditorIntentReceipt" },
+    "recorderCommand": { "$ref": "#/definitions/RecorderCommand" },
+    "recorderSnapshot": { "$ref": "#/definitions/RecorderSnapshot" },
+    "sourceMutationCommand": { "$ref": "#/definitions/SourceMutationCommand" }
   },
   "definitions": {
     "Config": {
@@ -50,6 +55,155 @@
           "additionalProperties": true
         }
       ]
+    },
+    "EditorLifecycleTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "editorSessionId",
+        "noteId",
+        "fieldOrd",
+        "backendMediaGeneration",
+        "sourceFilename"
+      ],
+      "properties": {
+        "editorSessionId": { "type": "integer", "minimum": 1 },
+        "noteId": { "type": ["integer", "null"] },
+        "fieldOrd": { "type": "integer", "minimum": 0 },
+        "backendMediaGeneration": { "type": "integer", "minimum": 0 },
+        "sourceFilename": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PendingEditorAutoplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "requireGraphRedraw", "expectedDurationMs", "repeatPauseMs"],
+      "properties": {
+        "kind": { "enum": ["once", "repeat"] },
+        "requireGraphRedraw": { "type": "boolean" },
+        "expectedDurationMs": { "type": ["integer", "null"], "minimum": 1 },
+        "repeatPauseMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "PendingEditorIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "deliveryId",
+        "expiresAtEpochMs",
+        "target",
+        "sourceKind",
+        "autoplay"
+      ],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "deliveryId": { "type": "string", "minLength": 1 },
+        "expiresAtEpochMs": { "type": "integer", "minimum": 1 },
+        "target": { "$ref": "#/definitions/EditorLifecycleTarget" },
+        "sourceKind": { "enum": ["generated_edit", "existing_media"] },
+        "autoplay": { "$ref": "#/definitions/PendingEditorAutoplay" }
+      }
+    },
+    "EditorIntentReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "deliveryId", "editorSessionId", "outcome"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "deliveryId": { "type": "string", "minLength": 1 },
+        "editorSessionId": { "type": "integer", "minimum": 1 },
+        "outcome": { "enum": ["applied", "autoplay_accepted", "failed", "cancelled"] }
+      }
+    },
+    "RecorderStartCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "fieldOrd", "startCursorMs", "graphSettings"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "kind": { "enum": ["start"] },
+        "fieldOrd": { "type": "integer", "minimum": 0 },
+        "startCursorMs": { "type": "integer", "minimum": 0 },
+        "graphSettings": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "RecorderStopCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "fieldOrd"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "kind": { "enum": ["stop"] },
+        "fieldOrd": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "RecorderCancelCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "fieldOrd", "reason"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "kind": { "enum": ["cancel"] },
+        "fieldOrd": { "type": "integer", "minimum": 0 },
+        "reason": { "enum": ["user", "source_replaced", "note_changed"] }
+      }
+    },
+    "RecorderCommand": {
+      "oneOf": [
+        { "$ref": "#/definitions/RecorderStartCommand" },
+        { "$ref": "#/definitions/RecorderStopCommand" },
+        { "$ref": "#/definitions/RecorderCancelCommand" }
+      ]
+    },
+    "RecorderSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "fieldOrd",
+        "attemptId",
+        "targetDurationMs",
+        "startCursorMs",
+        "mediaFilename",
+        "recordingDurationMs",
+        "failureMessage"
+      ],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "status": { "enum": ["idle", "countdown", "starting", "recording", "stopping", "finalizing", "analyzing", "ready", "failed"] },
+        "fieldOrd": { "type": ["integer", "null"], "minimum": 0 },
+        "attemptId": { "type": ["integer", "null"], "minimum": 1 },
+        "targetDurationMs": { "type": ["integer", "null"], "minimum": 0 },
+        "startCursorMs": { "type": "integer", "minimum": 0 },
+        "mediaFilename": { "type": ["string", "null"] },
+        "recordingDurationMs": { "type": ["integer", "null"], "minimum": 0 },
+        "failureMessage": { "type": ["string", "null"] }
+      }
+    },
+    "FrontendFailureContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtimeId", "fieldInstanceId", "sourceInstanceId", "attemptId", "failureId"],
+      "properties": {
+        "runtimeId": { "type": "string", "minLength": 1 },
+        "fieldInstanceId": { "type": "string", "minLength": 1 },
+        "sourceInstanceId": { "type": "string", "minLength": 1 },
+        "attemptId": { "type": "string", "minLength": 1 },
+        "failureId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "SourceMutationCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "target", "failure"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "kind": { "enum": ["convert_to_mp3"] },
+        "target": { "$ref": "#/definitions/EditorLifecycleTarget" },
+        "failure": { "$ref": "#/definitions/FrontendFailureContext" }
+      }
     },
     "SettingsSavePayload": {
       "$ref": "#/definitions/Config"

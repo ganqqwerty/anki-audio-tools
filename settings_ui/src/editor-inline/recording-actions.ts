@@ -1,5 +1,6 @@
-import type { ProsodyPayload } from "../lib/generated/contracts.js";
+import type { ProsodyPayload, RecorderSnapshot } from "../lib/generated/contracts.js";
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
+import { receiveEditorRecorderSnapshot } from "./editor-practice-controller.js";
 import { setLearnerRecordingState as setLearnerRecordingStateImpl, setLearnerVisualizer as setLearnerVisualizerImpl, resetLearnerRecordingState as resetLearnerRecordingStateImpl, resolveFieldOrd } from "./recording-actions-state.js";
 import { syncRecordingControls } from "./recording-actions-sync.js";
 import { syncLearnerRecordingPlaybackState } from "./learner-recording-playback.js";
@@ -14,6 +15,12 @@ export function setLearnerRecordingState(payload: LearnerRecordingStatePayload):
     syncLearnerRecordingPlaybackState(ord, payload);
     syncRecordingControls(ord);
   }
+}
+
+export function receiveRecorderSnapshot(payload: RecorderSnapshot): void {
+  if (payload.schemaVersion !== 1) return;
+  setLearnerRecordingState(payload);
+  receiveEditorRecorderSnapshot(payload);
 }
 
 export function setLearnerVisualizer(ord: number, rawTrack: ProsodyPayload): void {

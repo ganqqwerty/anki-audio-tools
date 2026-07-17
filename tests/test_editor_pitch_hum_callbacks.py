@@ -64,7 +64,6 @@ def _patch_common(monkeypatch) -> None:
         "anki_audio_quick_editor.editor_dependencies.threading.Thread",
         ImmediateThread,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
 
 def test_pitch_hum_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:

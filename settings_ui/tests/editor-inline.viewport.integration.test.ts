@@ -40,7 +40,7 @@ describe("editor inline viewport controls", () => {
 
     let state = window.__aqeGraphStateForTest?.(0);
     expect(state?.viewportStartMs).toBe(0);
-    expect(state?.viewportEndMs).toBeGreaterThan(track.durationMs);
+    expect(state?.viewportEndMs).toBe(track.durationMs);
 
     window.__aqeSetCursorForTest?.(0, track.durationMs / 2, false);
     for (let index = 0; index < 4; index += 1) {
@@ -81,8 +81,8 @@ describe("editor inline viewport controls", () => {
     }));
     let state = window.__aqeGraphStateForTest?.(0);
     let span = (state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0);
-    expect(span).toBeLessThan(1875);
-    expect(span).toBeGreaterThan(track.durationMs);
+    expect(span).toBeLessThan(track.durationMs);
+    expect(span).toBeGreaterThan(track.durationMs * 0.75);
 
     for (let index = 0; index < 4; index += 1) {
       plot.dispatchEvent(new WheelEvent("wheel", {
@@ -227,7 +227,7 @@ describe("editor inline viewport controls", () => {
     expect(commandLog().slice(commandsBeforeScroll.length)).not.toContain("aqe:set-cursor");
   });
 
-  it("resets zoom to canonical scale when a graph is redrawn for a new track", async () => {
+  it("fits the whole clip when a graph is redrawn for a new track", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -238,6 +238,6 @@ describe("editor inline viewport controls", () => {
 
     const state = window.__aqeGraphStateForTest?.(0);
     expect(state?.viewportStartMs).toBe(0);
-    expect(state?.viewportEndMs).toBe(1875);
+    expect(state?.viewportEndMs).toBe(2000);
   });
 });

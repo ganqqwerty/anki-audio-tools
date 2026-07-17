@@ -223,8 +223,7 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
     operation = operations[steps - 1]
     state = audio_edit_state_from_json(operation.old_state_json) or AudioEditState(operation.old_filename)
     entry = UndoEntry(state, operation.old_filename, status_summary=operation.status_summary)
-    deps.stop_session_playback(session)
-    session.post_edit_playback.bump()
+    session.pending_editor_intent = None
     editor.note.fields[field_index] = restored_html
     repository = repository_for_editor(editor)
     undone_at_ms = _now_ms()
@@ -236,6 +235,15 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
     session.status_summary = restored_status_summary(entry)
     session.cursor_ms = 0
     session.finish_processing_without_edit()
+    restored_path = existing_media_file_path(Path(editor.mw.col.media.dir()), operation.old_filename)
+    restored_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
+    session.source_mtime_ns = restored_mtime_ns
+    session.bind_backend_media_target(
+        field_index,
+        operation.old_filename,
+        restored_mtime_ns,
+        force_replacement=True,
+    )
     deps.request_playback_after_edit(
         editor,
         field_index,
@@ -249,7 +257,6 @@ def restore_persistent_undo_steps(editor: Any, session: EditorSession, steps: in
         message=undo_status_message(entry),
         deps=deps,
     )
-    deps.eval_playback_state(editor, field_index, "stopped", 0)
     logger.debug(
         "persistent undo restored operation_id=%s note_id=%s field_index=%s old=%s new=%s steps=%s",
         operation.id,

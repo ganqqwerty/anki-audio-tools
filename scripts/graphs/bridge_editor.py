@@ -23,9 +23,6 @@ def _editor_fields() -> list[tuple[str, str, list[str]]]:
             "NonProcessingCommands",
             "Non-Processing Commands",
             [
-                "aqe:play",
-                "aqe:stop-playback",
-                "aqe:play-ended",
                 "aqe:undo",
                 "aqe:redo",
                 "aqe:scan",
@@ -43,9 +40,6 @@ def _editor_fields() -> list[tuple[str, str, list[str]]]:
             "RecordingCommands",
             "Recording Commands",
             [
-                "aqe:record-voice",
-                "aqe:stop-recording",
-                "aqe:play-recording",
                 "aqe:show-recording-file",
                 "aqe:share-recording",
             ],
@@ -68,7 +62,6 @@ def _editor_fields() -> list[tuple[str, str, list[str]]]:
                 "aqe:reduce-size",
                 "aqe:pitch-hum",
                 "aqe:share",
-                "aqe:post-edit-playback-ready",
                 "aqe:delete-selection",
                 "aqe:delete-rest",
                 "aqe:save-split-defaults",
@@ -79,7 +72,6 @@ def _editor_fields() -> list[tuple[str, str, list[str]]]:
             "ChorusCommands",
             "Chorusing Commands",
             [
-                "aqe:chorusing-practice",
                 "aqe:chorusing-previous",
                 "aqe:chorusing-next",
             ],
@@ -116,8 +108,6 @@ def _editor_py_bridge() -> str:
     lines.append("    aqe_volume_up --> update")
     lines.append("    aqe_remove_pauses --> update")
     lines.append("")
-    lines.append("    aqe_play --> non_proc")
-    lines.append("    aqe_stop_playback --> non_proc")
     lines.append("    aqe_denoise_standard --> non_proc")
     lines.append("    aqe_convert --> payload_handler")
     return "\n".join(lines)

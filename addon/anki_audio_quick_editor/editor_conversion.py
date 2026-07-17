@@ -44,7 +44,7 @@ def convert_async(
     )
     session, current_path = deps.current_media_path(editor)
     if is_same_visible_format(current_path.name, target_format):
-        session.finish_processing_without_edit(stop_playback=False)
+        session.finish_processing_without_edit()
         deps.set_busy(editor, False)
         deps.eval_status(
             editor,

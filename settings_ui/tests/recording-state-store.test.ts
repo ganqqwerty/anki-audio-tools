@@ -8,6 +8,7 @@ import {
   learnerStartCursorMsForOrdState,
   readLearnerRecordingState,
   resetLearnerRecordingStateStore,
+  writeLearnerPlaybackStatus,
   writeLearnerRecordingState,
 } from "../src/editor-inline/recording-state-store.js";
 
@@ -22,19 +23,19 @@ describe("recording state store", () => {
 
   it("normalizes payloads and stores per-field recording state", () => {
     writeLearnerRecordingState(0, {
+      attemptId: 5,
       fieldOrd: 0,
-      generation: 5,
       mediaFilename: "voice.wav",
-      playbackStatus: "playing",
       recordingDurationMs: 543.2,
       startCursorMs: 123.6,
       status: "ready",
       targetDurationMs: 1000.4,
     });
+    writeLearnerPlaybackStatus(0, "playing");
 
     expect(readLearnerRecordingState(0)).toEqual({
       failureMessage: "",
-      generation: 5,
+      attemptId: 5,
       mediaFilename: "voice.wav",
       playbackStatus: "playing",
       recordingDurationMs: 543,
@@ -45,25 +46,15 @@ describe("recording state store", () => {
     expect(readLearnerRecordingState(1)).toEqual(emptyLearnerRecordingState());
   });
 
-  it("falls back invalid playback status to stopped", () => {
-    writeLearnerRecordingState(0, {
-      playbackStatus: "bad" as never,
-      status: "ready",
-    });
-
-    expect(learnerPlaybackStatusForOrdState(0)).toBe("stopped");
-  });
-
   it("resets playback status when recording state is not ready", () => {
     writeLearnerRecordingState(0, {
       mediaFilename: "voice.wav",
-      playbackStatus: "playing",
       recordingDurationMs: 500,
       status: "ready",
       targetDurationMs: 1000,
     });
+    writeLearnerPlaybackStatus(0, "playing");
     writeLearnerRecordingState(0, {
-      playbackStatus: "playing",
       status: "failed",
     });
 

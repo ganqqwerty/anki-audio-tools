@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { handlePlaybackBoundary, setRepeatEnabledForOrd } from "../src/editor-inline/actions.js";
+import { readHtmlAudioSessionState } from "../src/editor-inline/html-audio-session-controller.js";
 import { initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   setChorusingAutoAdvanceForField,
@@ -112,6 +113,9 @@ export async function forceAudioEndedBoundary(): Promise<void> {
   if (!state || !audio) throw new Error("graph state or audio clock unavailable");
   audio.currentTime = state.playbackEndMs / 1000;
   audio.dispatchEvent(new Event("ended"));
+  if (["starting", "playing"].includes(readHtmlAudioSessionState(0).kind)) {
+    handlePlaybackBoundary(visualizer(), state.playbackEndMs);
+  }
   await flushPlaybackWork();
 }
 

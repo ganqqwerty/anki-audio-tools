@@ -44,12 +44,12 @@ def test_reviewer_bridge_dispatches_aqe_commands(monkeypatch) -> None:
     )
 
     _handle_reviewer_bridge_command(reviewer, "focus:0")
-    _handle_reviewer_bridge_command(reviewer, "aqe:play")
+    _handle_reviewer_bridge_command(reviewer, "aqe:faster")
 
     adapter, command = calls[0]
     assert isinstance(adapter, ReviewerEditorAdapter)
     assert adapter.currentField == 0
-    assert command == "aqe:play"
+    assert command == "aqe:faster"
 
 
 def test_reviewer_adapter_load_note_persists_and_rerenders_question() -> None:

@@ -30,11 +30,6 @@ export interface PlaybackPass {
   startMs: number;
 }
 
-export type PlaybackBoundaryPlan =
-  | { kind: "continue" }
-  | { kind: "loop"; pass: PlaybackPass; repeatPauseMs: number }
-  | { kind: "complete"; resetCursorMs: number };
-
 export function clampMsToRegion(ms: number, region: Pick<PlaybackRegion, "startMs" | "endMs">): number {
   return Math.max(region.startMs, Math.min(finiteMs(ms), region.endMs));
 }
@@ -60,7 +55,7 @@ export function planPlaybackRequest(snapshot: PlaybackSnapshot): PlaybackRequest
       cursorMs = snapshot.region.startMs;
     } else {
       cursorMs = pausedRestart
-        ? clampMsToRegion(progressOrFallback(snapshot.currentProgressMs, snapshot.cursorMs, cursorMs), snapshot.region)
+        ? clampMsToRegion(snapshot.cursorMs, snapshot.region)
         : fullCoverSelection
           ? clampMsToRegion(progressOrFallback(null, snapshot.anchorMs, snapshot.region.startMs), snapshot.region)
           : snapshot.region.startMs;
@@ -91,53 +86,8 @@ export function planPlaybackRequest(snapshot: PlaybackSnapshot): PlaybackRequest
   };
 }
 
-export function planPlaybackPass(snapshot: PlaybackSnapshot, startMs: number): PlaybackPass {
-  const regionMode = snapshot.region.mode;
-  const resetCursorMs = regionMode === "selection"
-    ? snapshot.region.startMs
-    : progressOrFallback(null, snapshot.anchorMs, snapshot.cursorMs);
-  return {
-    endMs: Math.round(snapshot.region.endMs),
-    loop: snapshot.repeat,
-    regionMode,
-    resetCursorMs: Math.round(resetCursorMs),
-    startMs: Math.round(startMs),
-  };
-}
-
-export function planPlaybackBoundary(input: {
-  nextMs: number;
-  pass: PlaybackPass;
-  repeat: boolean;
-  repeatPauseMs: number;
-}): PlaybackBoundaryPlan {
-  if (input.nextMs < input.pass.endMs) return { kind: "continue" };
-  if (input.repeat) {
-    return {
-      kind: "loop",
-      pass: playbackLoopPass(input.pass),
-      repeatPauseMs: input.repeatPauseMs,
-    };
-  }
-  return {
-    kind: "complete",
-    resetCursorMs: playbackCompletionCursor(input.pass),
-  };
-}
-
-export function playbackCompletionCursor(pass: Pick<PlaybackPass, "regionMode" | "resetCursorMs">): number {
-  return Math.round(pass.resetCursorMs);
-}
-
 export function playbackStateIsStopped(state: PlaybackState): boolean {
   return state === "stopped";
-}
-
-function playbackLoopPass(pass: PlaybackPass): PlaybackPass {
-  return {
-    ...pass,
-    startMs: playbackCompletionCursor(pass),
-  };
 }
 
 export function selectionCoversFullDuration(region: PlaybackRegion, durationMs: number): boolean {

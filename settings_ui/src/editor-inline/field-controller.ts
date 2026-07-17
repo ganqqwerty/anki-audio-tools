@@ -10,8 +10,13 @@ import EditorControls from "./EditorControls.svelte";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { initFieldState, readFieldState, removeFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
-import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
+import {
+  dispatchHtmlAudioSessionEvent,
+  mountHtmlAudioTransportField,
+  unmountHtmlAudioTransportField,
+} from "./html-audio-session-controller.js";
 import type { FieldTarget } from "./types.js";
+import { postEditPlaybackIntentForOrd } from "./post-edit-playback.js";
 
 export interface FieldController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Svelte mount()/unmount() use Record<string, any>
@@ -19,6 +24,7 @@ export interface FieldController {
   host: HTMLElement;
   ord: number;
   sourceFilename: string;
+  target: FieldTarget;
 }
 
 const controllers = new Map<number, FieldController>();
@@ -47,6 +53,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     if (visualizer) {
       const s = readFieldState(target.ord);
       if (s.graph.busy || s.graph.hasTrack) {
+        existing.target.sourceFilename = target.sourceFilename;
         existing.sourceFilename = target.sourceFilename;
         dispatchHtmlAudioSessionEvent(target.ord, {
           cursorMs: s.cursor.ms,
@@ -76,9 +83,16 @@ export function mountController(target: FieldTarget): FieldController | null {
     host,
     ord: target.ord,
     sourceFilename: target.sourceFilename,
+    target,
   };
   controllers.set(target.ord, controller);
-  initFieldState(target.ord, initialFieldState({ ord: target.ord, sourceFilename: target.sourceFilename }));
+  mountHtmlAudioTransportField(target.ord);
+  const postEditPlayback = postEditPlaybackIntentForOrd(target.ord);
+  initFieldState(target.ord, initialFieldState({
+    ord: target.ord,
+    ...(postEditPlayback ? { repeatByDefault: postEditPlayback.repeat } : {}),
+    sourceFilename: target.sourceFilename,
+  }));
   removeDuplicateControls(target.ord, host);
   return controller;
 }
@@ -95,6 +109,7 @@ export function disposeController(ord: number): void {
     controller.host.remove();
     controllers.delete(ord);
   }
+  unmountHtmlAudioTransportField(ord);
   removeFieldState(ord);
   document.querySelectorAll<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`).forEach((node) => node.remove());
 }
@@ -103,6 +118,7 @@ export function disposeAllControllers(): void {
   for (const controller of controllers.values()) {
     void unmount(controller.component);
     controller.host.remove();
+    unmountHtmlAudioTransportField(controller.ord);
     removeFieldState(controller.ord);
   }
   controllers.clear();

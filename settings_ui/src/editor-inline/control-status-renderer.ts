@@ -12,10 +12,7 @@ import {
 } from "./editor-control-state.js";
 import { controlsForOrd } from "./dom-selectors.js";
 import { openEditorExternalLink } from "./external-links.js";
-import {
-  PLAYBACK_RECOVERY_REQUESTED_EVENT,
-  type PlaybackRecoveryRequestedDetail,
-} from "./playback-recovery-types.js";
+import { executePlaybackRecovery } from "./playback-recovery-coordinator.js";
 
 export function statusForOrd(ord: number): HTMLElement | null {
   return controlsForOrd(ord)?.querySelector<HTMLElement>(".aqe-status") ?? null;
@@ -38,7 +35,7 @@ export function renderStatus(
   command: string,
   owner: StatusOwner,
 ): void {
-  renderStatusContent(status, message, "status");
+  renderStatusContent(status, message);
   status.dataset.kind = kind;
   status.dataset.statusOwner = owner;
   setTooltipContent(status, command);
@@ -77,7 +74,6 @@ function statusText(message: EditorStatusMessage): string {
 function renderStatusContent(
   status: HTMLElement,
   message: EditorStatusMessage,
-  surface: PlaybackRecoveryRequestedDetail["surface"],
 ): void {
   status.textContent = "";
   if (!isUserFacingError(message)) {
@@ -103,16 +99,7 @@ function renderStatusContent(
   action.dataset.testid = `aqe-convert-to-mp3-${recovery.fieldOrd}`;
   action.textContent = t("editor.action.convert_to_mp3");
   action.addEventListener("click", () => {
-    window.dispatchEvent(new CustomEvent<PlaybackRecoveryRequestedDetail>(
-      PLAYBACK_RECOVERY_REQUESTED_EVENT,
-      {
-        detail: {
-          node: action,
-          ord: recovery.fieldOrd,
-          surface,
-        },
-      },
-    ));
+    if (executePlaybackRecovery(recovery, action)) clearPlaybackWarning(recovery.fieldOrd);
   });
   status.append(" ", action);
 }
@@ -121,7 +108,7 @@ export function renderPlaybackWarning(ord: number, message: EditorStatusMessage)
   const warning = playbackWarningForOrd(ord);
   setPlaybackWarningState(ord, message);
   if (!warning) return;
-  renderStatusContent(warning, message, "warning");
+  renderStatusContent(warning, message);
   warning.dataset.kind = "warning";
   warning.hidden = message === "";
 }

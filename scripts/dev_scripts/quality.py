@@ -38,6 +38,8 @@ MUTATION_TEST_SELECTION = (
     "tests/test_runtime_manager_paths.py",
     "tests/test_prosody_cache.py",
     "tests/test_prosody_fallback.py",
+    "tests/test_recorder_model.py",
+    "tests/test_recorder_service.py",
 )
 MUTATION_GROUPS = {
     "architecture": (
@@ -63,6 +65,11 @@ MUTATION_GROUPS = {
         "addon.anki_audio_quick_editor.prosody_cache*",
         "addon.anki_audio_quick_editor.prosody_fallback*",
         "addon.anki_audio_quick_editor.prosody_praat*",
+    ),
+    "recorder": (
+        "addon.anki_audio_quick_editor.recorder.model*",
+        "addon.anki_audio_quick_editor.recorder.service*",
+        "addon.anki_audio_quick_editor.recorder.validation*",
     ),
 }
 
@@ -197,12 +204,12 @@ def cmd_deps(_command_args: list[str]) -> int:
 
 
 def cmd_muttest(command_args: list[str]) -> int:
-    if command_args == ["html-audio"]:
-        command = frontend_npm_command("test:mutation:html-audio")
+    if command_args == ["state-management"]:
+        command = frontend_npm_command("test:mutation:state-management")
         if command is None:
             print("ERROR: npm or a supported frontend script runner is required.", file=sys.stderr)
             return 1
-        return run_process(command, cwd=ROOT / "settings_ui", label="HTML audio mutation testing")
+        return run_process(command, cwd=ROOT / "settings_ui", label="frontend state-management mutation testing")
     anki_python = find_anki_python()
     if command_args == ["smoke"]:
         return run_process(
@@ -236,6 +243,10 @@ def cmd_muttest(command_args: list[str]) -> int:
     mutmut_args = command_args
     if not mutmut_args or mutmut_args[0].startswith("-"):
         mutmut_args = ["run", *mutmut_args]
+    mutmut_env = None
+    if mutmut_args[0] == "run" and sys.platform == "darwin":
+        mutmut_args = ["run", "--max-children", "1", *mutmut_args[1:]]
+        mutmut_env = {"OBJC_DISABLE_INITIALIZE_FORK_SAFETY": "YES"}
     labels = {
         "run": "mutmut mutation testing",
         "results": "mutmut results",
@@ -249,6 +260,7 @@ def cmd_muttest(command_args: list[str]) -> int:
     }
     rc = run_process(
         [str(anki_python), "-m", "mutmut", *mutmut_args],
+        env=mutmut_env,
         label=labels.get(mutmut_args[0], f"mutmut {' '.join(mutmut_args)}"),
     )
     if rc != 0 or mutmut_args[0] != "run":
@@ -258,5 +270,6 @@ def cmd_muttest(command_args: list[str]) -> int:
     print("[dev] detected mutmut stats/module prefix mismatch; rerunning with normalized stats.")
     return run_process(
         [str(anki_python), "-m", "mutmut", *mutmut_args],
+        env=mutmut_env,
         label="mutmut mutation testing (normalized stats rerun)",
     )

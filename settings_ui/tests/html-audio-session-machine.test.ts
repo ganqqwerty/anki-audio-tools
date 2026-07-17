@@ -129,7 +129,7 @@ describe("html audio session machine", () => {
     const transition = transitionHtmlAudioSession(state, { cursorMs: 250, type: "StopRequested" });
     expect(transition.state).toEqual(initialHtmlAudioSessionState(0));
     expect(transition.effects.map((effect) => effect.type)).toEqual([
-      "PauseAudio", "ClearProgressFrame", "ClearRepeatTimer", "ClearMetadataTimer", "PublishPlaybackState",
+      "PauseAudio", "ClearProgressFrame", "ClearMetadataTimer", "PublishPlaybackState",
     ]);
     expect(transition.effects.at(-1)).toEqual({ cursorMs: 250, status: "stopped", type: "PublishPlaybackState" });
   });
@@ -166,129 +166,11 @@ describe("html audio session machine", () => {
       type: "SourceConfigured",
     });
 
-    expect(transition.effects.slice(0, 5)).toEqual([
+    expect(transition.effects.slice(0, 4)).toEqual([
       { type: "ClearProgressFrame" },
-      { type: "ClearRepeatTimer" },
       { type: "ClearMetadataTimer" },
-      { type: "PauseAudio" },
       { sourceFilename: "clip two.mp3", type: "ConfigureAudioSource" },
-    ]);
-  });
-
-  it("dispatches post-edit ready once when a generated source has a rendered graph before metadata", () => {
-    let state: HtmlAudioSessionState = initialHtmlAudioSessionState(0);
-    const generatedSource = {
-      kind: "source" as const,
-      sourceFilename: "clip__aqe_123.mp3",
-    };
-    const intent = {
-      fieldOrd: 0,
-      generation: 7,
-      requireGraphRedraw: true,
-      sourceFilename: "clip__aqe_123.mp3",
-      sourceKind: "generated_edit" as const,
-    };
-    const postEditRequest = {
-      cursorMs: 0,
-      endMs: 1333,
-      loop: false,
-      ord: 0,
-      regionMode: "full" as const,
-      source: "post_edit" as const,
-    };
-
-    state = transitionHtmlAudioSession(state, {
-      cursorMs: 0,
-      source: generatedSource,
-      type: "SourceConfigured",
-    }).state;
-
-    let transition = transitionHtmlAudioSession(state, {
-      intent,
-      request: postEditRequest,
-      type: "PostEditAutoplayRequested",
-    });
-    expect(transition.state).toMatchObject({
-      kind: "post_edit_waiting",
-      postEdit: intent,
-      request: postEditRequest,
-    });
-
-    transition = transitionHtmlAudioSession(transition.state, {
-      durationMs: 1333,
-      sourceFilename: "clip__aqe_123.mp3",
-      type: "GraphRenderedForSource",
-    });
-    expect(transition.state).toMatchObject({
-      cursorMs: 0,
-      durationMs: 1333,
-      kind: "ready",
-      source: generatedSource,
-    });
-    expect(transition.effects).toContainEqual({
-      generation: 7,
-      ord: 0,
-      sourceFilename: "clip__aqe_123.mp3",
-      type: "DispatchPostEditReady",
-    });
-
-    const duplicateTransition = transitionHtmlAudioSession(transition.state, {
-      durationMs: 1333,
-      sourceFilename: "clip__aqe_123.mp3",
-      type: "GraphRenderedForSource",
-    });
-    expect(duplicateTransition.effects).not.toContainEqual({
-      generation: 7,
-      ord: 0,
-      sourceFilename: "clip__aqe_123.mp3",
-      type: "DispatchPostEditReady",
-    });
-  });
-
-  it("dispatches post-edit ready when readiness is confirmed after metadata", () => {
-    let state: HtmlAudioSessionState = initialHtmlAudioSessionState(0);
-    const intent = {
-      fieldOrd: 0,
-      generation: 8,
-      requireGraphRedraw: false,
-      sourceFilename: "clip one.mp3",
-      sourceKind: "existing_media" as const,
-    };
-    const postEditRequest = {
-      ...request,
-      source: "post_edit" as const,
-    };
-
-    state = transitionHtmlAudioSession(state, {
-      cursorMs: 0,
-      source,
-      type: "SourceConfigured",
-    }).state;
-    state = transitionHtmlAudioSession(state, {
-      intent,
-      request: postEditRequest,
-      type: "PostEditAutoplayRequested",
-    }).state;
-
-    const transition = transitionHtmlAudioSession(state, {
-      durationMs: 1000,
-      sourceFilename: "clip one.mp3",
-      type: "PostEditReadyConfirmed",
-    });
-
-    expect(transition.state).toMatchObject({
-      durationMs: 1000,
-      kind: "ready",
-      source,
-    });
-    expect(transition.effects).toEqual([
-      { type: "ClearMetadataTimer" },
-      {
-        generation: 8,
-        ord: 0,
-        sourceFilename: "clip one.mp3",
-        type: "DispatchPostEditReady",
-      },
+      { timeoutMs: 5000, type: "StartMetadataTimer" },
     ]);
   });
 
@@ -326,12 +208,12 @@ describe("html audio session machine", () => {
     expect(transition.effects).toEqual([
       { type: "PauseAudio" },
       { type: "ClearProgressFrame" },
-      { type: "ClearRepeatTimer" },
+      { request, type: "ReportPassCompleted" },
       { cursorMs: 0, type: "CompletePlayback" },
     ]);
   });
 
-  it("waits for the configured repeat pause before restarting a loop", () => {
+  it("reports loop pass completion without keeping repeat policy in transport", () => {
     let state: HtmlAudioSessionState = initialHtmlAudioSessionState(0);
     const loopRequest = { ...request, loop: true };
     state = transitionHtmlAudioSession(state, {
@@ -353,35 +235,19 @@ describe("html audio session machine", () => {
       type: "PlayResolved",
     }).state;
 
-    const waiting = transitionHtmlAudioSession(state, {
+    const completed = transitionHtmlAudioSession(state, {
       cursorMs: 1000,
-      repeatPauseMs: 750,
       resetCursorMs: 0,
       type: "BoundaryReached",
     });
 
-    expect(waiting.state).toMatchObject({
-      kind: "repeat_waiting",
-      request: loopRequest,
-      resumeAtMs: 0,
-    });
-    expect(waiting.effects).toEqual([
+    expect(completed.state).toMatchObject({ kind: "ready", cursorMs: 0 });
+    expect(completed.effects).toEqual([
       { type: "PauseAudio" },
       { type: "ClearProgressFrame" },
-      { pauseMs: 750, type: "StartRepeatTimer" },
-      { cursorMs: 0, type: "PublishRepeatWaitingState" },
+      { request: loopRequest, type: "ReportPassCompleted" },
+      { cursorMs: 0, type: "CompletePlayback" },
     ]);
-
-    const restarting = transitionHtmlAudioSession(waiting.state, {
-      type: "RepeatDelayElapsed",
-    });
-    expect(restarting.state).toMatchObject({
-      kind: "starting",
-      request: loopRequest,
-    });
-    expect(restarting.effects).toContainEqual({ type: "ReloadAudioSource" });
-    expect(restarting.effects).toContainEqual({ cursorMs: 0, type: "SeekAudio" });
-    expect(restarting.effects).toContainEqual({ type: "PlayAudio" });
   });
 
   it("fails starting playback when html audio play is rejected", () => {
@@ -412,12 +278,11 @@ describe("html audio session machine", () => {
       mediaErrorCode: null, mediaResponseStatus: null,
       ord: 0,
       source,
-      cursorMs: 250,
-      reason: "audio_play_rejected",
+      cursorMs: 250, reason: "audio_play_rejected", recovery: "none",
     });
     expect(transition.effects).toEqual([
       { type: "ClearProgressFrame" },
-      { type: "ClearRepeatTimer" }, { type: "ClearMetadataTimer" },
+      { type: "ClearMetadataTimer" },
       { type: "PauseAudio" },
       { cursorMs: 250, status: "stopped", type: "PublishPlaybackState" },
       { statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" },
@@ -449,12 +314,11 @@ describe("html audio session machine", () => {
       mediaErrorCode: null, mediaResponseStatus: null,
       ord: 0,
       source,
-      cursorMs: 400,
-      reason: "audio_seek_failed",
+      cursorMs: 400, reason: "audio_seek_failed", recovery: "none",
     });
     expect(transition.effects).toEqual([
       { type: "ClearProgressFrame" },
-      { type: "ClearRepeatTimer" }, { type: "ClearMetadataTimer" },
+      { type: "ClearMetadataTimer" },
       { type: "PauseAudio" },
       { cursorMs: 400, status: "stopped", type: "PublishPlaybackState" },
       { statusKey: "editor.status.browser_audio_unavailable", type: "ShowPlaybackStatus" },

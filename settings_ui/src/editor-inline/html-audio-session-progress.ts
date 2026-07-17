@@ -1,4 +1,3 @@
-import { htmlAudioRequestCoversFullSource } from "./html-audio-session-request.js";
 import type { HtmlAudioSessionEvent, HtmlAudioSessionState, HtmlAudioStartRequest } from "./html-audio-session-types.js";
 
 export interface HtmlAudioProgressClock {
@@ -15,8 +14,6 @@ export interface HtmlAudioProgressDecisionInput {
   clock: HtmlAudioProgressClock;
   graphDurationMs: number;
   nowMs: number;
-  repeatEnabled: boolean;
-  repeatPauseMs: number;
   state: ActiveHtmlAudioSessionState;
 }
 
@@ -34,9 +31,8 @@ export function htmlAudioProgressDecision(input: HtmlAudioProgressDecisionInput)
       progressMs,
     };
   }
-  if (progressMs < htmlAudioBoundaryMsForRequest(
+  if (input.audioProgressMs < htmlAudioBoundaryMsForRequest(
     input.state.request,
-    input.repeatEnabled,
     input.graphDurationMs,
     input.clock.endMs,
   )) {
@@ -48,9 +44,6 @@ export function htmlAudioProgressDecision(input: HtmlAudioProgressDecisionInput)
     event: boundaryReachedEvent(
       input.state.request,
       input.clock.endMs,
-      input.repeatEnabled,
-      input.repeatPauseMs,
-      input.graphDurationMs,
     ),
   };
 }
@@ -66,13 +59,12 @@ export function htmlAudioProgressMs(
 
 export function htmlAudioBoundaryMsForRequest(
   request: HtmlAudioStartRequest,
-  repeatEnabled: boolean,
   graphDurationMs: number,
   endMs: number,
 ): number {
   if (
     request.cursorMs <= 0 &&
-    repeatEnabled &&
+    request.loop &&
     (request.regionMode === "full" || (graphDurationMs > 0 && request.endMs >= Math.max(0, graphDurationMs - 20)))
   ) {
     return Math.max(0, endMs - 40);
@@ -83,16 +75,10 @@ export function htmlAudioBoundaryMsForRequest(
 function boundaryReachedEvent(
   request: HtmlAudioStartRequest,
   endMs: number,
-  repeatEnabled: boolean,
-  repeatPauseMs: number,
-  graphDurationMs: number,
 ): BoundaryReachedEvent {
   return {
     cursorMs: endMs,
-    repeatEnabled,
-    repeatPauseMs,
     resetCursorMs: request.cursorMs,
-    restartAudio: htmlAudioRequestCoversFullSource(request, graphDurationMs),
     type: "BoundaryReached",
   };
 }

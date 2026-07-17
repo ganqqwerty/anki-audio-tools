@@ -50,7 +50,6 @@ def _history_editor(tmp_path: Path) -> tuple[object, EditorSession]:
 
 def test_history_jump_undo_restores_selected_depth(tmp_path: Path, monkeypatch) -> None:
     editor, session = _history_editor(tmp_path)
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":2}')
@@ -63,7 +62,6 @@ def test_history_jump_undo_restores_selected_depth(tmp_path: Path, monkeypatch) 
 
 def test_history_jump_rejects_out_of_range_without_partial_restore(tmp_path: Path, monkeypatch) -> None:
     editor, session = _history_editor(tmp_path)
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
     handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":20}')
 
@@ -82,7 +80,6 @@ def test_history_jump_redo_restores_selected_depth(tmp_path: Path, monkeypatch) 
     session.state = AudioEditState("clip1.mp3")
     session.current_filename = "clip1.mp3"
     session.status_summary = "First edit"
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"redo","steps":2}')

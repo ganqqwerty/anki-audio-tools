@@ -110,7 +110,7 @@ def _install_script(ord_: int, max_duration_ms: int) -> str:
         source: null, totalFrames: 0,
         status() {{ return {{
           error: this.error, finished: this.finished, ready: this.ready,
-          sampleRate: this.sampleRate, totalFrames: this.totalFrames,
+          maxFrames: this.maxFrames, sampleRate: this.sampleRate, totalFrames: this.totalFrames,
           contextState: this.context?.state || 'unavailable',
         }}; }},
         finish() {{
@@ -119,6 +119,10 @@ def _install_script(ord_: int, max_duration_ms: int) -> str:
             try {{ this.node?.disconnect(); }} catch (_error) {{}}
             try {{ this.source?.disconnect(); }} catch (_error) {{}}
             try {{ this.observer?.disconnect(); }} catch (_error) {{}}
+            try {{
+              const closePromise = this.context?.close();
+              if (closePromise) void closePromise.catch(() => {{}});
+            }} catch (_error) {{}}
           }}
           const samples = new Array(this.totalFrames);
           let offset = 0;

@@ -1,10 +1,10 @@
 import type { VisualizerElement } from "./types.js";
-import { audioClockReady } from "./audio-clock.js";
 import {
   htmlAudioReadinessFor,
   type HtmlAudioReadinessReason,
   type HtmlAudioReadinessState,
 } from "./audio-readiness.js";
+import { readHtmlAudioPortSnapshot } from "./html-audio-session-controller.js";
 
 export interface AudioClockTelemetry {
   audioClockAvailable: boolean;
@@ -21,18 +21,17 @@ export interface AudioClockTelemetry {
 }
 
 export function audioClockTelemetryFor(visualizer: VisualizerElement | null): AudioClockTelemetry {
-  const audio = visualizer?.querySelector<HTMLAudioElement>(".aqe-audio-clock") ?? null;
-  const src = audio?.getAttribute("src") || "";
-  const readyState = typeof audio?.readyState === "number" ? audio.readyState : null;
+  const ord = Number(visualizer?.dataset.aqeFieldOrd || "0");
+  const port = readHtmlAudioPortSnapshot(ord);
   const readiness = htmlAudioReadinessFor(visualizer);
   return {
-    audioClockAvailable: !!visualizer?.__aqeAudioClockAvailable,
-    audioClockFallback: !!visualizer?.__aqeAudioClockFallback,
-    audioClockHasSrc: src.length > 0,
-    audioClockPresent: !!audio,
-    audioClockReady: audioClockReady(visualizer),
-    audioClockReadyState: readyState,
-    audioClockSrc: src,
+    audioClockAvailable: readiness.ready,
+    audioClockFallback: readiness.failed,
+    audioClockHasSrc: port.hasSource,
+    audioClockPresent: port.present,
+    audioClockReady: readiness.ready,
+    audioClockReadyState: port.readyState,
+    audioClockSrc: port.sourceUrl,
     htmlAudioReadinessFailed: readiness.failed,
     htmlAudioReadinessReason: readiness.reason,
     htmlAudioReadinessState: readiness.state,

@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PLOT, plotWidth } from "../src/editor-inline/plot.js";
-import { CANONICAL_TIME_MS_PER_PIXEL } from "../src/editor-inline/time-viewport.js";
 import {
   commandLog,
   dragGraphSelection,
@@ -211,7 +210,7 @@ describe("editor inline viewport workflow", () => {
     expect(commandLog().slice(commandsBeforeScroll.length)).not.toContain("aqe:set-cursor");
   });
 
-  it("resets zoom to canonical scale when a graph is redrawn for a new track", async () => {
+  it("fits the whole clip when a graph is redrawn for a new track", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -222,6 +221,6 @@ describe("editor inline viewport workflow", () => {
 
     const state = window.__aqeGraphStateForTest?.(0);
     expect(state?.viewportStartMs).toBe(0);
-    expect(state?.viewportEndMs).toBe(plotWidth() * CANONICAL_TIME_MS_PER_PIXEL);
+    expect(state?.viewportEndMs).toBe(2000);
   });
 });

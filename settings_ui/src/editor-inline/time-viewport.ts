@@ -11,7 +11,6 @@ export interface TimeViewportClampOptions {
 export const MIN_TIME_VIEWPORT_MS = 250;
 export const TIME_VIEWPORT_ZOOM_FACTOR = 1.25;
 export const TIME_VIEWPORT_SELECTION_PADDING_RATIO = 0.1;
-export const CANONICAL_TIME_MS_PER_PIXEL = 3.125;
 export const MAX_ZOOMED_OUT_TIME_MS_PER_PIXEL = 25;
 
 export function fullTimeViewport(durationMs: number): TimeViewport {
@@ -21,16 +20,6 @@ export function fullTimeViewport(durationMs: number): TimeViewport {
     endMs: duration,
     startMs: 0,
   };
-}
-
-export function canonicalTimeViewport(durationMs: number, plotWidthPx: number): TimeViewport {
-  const duration = normalizedDuration(durationMs);
-  if (duration <= 0) return fullTimeViewport(0);
-  return normalizeTimeViewport(0, canonicalViewportSpan(plotWidthPx), duration);
-}
-
-export function canonicalViewportSpan(plotWidthPx: number): number {
-  return roundedMs(sanitizedPlotWidthPx(plotWidthPx) * CANONICAL_TIME_MS_PER_PIXEL);
 }
 
 export function maxZoomedOutViewportSpan(plotWidthPx: number): number {

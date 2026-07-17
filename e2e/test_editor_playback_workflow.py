@@ -225,7 +225,10 @@ def test_play_without_graph_shown_uses_html_pause_button_until_playback_ends(
                 lambda state: state["hidden"] is True
                 and state["playButtonLabel"] == "Pause",
             )
-            run_js(editor.web, "pycmd('aqe:play-ended')")
+            run_js(
+                editor.web,
+                "document.querySelector('[data-testid=\"aqe-audio-clock-0\"]')?.dispatchEvent(new Event('ended'))",
+            )
             wait_for_js_condition(
                 editor.web,
                 _graph_state_js(),
@@ -278,7 +281,10 @@ def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_c
                 editor,
                 lambda state: state["playButtonLabel"] == "Pause",
             )
-            run_js(editor.web, "pycmd('aqe:play-ended')")
+            run_js(
+                editor.web,
+                "document.querySelector('[data-testid=\"aqe-audio-clock-0\"]')?.dispatchEvent(new Event('ended'))",
+            )
             wait_for_js_condition(
                 editor.web,
                 _graph_state_js(),

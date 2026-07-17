@@ -1,98 +1,93 @@
-import { popPendingPlaybackRequest } from "./bridge.js";
-import { handleSelectedRepeatAutoAdvanceBoundary } from "./selection-auto-advance-controller.js";
 import { visualizerForOrd } from "./dom-selectors.js";
+import {
+  editorPracticePlaybackState,
+  pauseEditorPracticeProgram,
+  pauseEditorPracticeWait,
+  resumeEditorPracticeProgram,
+} from "./editor-practice-controller.js";
+import {
+  dispatchHtmlAudioSessionEvent,
+  dispatchHtmlAudioSessionAttemptFact,
+  readHtmlAudioTransportPosition,
+  readHtmlAudioTransportSnapshot,
+} from "./html-audio-session-controller.js";
 import {
   logPlaybackReadinessDecision,
   playbackReadinessDecisionFor,
 } from "./playback-telemetry.js";
-import {
-  audioProgressMs as audioProgressMsFromController,
-  completePlayback as completePlaybackFromController,
-  currentProgressMs as currentProgressMsFromController,
-  handlePlaybackBoundary as handlePlaybackBoundaryFromController,
-  manualProgressMs as manualProgressMsFromController,
-  paintProgressFromClock as paintProgressFromClockFromController,
-  pauseProgressClock as pauseProgressClockFromController,
-  startAudioProgressClock as startAudioProgressClockFromController,
-  startManualProgressClock as startManualProgressClockFromController,
-  startProgressClock as startProgressClockFromController,
-  stopProgressClock as stopProgressClockFromController,
-  type ProgressClockOptions,
-} from "./playback-controller.js";
 import { playbackRequestForVisualizer } from "./playback-request-planning.js";
-import { sendPlaybackRequest } from "./playback-request-dispatch.js";
-import { dispatchHtmlAudioSessionEvent } from "./html-audio-session-controller.js";
+import { startSourcePlaybackAction } from "./source-playback-actions.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
-import { playbackControllerDependencies } from "./playback-controller-dependencies.js";
-import { readFieldState, updateFieldState } from "./field-state-store.js";
-import type { EditorFieldState } from "./field-state.js";
+import { readFieldState } from "./field-state-store.js";
 import { setPlaybackButtonLabelForVisualizer } from "./playback-button-label.js";
 import { effectivePlaybackRegion } from "./selection-controller.js";
-import { startSourcePlaybackAction } from "./source-playback-actions.js";
-import { setPreserveStatusOnPlaybackEndRuntime } from "./visualizer-runtime-state.js";
 
-export { playAfterEdit } from "./post-edit-playback-actions.js";
-export { sendPlaybackRequest } from "./playback-request-dispatch.js";
-
-function fieldState(visualizer: VisualizerElement): EditorFieldState {
-  return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
-}
-
-function playbackActionDependencies() {
-  return playbackControllerDependencies({ handleLoopBoundary: handleSelectedRepeatAutoAdvanceBoundary });
+function fieldOrd(visualizer: VisualizerElement): number {
+  return Number(visualizer.dataset.aqeFieldOrd || "0");
 }
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
   setPlaybackButtonLabelForVisualizer(visualizer, label);
 }
 
-export function manualProgressMs(visualizer: VisualizerElement): number { return manualProgressMsFromController(visualizer); }
-
-export function audioProgressMs(visualizer: VisualizerElement): number | null { return audioProgressMsFromController(visualizer); }
-
-export function currentProgressMs(visualizer: VisualizerElement): number | null { return currentProgressMsFromController(visualizer); }
+export function currentProgressMs(visualizer: VisualizerElement): number | null {
+  const ord = fieldOrd(visualizer);
+  const snapshot = readHtmlAudioTransportSnapshot(ord);
+  if (snapshot.active || snapshot.session.kind === "paused") {
+    return snapshot.session.kind !== "empty"
+      && snapshot.session.kind !== "failed"
+      && snapshot.session.source.kind === "learner_recording"
+      ? snapshot.session.source.startCursorMs + snapshot.activeMediaPositionMs
+      : snapshot.activeMediaPositionMs;
+  }
+  return readFieldState(ord).cursor.progressMs;
+}
 
 export function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number): boolean {
-  return handlePlaybackBoundaryFromController(visualizer, nextMs, playbackActionDependencies());
+  const ord = fieldOrd(visualizer);
+  const snapshot = readHtmlAudioTransportSnapshot(ord);
+  const state = snapshot.session;
+  if (state.kind !== "starting" && state.kind !== "playing") return false;
+  if (nextMs < state.request.endMs) return false;
+  if (!snapshot.attemptIdentity) return false;
+  dispatchHtmlAudioSessionAttemptFact(ord, snapshot.attemptIdentity, {
+    cursorMs: nextMs,
+    resetCursorMs: state.request.resetCursorMs ?? state.request.cursorMs,
+    type: "BoundaryReached",
+  });
+  return true;
 }
 
 export function completePlayback(visualizer: VisualizerElement): void {
-  completePlaybackFromController(visualizer, playbackActionDependencies());
-}
-
-export function paintProgressFromClock(visualizer: VisualizerElement): void {
-  paintProgressFromClockFromController(visualizer, playbackActionDependencies());
-}
-
-export function startManualProgressClock(visualizer: VisualizerElement, startMs: number): void {
-  startManualProgressClockFromController(visualizer, startMs, playbackActionDependencies());
-}
-
-export function startAudioProgressClock(
-  visualizer: VisualizerElement,
-  startMs: number,
-  options: ProgressClockOptions = {},
-): void {
-  startAudioProgressClockFromController(visualizer, startMs, playbackActionDependencies(), options);
-}
-
-export function startProgressClock(
-  visualizer: VisualizerElement,
-  startMs: number,
-  options: ProgressClockOptions = {},
-): void {
-  startProgressClockFromController(visualizer, startMs, playbackActionDependencies(), options);
+  const ord = fieldOrd(visualizer);
+  const state = readHtmlAudioTransportSnapshot(ord).session;
+  const attemptIdentity = readHtmlAudioTransportSnapshot(ord).attemptIdentity;
+  if (state.kind !== "starting" && state.kind !== "playing") return;
+  if (!attemptIdentity) return;
+  dispatchHtmlAudioSessionAttemptFact(ord, attemptIdentity, {
+    cursorMs: state.request.resetCursorMs ?? state.request.cursorMs,
+    type: "BoundaryReached",
+  });
 }
 
 export function pauseProgressClock(visualizer: VisualizerElement): void {
-  pauseProgressClockFromController(visualizer, playbackActionDependencies());
+  const ord = fieldOrd(visualizer);
+  dispatchHtmlAudioSessionEvent(ord, {
+    cursorMs: readHtmlAudioTransportPosition(ord),
+    type: "PauseRequested",
+  });
 }
 
 export function stopProgressClock(
   visualizer: VisualizerElement,
   options: { clearAudio?: boolean; clearEngine?: boolean } = {},
 ): void {
-  stopProgressClockFromController(visualizer, playbackActionDependencies(), options);
+  const ord = fieldOrd(visualizer);
+  dispatchHtmlAudioSessionEvent(ord, {
+    cursorMs: readHtmlAudioTransportPosition(ord),
+    type: "StopRequested",
+  });
+  if (options.clearAudio) dispatchHtmlAudioSessionEvent(ord, { type: "SourceCleared" });
 }
 
 export function playbackRequest(ord: number): PlaybackRequest {
@@ -124,83 +119,44 @@ export function startSourcePlayback(visualizer: VisualizerElement, request: Play
 export function handleHtmlPlaybackCommand(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  const request: PlaybackRequest = {
-    ...playbackRequest(ord),
-    engine: "html",
-  };
+  const request: PlaybackRequest = { ...playbackRequest(ord), engine: "html" };
   if (request.action === "pause") {
+    if (pauseEditorPracticeWait(ord)) {
+      return true;
+    }
+    pauseEditorPracticeProgram(ord);
     pauseProgressClock(visualizer);
-    const s = fieldState(visualizer);
-    request.cursorMs = s.cursor.ms || request.cursorMs || 0;
-    dispatchHtmlAudioSessionEvent(ord, { cursorMs: request.cursorMs, type: "PauseRequested" });
-    sendPlaybackRequest(request);
     return true;
   }
   if (request.action === "resume") {
-    const s = fieldState(visualizer);
-    request.cursorMs = s.cursor.ms || request.cursorMs || 0;
-    dispatchHtmlAudioSessionEvent(ord, { type: "ResumeRequested" });
-    sendPlaybackRequest(request);
+    const transportWillResume = readHtmlAudioTransportSnapshot(ord).session.kind === "paused";
+    const programHandled = resumeEditorPracticeProgram(ord, transportWillResume);
+    if (transportWillResume || !programHandled) {
+      dispatchHtmlAudioSessionEvent(ord, { type: "ResumeRequested" });
+    }
     return true;
   }
   return startSourcePlayback(visualizer, request);
 }
 
-export function setPlaybackState(ord: number, state: PlaybackState, cursorMs: number): void {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return;
-  if (state === "playing" || state === "paused") {
-    updateFieldState(ord, (fieldState) => ({
-      ...fieldState,
-      playback: { ...fieldState.playback, resumeRequiresRestart: false },
-    }));
-  }
-  if (state === "playing") {
-    const s = fieldState(visualizer);
-    startProgressClock(visualizer, cursorMs, {
-      engine: s.playback.engine === "html" ? "html" : "",
-    });
-  } else if (state === "paused") {
-    pauseProgressClock(visualizer);
-  } else {
-    stopProgressClock(visualizer);
-  }
-}
-
-export function getPlaybackRequest(): PlaybackRequest {
-  const pending = popPendingPlaybackRequest();
-  if (pending) return pending;
-  const ord = Number(window.__aqeActiveField || "0");
-  const request = playbackRequest(ord);
-  const visualizer = visualizerForOrd(ord);
-  if (visualizer) {
-    updateFieldState(ord, (state) => ({
-      ...state,
-      playback: { ...state.playback, engine: request.engine || "" },
-    }));
-    setPreserveStatusOnPlaybackEndRuntime(visualizer, request.source === "post_edit");
-  }
-  return request;
-}
-
 export function stopEditorPlayback(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
+  const snapshot = readHtmlAudioTransportSnapshot(ord);
+  if (!snapshot.active && snapshot.session.kind !== "paused") return false;
   stopProgressClock(visualizer);
   return true;
 }
 
 export function getCursorMs(): number {
   const ord = Number(window.__aqeActiveField || "0");
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return 0;
-  return fieldState(visualizer).cursor.ms;
+  return readFieldState(ord).cursor.ms;
 }
 
 export function getCursorIntent(): CursorIntent {
   const ord = Number(window.__aqeActiveField || "0");
   const visualizer = visualizerForOrd(ord);
-  const fallback = visualizer ? fieldState(visualizer).cursor.ms : 0;
+  const fallback = readFieldState(ord).cursor.ms;
   const region = visualizer ? effectivePlaybackRegion(visualizer) : null;
   const fallbackIntent: CursorIntent = {
     cursorMs: fallback,
@@ -215,5 +171,12 @@ export function getCursorIntent(): CursorIntent {
 }
 
 export function playbackStateFor(visualizer: VisualizerElement): PlaybackState {
-  return fieldState(visualizer).playback.state;
+  const practiceState = editorPracticePlaybackState(fieldOrd(visualizer));
+  if (practiceState !== "stopped") return practiceState;
+  const state = readHtmlAudioTransportSnapshot(fieldOrd(visualizer)).session;
+  if (state.kind === "paused") return "paused";
+  if (state.kind === "starting" || state.kind === "playing") {
+    return "playing";
+  }
+  return "stopped";
 }

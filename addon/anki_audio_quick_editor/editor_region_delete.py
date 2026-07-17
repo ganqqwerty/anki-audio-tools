@@ -124,6 +124,8 @@ def delete_selection_with_request(editor: Any, request: Any, deps: RegionDeleteD
         deps.set_busy_for_field(editor, parsed.field_index, False)
         deps.eval_status(editor, region_operation_whole_clip_message(parsed), kind="warning")
         return
+    if parsed.post_edit_autoplay is not None:
+        session.post_edit_autoplay_by_field[parsed.field_index] = parsed.post_edit_autoplay
     delete_selection_async(
         editor,
         session,
@@ -144,14 +146,12 @@ def delete_selection_async(
     """Render a media file with the requested region removed."""
     operation_id = new_operation_id("region")
     started_at = time.monotonic()
-    deps.stop_session_playback(session)
     guard = session.begin_processing(
         field_index=request.field_index,
         source_filename=request.source_filename,
     )
     session.cursor_ms = request.cursor_ms
     deps.set_busy_for_field(editor, request.field_index, True, region_operation_busy_message(request))
-    deps.eval_playback_state(editor, request.field_index, "stopped", request.cursor_ms)
     logger.info("region delete accepted: %s", region_delete_log_context(request))
     record_breadcrumb(
         "editor.region_delete.accepted",
@@ -251,7 +251,6 @@ def replace_current_field_after_region_delete(
         )
         _sync_history_availability(editor, session, deps)
         _request_history_availability_after_edit(editor, session, deps)
-        deps.eval_playback_state(editor, field_index, "stopped", 0)
         if should_redraw_graph:
             deps.request_graph_redraw(editor, saved_name)
         else:

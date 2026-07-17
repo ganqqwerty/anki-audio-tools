@@ -189,8 +189,7 @@ def restore_history_entry(
     deps: HistoryDeps,
 ) -> None:
     """Replace the current audio field with a history entry."""
-    deps.stop_session_playback(session)
-    session.post_edit_playback.bump()
+    session.pending_editor_intent = None
     field_index = deps.current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
@@ -218,7 +217,14 @@ def restore_history_entry(
     session.cursor_ms = 0
     session.finish_processing_without_edit()
     restored_path = existing_media_file_path(Path(editor.mw.col.media.dir()), entry.filename)
-    session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
+    restored_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
+    session.source_mtime_ns = restored_mtime_ns
+    session.bind_backend_media_target(
+        field_index,
+        entry.filename,
+        restored_mtime_ns,
+        force_replacement=True,
+    )
     deps.request_playback_after_edit(
         editor,
         field_index,
@@ -234,6 +240,5 @@ def restore_history_entry(
     )
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
-    deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.analysis.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)

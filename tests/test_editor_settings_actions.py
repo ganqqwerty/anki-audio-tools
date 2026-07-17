@@ -4,13 +4,14 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from anki_audio_quick_editor.editor_session import EditorSession, LearnerRecordingState
+from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.editor_settings_actions import (
     show_current_audio_file,
     show_learner_recording_file,
     show_media_file,
 )
 from anki_audio_quick_editor.errors import AudioProcessingError, MissingMediaError
+from tests.recorder_test_helpers import learner_take
 
 
 class _Editor:
@@ -23,17 +24,8 @@ def test_show_learner_recording_file_reveals_ready_sidecar(tmp_path: Path, monke
     editor.mw = MagicMock()
     media_path = tmp_path / "target__aqe_voice.wav"
     media_path.write_bytes(b"RIFFfakeWAVE")
-    session = EditorSession(
-        learner_recording=LearnerRecordingState(
-            status="ready",
-            field_index=0,
-            generation=2,
-            source_filename="target.wav",
-            target_duration_ms=1000,
-            media_filename=media_path.name,
-            media_path=media_path,
-        )
-    )
+    session = EditorSession()
+    session.learner_take = learner_take(media_path, editor_session_id=session.editor_session_id)
     revealed: list[Path] = []
     statuses: list[tuple[str, str]] = []
     monkeypatch.setattr(
@@ -108,17 +100,8 @@ def test_show_learner_recording_file_rejects_missing_sidecar(tmp_path: Path) -> 
     editor.web = MagicMock()
     editor.mw = MagicMock()
     missing_path = tmp_path / "missing.wav"
-    session = EditorSession(
-        learner_recording=LearnerRecordingState(
-            status="ready",
-            field_index=0,
-            generation=2,
-            source_filename="target.wav",
-            target_duration_ms=1000,
-            media_filename=missing_path.name,
-            media_path=missing_path,
-        )
-    )
+    session = EditorSession()
+    session.learner_take = learner_take(missing_path, editor_session_id=session.editor_session_id)
     statuses: list[tuple[object, str]] = []
     deps = SimpleNamespace(
         eval_status=lambda _editor, message, kind="info": statuses.append((message, kind)),

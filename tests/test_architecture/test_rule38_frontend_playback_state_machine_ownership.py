@@ -7,33 +7,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EDITOR_INLINE = ROOT / "settings_ui" / "src" / "editor-inline"
 
-LEGACY_FRONTEND_AUDIO_OWNER_ALLOWLIST = {
-    "settings_ui/src/editor-inline/audio-clock.ts",
-    "settings_ui/src/editor-inline/playback-controller.ts",
-    "settings_ui/src/editor-inline/playback-controller-frame.ts",
-    "settings_ui/src/editor-inline/post-edit-playback.ts",
-}
-
-LEGACY_FRONTEND_TRANSITION_OWNER_ALLOWLIST = {
-    "settings_ui/src/editor-inline/audio-clock.ts",
+PURE_FRONTEND_TRANSITION_OWNER_ALLOWLIST = {
     "settings_ui/src/editor-inline/playback-model.ts",
 }
 
-STATE_TRANSITION_ALLOWED = {
-    "settings_ui/src/editor-inline/html-audio-session-controller.ts",
-    "settings_ui/src/editor-inline/html-audio-session-machine.ts",
-    "settings_ui/src/editor-inline/source-playback-machine.ts",
-    "settings_ui/src/editor-inline/source-playback-controller.ts",
-    "settings_ui/src/editor-inline/source-playback-repeat-loop.ts",
-    "settings_ui/src/editor-inline/learner-recording-playback-machine.ts",
-    "settings_ui/src/editor-inline/learner-recording-playback.ts",
-}
+STATE_TRANSITION_ALLOWED: set[str] = set()
 
 SOURCE_AUDIO_OPERATION_ALLOWED = {
     "settings_ui/src/editor-inline/html-audio-session-audio-element.ts",
-    "settings_ui/src/editor-inline/source-playback-controller.ts",
-    "settings_ui/src/editor-inline/source-playback-repeat-loop.ts",
-    "settings_ui/src/editor-inline/learner-recording-playback.ts",
 }
 
 TEST_SUPPORT_ALLOWLIST = {
@@ -75,7 +56,7 @@ def test_frontend_playback_audio_operations_are_quarantined() -> None:
 
     for path in _editor_inline_sources():
         relative = path.relative_to(ROOT).as_posix()
-        if relative in LEGACY_FRONTEND_AUDIO_OWNER_ALLOWLIST | SOURCE_AUDIO_OPERATION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
+        if relative in SOURCE_AUDIO_OPERATION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
             continue
         for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             stripped = line.strip()
@@ -99,7 +80,7 @@ def test_frontend_playback_transitions_are_quarantined() -> None:
 
     for path in _editor_inline_sources():
         relative = path.relative_to(ROOT).as_posix()
-        if relative in LEGACY_FRONTEND_TRANSITION_OWNER_ALLOWLIST | STATE_TRANSITION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
+        if relative in PURE_FRONTEND_TRANSITION_OWNER_ALLOWLIST | STATE_TRANSITION_ALLOWED | TEST_SUPPORT_ALLOWLIST:
             continue
         if not _is_playback_file(path):
             continue
@@ -114,6 +95,34 @@ def test_frontend_playback_transitions_are_quarantined() -> None:
         "owners and pure playback machines.\n"
         + "\n".join(violations)
     )
+
+
+def test_frontend_playback_allowances_exist_and_are_used() -> None:
+    allowance_patterns = {
+        **{
+            relative: AUDIO_OPERATION_PATTERNS
+            + (TIMER_OPERATION_PATTERNS if _is_playback_file(ROOT / relative) else ())
+            for relative in SOURCE_AUDIO_OPERATION_ALLOWED
+            | TEST_SUPPORT_ALLOWLIST
+        },
+        **{
+            relative: TRANSITION_PATTERNS
+            for relative in PURE_FRONTEND_TRANSITION_OWNER_ALLOWLIST
+            | STATE_TRANSITION_ALLOWED
+        },
+    }
+    violations: list[str] = []
+
+    for relative, patterns in sorted(allowance_patterns.items()):
+        path = ROOT / relative
+        if not path.is_file():
+            violations.append(f"{relative}: allowance names a missing file")
+            continue
+        source = path.read_text(encoding="utf-8")
+        if not any(pattern in source for pattern in patterns):
+            violations.append(f"{relative}: allowance is unused")
+
+    assert violations == [], "Rule 38 allowances must be exact and bidirectional.\n" + "\n".join(violations)
 
 
 def _editor_inline_sources() -> list[Path]:

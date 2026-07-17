@@ -1,181 +1,118 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  currentProgressMs,
-  setPlaybackState,
-  setRepeatEnabled,
-  setSelection,
-  startManualProgressClock,
-} from "../src/editor-inline/actions.js";
+import { currentProgressMs, startSourcePlayback } from "../src/editor-inline/actions.js";
+import { readFieldState } from "../src/editor-inline/field-state-store.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
-import { bridgeCommands, mountTrack } from "./editor-inline.actions.helpers.js";
-import { readFieldState, updateFieldState } from "../src/editor-inline/field-state-store.js";
+import type { VisualizerElement } from "../src/editor-inline/types.js";
+import { mountTrack } from "./editor-inline.actions.helpers.js";
 
-describe("editor inline action progress clocks", () => {
-  let warnSpy: ReturnType<typeof vi.spyOn>;
-  let errorSpy: ReturnType<typeof vi.spyOn>;
-
+describe("editor inline transport progress projection", () => {
   beforeEach(() => {
-    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
     disposeEditorRuntime();
-    warnSpy.mockRestore();
-    errorSpy.mockRestore();
     vi.restoreAllMocks();
   });
 
-  it("updates the timecode flag during progress clock ticks", async () => {
-    const frames: Array<(time: number) => void> = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
-    let now = 1000;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
+  it("renders media progress and follows it while zoomed", async () => {
+    const frames = mockFrames();
     const visualizer = await mountTrack(0);
-    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
-    const flag = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag")!;
-    audio.pause = vi.fn<() => void>(() => undefined);
-
-    startManualProgressClock(visualizer, 300);
-    now = 1400;
-    frames.shift()?.(now);
-
-    expect(flag.querySelector(".aqe-css-cursor-flag-current")?.textContent).toBe("700 ms");
-    expect(flag.querySelector(".aqe-css-cursor-flag-pitch")?.textContent).toBe(" / 196 Hz");
-    const state = window.__aqeGraphStateForTest?.(0);
-    expect(state).toMatchObject({ pitchMarkerVisible: false, pitchMarkerX: null, pitchMarkerY: null, progressMs: 700 });
-  });
-
-  it("pans the zoomed viewport while painting manual playback progress", async () => {
-    const frames: Array<(time: number) => void> = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
-    let now = 1000;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
-    const visualizer = await mountTrack(0);
-    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
-    audio.pause = vi.fn<() => void>(() => undefined);
+    const audio = prepareAudio(visualizer);
     window.__aqeSetTimeViewportForTest?.(0, 0, 500);
+    await startPlayback(visualizer, 450);
+    audio.currentTime = 0.7;
 
-    startManualProgressClock(visualizer, 450);
-    now = 1120;
-    frames.shift()?.(now);
+    frames.shift()?.(performance.now() + 16);
 
-    const state = window.__aqeGraphStateForTest?.(0);
-    expect(state?.viewportStartMs).toBeGreaterThan(0);
-    expect(state?.progressMs).toBeGreaterThanOrEqual(450);
+    expect(visualizer.querySelector(".aqe-css-cursor-flag-current")?.textContent).toBe("700 ms");
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({ progressMs: 700 });
+    expect(window.__aqeGraphStateForTest?.(0)?.viewportStartMs).toBeGreaterThan(0);
   });
 
-  it("loops manual progress clocks at the selected region boundary without play-ended", async () => {
-    const frames: Array<(time: number) => void> = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
-    let now = 1000;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
+  it("reports the authoritative media position while play is resolving", async () => {
+    const frames = mockFrames();
     const visualizer = await mountTrack(0);
-    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
-    audio.pause = vi.fn<() => void>(() => undefined);
-    setSelection(visualizer, 200, 400);
-    setRepeatEnabled(visualizer, true);
-
-    startManualProgressClock(visualizer, 350);
-    now = 1100;
-    frames.shift()?.(now);
-
-    expect(readFieldState(0).playback.state).toBe("playing");
-    expect(readFieldState(0).cursor.ms).toBe(200);
-    expect(bridgeCommands()).not.toContain("aqe:play-ended");
-  });
-
-  it("starts HTML visual progress after play resolves and does not follow stale currentTime ticks", async () => {
-    const frames: Array<(time: number) => void> = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
-    let now = 1000;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
-    const visualizer = await mountTrack(0);
-    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
-    let resolvePlay: () => void = () => undefined;
-    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
-    audio.play = vi.fn<() => Promise<void>>(() => new Promise((resolve) => {
+    const audio = prepareAudio(visualizer);
+    let resolvePlay = (): void => undefined;
+    audio.play = vi.fn(() => new Promise<void>((resolve) => {
       resolvePlay = resolve;
     }));
-    audio.pause = vi.fn<() => void>(() => undefined);
-    audio.dispatchEvent(new Event("loadedmetadata"));
-    updateFieldState(0, (state) => ({
-      ...state,
-      playback: { ...state.playback, engine: "html" },
-    }));
 
-    setPlaybackState(0, "playing", 100);
+    startPlaybackWithoutFlush(visualizer, 100);
     audio.currentTime = 0.9;
-    now = 1300;
-
-    expect(currentProgressMs(visualizer)).toBe(100);
+    expect(currentProgressMs(visualizer)).toBe(900);
 
     resolvePlay();
-    await Promise.resolve();
-    await Promise.resolve();
-    now = 1400;
-    frames.shift()?.(now);
-
+    await flushPlayback();
+    audio.currentTime = 0.2;
+    frames.shift()?.(performance.now() + 16);
     expect(Math.round(currentProgressMs(visualizer) ?? 0)).toBe(200);
-    expect(window.__aqeGraphStateForTest?.(0)?.progressMs).toBe(200);
   });
 
-  it("ignores stale HTML play rejections after a newer playback plan starts", async () => {
-    const frames: Array<(time: number) => void> = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
-    let now = 1000;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
+  it("ignores a rejected play promise after a newer attempt starts", async () => {
     const visualizer = await mountTrack(0);
-    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
-    let rejectFirstPlay: (error: Error) => void = () => undefined;
-    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    const audio = prepareAudio(visualizer);
+    let rejectFirst = (_error: Error): void => undefined;
     audio.play = vi.fn<() => Promise<void>>()
       .mockImplementationOnce(() => new Promise((_resolve, reject) => {
-        rejectFirstPlay = reject;
+        rejectFirst = reject;
       }))
-      .mockImplementationOnce(() => Promise.resolve());
-    audio.pause = vi.fn<() => void>(() => undefined);
-    audio.dispatchEvent(new Event("loadedmetadata"));
-    updateFieldState(0, (state) => ({
-      ...state,
-      playback: { ...state.playback, engine: "html" },
-    }));
+      .mockResolvedValueOnce();
 
-    setPlaybackState(0, "playing", 100);
-    setPlaybackState(0, "playing", 500);
-    await Promise.resolve();
-    await Promise.resolve();
+    startPlaybackWithoutFlush(visualizer, 100);
+    startPlaybackWithoutFlush(visualizer, 500);
+    await flushPlayback();
     expect(audio.play).toHaveBeenCalledTimes(2);
     expect(readFieldState(0).playback.clockMode).toBe("audio");
 
-    rejectFirstPlay(new Error("blocked"));
-    await Promise.resolve();
-    await Promise.resolve();
-    now = 1150;
-    frames.shift()?.(now);
-
+    rejectFirst(new Error("blocked"));
+    await flushPlayback();
     expect(readFieldState(0).playback.clockMode).toBe("audio");
-    expect(Math.round(currentProgressMs(visualizer) ?? 0)).toBe(650);
   });
 });
+
+function prepareAudio(visualizer: VisualizerElement): HTMLAudioElement {
+  const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
+  Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+  Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+  audio.play = vi.fn(() => Promise.resolve());
+  audio.pause = vi.fn(() => undefined);
+  audio.dispatchEvent(new Event("loadedmetadata"));
+  return audio;
+}
+
+function startPlaybackWithoutFlush(visualizer: VisualizerElement, cursorMs: number): void {
+  expect(startSourcePlayback(visualizer, {
+    action: "start",
+    cursorMs,
+    endMs: 1000,
+    engine: "html",
+    loop: false,
+    ord: 0,
+    regionMode: "full",
+    source: "user",
+  })).toBe(true);
+}
+
+async function startPlayback(visualizer: VisualizerElement, cursorMs: number): Promise<void> {
+  startPlaybackWithoutFlush(visualizer, cursorMs);
+  await flushPlayback();
+}
+
+function mockFrames(): Array<(time: number) => void> {
+  const frames: Array<(time: number) => void> = [];
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    frames.push(callback);
+    return frames.length;
+  });
+  vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+  return frames;
+}
+
+async function flushPlayback(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+}

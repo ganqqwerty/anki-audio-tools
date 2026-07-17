@@ -2,18 +2,29 @@
 module.exports = {
   forbidden: [
     {
-      name: "no-pycmd-outside-bridge",
-      comment:
-        "Only bridge.ts files may reference pycmd. All WebView-to-Python communication must go through bridge modules.",
+      name: "rule49-sm-a11-state-management-no-cycles",
+      comment: "Transport and practice packages must remain acyclic.",
+      severity: "error",
+      from: { path: "^settings_ui/src/editor-inline/(transport|practice)/" },
+      to: { circular: true },
+    },
+    {
+      name: "rule39-sm-a01-transport-does-not-import-practice",
+      comment: "Transport owns media lifecycle and must not depend on practice sequencing.",
+      severity: "error",
+      from: { path: "^settings_ui/src/editor-inline/transport/" },
+      to: { path: "^settings_ui/src/editor-inline/practice/" },
+    },
+    {
+      name: "rule39-sm-a01-state-management-public-entry-only",
+      comment: "Consumers use the transport and practice public entry modules.",
       severity: "error",
       from: {
-        pathNot: "(^|/)(lib|editor-inline|batch)/bridge\\.ts$",
+        path: "^settings_ui/src/editor-inline/",
+        pathNot: "^settings_ui/src/editor-inline/(transport|practice)/",
       },
       to: {
-        // pycmd is a global, not an import. This rule catches the string
-        // 'pycmd' in source files via grep-style checks.
-        // dependency-cruiser can't detect global references directly,
-        // so a separate rg check in graphs-check handles this.
+        path: "^settings_ui/src/editor-inline/(transport|practice)/(?!index\\.ts$)",
       },
     },
     {

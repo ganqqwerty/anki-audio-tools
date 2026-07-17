@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { mediaUrlForFilename } from "../src/editor-inline/audio-clock.js";
+import { mediaUrlForFilename } from "../src/editor-inline/html-audio-session-audio-element.js";
 import { processingMessage } from "../src/editor-inline/commands.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";

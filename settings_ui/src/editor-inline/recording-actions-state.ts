@@ -24,10 +24,35 @@ import {
 import { stableStatusState } from "./editor-control-state.js";
 import { isUserFacingError } from "../lib/user-facing-error.js";
 
+interface RecordingCursorProjection {
+  readonly startedAt: number;
+  frame: number | null;
+}
+
+class RecordingProjectionRuntime {
+  readonly cursors = new Map<VisualizerElement, RecordingCursorProjection>();
+
+  dispose(): void {
+    for (const cursor of this.cursors.values()) {
+      if (cursor.frame !== null) window.cancelAnimationFrame(cursor.frame);
+    }
+    this.cursors.clear();
+  }
+}
+
+let activeProjectionRuntime: RecordingProjectionRuntime | null = null;
+
+function projectionRuntime(): RecordingProjectionRuntime {
+  activeProjectionRuntime ??= new RecordingProjectionRuntime();
+  return activeProjectionRuntime;
+}
+
 export const RECORDING_BLOCKING_STATUSES = new Set<LearnerRecordingStatus>([
   "countdown",
+  "starting",
   "recording",
   "stopping",
+  "finalizing",
   "analyzing",
 ]);
 
@@ -73,10 +98,6 @@ export function setLearnerVisualizer(ord: number, rawTrack: ProsodyPayload): boo
 export function resetLearnerRecordingState(ord: number, options: { clearOverlay?: boolean } = {}): boolean {
   resetLearnerRecordingStateStore(ord);
   const visualizer = visualizerForOrd(ord);
-  if (visualizer?.__aqeRecordCountdownTimer) {
-    window.clearTimeout(visualizer.__aqeRecordCountdownTimer);
-    visualizer.__aqeRecordCountdownTimer = null;
-  }
   if (visualizer) {
     stopRecordingCursor(visualizer);
     if (options.clearOverlay !== false) {
@@ -129,13 +150,6 @@ export function learnerRecordingStatusForControls(controls: HTMLElement | null):
   return learnerRecordingStatusForOrdState(Number(controls.dataset.aqeFieldOrd || "0"));
 }
 
-export function playbackStatusForPayload(payload: LearnerRecordingStatePayload): LearnerPlaybackStatus {
-  if (payload.playbackStatus === "playing" || payload.playbackStatus === "paused") {
-    return payload.playbackStatus;
-  }
-  return "stopped";
-}
-
 export function learnerPlaybackStatusForControls(controls: HTMLElement | null): LearnerPlaybackStatus {
   if (!controls) return "stopped";
   return learnerPlaybackStatusForOrdState(Number(controls.dataset.aqeFieldOrd || "0"));
@@ -164,23 +178,30 @@ function startRecordingCursor(visualizer: VisualizerElement, startCursorMs: numb
   stopRecordingCursor(visualizer);
   const startMs = Math.max(0, Number(startCursorMs) || 0);
   const initialDurationMs = Math.max(0, Number(initialRecordingDurationMs) || 0);
-  visualizer.__aqeRecordingStartedAt = performance.now() - initialDurationMs;
+  const cursor: RecordingCursorProjection = {
+    frame: null,
+    startedAt: performance.now() - initialDurationMs,
+  };
+  projectionRuntime().cursors.set(visualizer, cursor);
   const tick = (): void => {
-    const startedAt = visualizer.__aqeRecordingStartedAt ?? performance.now();
-    const recordingDurationMs = Math.max(0, performance.now() - startedAt);
+    if (projectionRuntime().cursors.get(visualizer) !== cursor) return;
+    const recordingDurationMs = Math.max(0, performance.now() - cursor.startedAt);
     const durationMs = syncActiveRecordingTimeline(visualizer, recordingDurationMs);
     setRecordingCursor(visualizer, startMs + recordingDurationMs, durationMs);
-    visualizer.__aqeRecordingCursorFrame = window.requestAnimationFrame(tick);
+    cursor.frame = window.requestAnimationFrame(tick);
   };
   tick();
 }
 
 function stopRecordingCursor(visualizer: VisualizerElement): void {
-  if (visualizer.__aqeRecordingCursorFrame) {
-    window.cancelAnimationFrame(visualizer.__aqeRecordingCursorFrame);
-  }
-  visualizer.__aqeRecordingCursorFrame = null;
-  visualizer.__aqeRecordingStartedAt = null;
+  const cursor = projectionRuntime().cursors.get(visualizer);
+  if (cursor?.frame !== null && cursor?.frame !== undefined) window.cancelAnimationFrame(cursor.frame);
+  projectionRuntime().cursors.delete(visualizer);
+}
+
+export function disposeRecordingProjections(): void {
+  activeProjectionRuntime?.dispose();
+  activeProjectionRuntime = null;
 }
 
 function syncActiveRecordingTimeline(visualizer: VisualizerElement, recordingDurationMs: number): number {
@@ -230,7 +251,7 @@ function projectLearnerRecordingControls(
   state: LearnerRecordingFieldState,
 ): void {
   controls.dataset.learnerRecordingStatus = state.recordingStatus;
-  controls.dataset.learnerRecordingGeneration = state.generation == null ? "" : String(state.generation);
+  controls.dataset.learnerRecordingAttemptId = state.attemptId == null ? "" : String(state.attemptId);
   controls.dataset.learnerRecordingMediaFilename = state.mediaFilename;
   controls.dataset.learnerRecordingFailureMessage = state.failureMessage;
   controls.dataset.learnerPlaybackStatus = state.playbackStatus;

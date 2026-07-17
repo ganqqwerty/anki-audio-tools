@@ -34,11 +34,21 @@ generic browser-audio failures.
 
 Recovery is explicit and non-destructive. Until the user clicks the action,
 the note reference, media files, graph, history, and sync-visible state do not
-change. The click sends the existing source-bound `aqe:convert` payload with a
-local MP3 override. Python revalidates the field ordinal and filename before
-the normal conversion pipeline writes media or history. This preserves normal
-busy locking, graph refresh, post-edit autoplay, undo/redo, and persistent undo
-without introducing native playback or a transparent proxy file.
+change. The click claims the current failure identity, stops and quiesces the
+transport, and sends a generated `SourceMutationCommand`. Python revalidates
+the authoritative editor, note, field, backend media generation, and recorder
+exclusion before the normal conversion pipeline writes media or history. This
+preserves normal busy locking, graph refresh, post-edit autoplay, undo/redo,
+and persistent undo without filename-only authority, native playback, or a
+transparent proxy file.
+
+Every accepted transition into `failed` also publishes one identity-bearing
+transport fact to the field-owning practice run. That run must become terminal;
+a stopped transport paired with a `playing` once/repeat/chorusing program is a
+lifecycle defect. A decode or metadata failure observed while merely loading a
+source is passive and must not overwrite a stable edit-owned error. Once a
+playback request is pending or active, its failure status and recovery remain
+visible.
 
 ## Why This Exists
 
@@ -57,6 +67,14 @@ The useful evidence was the ordered correlation between:
 
 Future playback diagnostics must preserve that correlation.
 
+The mitigation removes `post_edit_waiting` from the transport. Post-edit work
+is now a retryable bootstrap delivery: the adapter applies the source, waits
+for ordinary transport readiness, starts the delivered `once` or `repeat`
+practice program (with the configured repeat pause), and returns one terminal
+receipt. A completed pass always returns transport to `ready`; only the active
+practice program decides whether another pass begins. A repeated full-source
+pass explicitly reloads an exhausted decoder before seeking and playing again.
+
 ## Required Logs
 
 Log state-machine transitions at event granularity, never per animation frame.
@@ -67,7 +85,8 @@ Each transition log must include:
 - event type and important event payload
 - from-state kind and to-state kind
 - request source, cursor, end, loop, region mode, and reset cursor when present
-- post-edit generation and source kind when present
+- runtime/field/source identity and playback attempt or failure identity when present
+- request source and source kind when present
 - emitted effect types
 
 Log browser audio lifecycle events that can affect state:
@@ -83,14 +102,13 @@ For `error`, also log `MediaError.code`, whether recovery was offered, and the
 canonical source filename and source kind. Stale recovery rejection logs must
 include requested and current field identity plus the requested filename.
 
-Log post-edit bridge lifecycle events:
+Log post-edit/bootstrap lifecycle events:
 
 - pending intent remembered
-- readiness checked
-- post-edit ready dispatched
-- duplicate ready suppressed
-- post-edit playback start requested
-- playback start result
+- delivery attempted for the current editor/note/field/media generation
+- source applied and ordinary media readiness observed
+- optional practice playback accepted, failed, or cancelled
+- terminal receipt accepted or stale/duplicate receipt rejected
 
 ## Suspicious Invariants
 
@@ -98,11 +116,13 @@ These conditions should be logged as warnings or covered by tests whenever the
 code path is touched:
 
 - `PlayResolved` arrives when the session is not `starting`.
-- `BoundaryReached` is ignored while repeat is enabled.
+- `BoundaryReached` is ignored for a stale attempt identity.
 - `ended` fires while repeat is enabled but projected playback state is not
   `playing`.
-- An active post-edit session for the same request moves back to
-  `post_edit_waiting`.
+- A second field becomes transport-active before the previous owner has been
+  stopped and quiesced.
+- A transport state retains an animation frame, metadata timer, or attempt
+  identity after returning to `empty`/`ready`.
 - Session source filename and audio element `src` disagree.
 - A generated post-edit source starts playback without an explicit session
   source or post-edit intent.
@@ -226,7 +246,8 @@ For playback bugs, reconstruct one field ordinal as an ordered timeline:
 4. Audio element `play_requested`, `playing`, and `play_resolved`.
 5. `PlayResolved` transition into `playing`.
 6. Boundary, `ended`, or error event.
-7. Repeat/restart/complete transition.
+7. `PassCompleted` returns transport to `ready`; the active practice program
+   either requests the next pass/wait or completes.
 
 If browser audio and session state disagree, fix the first transition that made
 the session state stop matching the active audio element. Do not patch the later

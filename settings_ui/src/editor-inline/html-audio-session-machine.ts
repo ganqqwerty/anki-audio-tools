@@ -1,16 +1,14 @@
 import {
-  currentCursorMs,
   exhaustive,
   failedTransition,
   noChange,
   readyFromActive,
-  restartLoopTransition,
   sourceReconfigurationEffects,
 } from "./html-audio-session-machine-helpers.js";
 import { htmlAudioLoopStartMs } from "./html-audio-session-request.js";
 import type { HtmlAudioSessionEvent, HtmlAudioSessionState, HtmlAudioSessionTransition } from "./html-audio-session-types.js";
 
-export type { HtmlAudioFailureReason, HtmlAudioSessionEffect, HtmlAudioSessionEvent, HtmlAudioSessionState, HtmlAudioSessionTransition, HtmlAudioSource, HtmlAudioStartRequest, PostEditAutoplayIntent } from "./html-audio-session-types.js";
+export type { HtmlAudioFailureReason, HtmlAudioSessionEffect, HtmlAudioSessionEvent, HtmlAudioSessionState, HtmlAudioSessionTransition, HtmlAudioSource, HtmlAudioStartRequest } from "./html-audio-session-types.js";
 
 const METADATA_TIMEOUT_MS = 5000;
 
@@ -24,6 +22,7 @@ export function transitionHtmlAudioSession(
 ): HtmlAudioSessionTransition {
   switch (event.type) {
     case "SourceConfigured":
+      if (!event.replace && sameConfiguredSource(state, event.source)) return noChange(state);
       return {
         state: {
           kind: "loading",
@@ -92,8 +91,7 @@ export function transitionHtmlAudioSession(
       if (
         state.kind === "starting" ||
         state.kind === "playing" ||
-        state.kind === "paused" ||
-        state.kind === "repeat_waiting"
+        state.kind === "paused"
       ) {
         return {
           state: {
@@ -104,7 +102,6 @@ export function transitionHtmlAudioSession(
             durationMs: state.durationMs,
           },
           effects: [
-            { type: "ClearRepeatTimer" },
             { type: "ClearProgressFrame" },
             { type: "SeekAudio", cursorMs: event.request.cursorMs },
             { type: "PlayAudio" },
@@ -123,6 +120,7 @@ export function transitionHtmlAudioSession(
           durationMs: state.durationMs,
         },
         effects: [
+          ...(state.mediaExhausted ? [{ type: "ReloadAudioSource" } as const] : []),
           { type: "SeekAudio", cursorMs: event.request.cursorMs },
           { type: "PlayAudio" },
         ],
@@ -200,17 +198,17 @@ export function transitionHtmlAudioSession(
     case "StopRequested":
       if (state.kind === "loading") {
         return { state: initialHtmlAudioSessionState(state.ord), effects: [
-          { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" },
+          { type: "PauseAudio" }, { type: "ClearProgressFrame" },
           { type: "ClearMetadataTimer" }, { type: "PublishPlaybackState", status: "stopped", cursorMs: event.cursorMs },
         ] };
       }
       if (state.kind === "ready") {
         return { state, effects: [
-          { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" },
+          { type: "PauseAudio" }, { type: "ClearProgressFrame" },
           { type: "PublishPlaybackState", status: "stopped", cursorMs: event.cursorMs },
         ] };
       }
-      if (state.kind !== "starting" && state.kind !== "playing" && state.kind !== "paused" && state.kind !== "repeat_waiting") {
+      if (state.kind !== "starting" && state.kind !== "playing" && state.kind !== "paused") {
         return noChange(state);
       }
       return {
@@ -218,77 +216,26 @@ export function transitionHtmlAudioSession(
         effects: [
           { type: "PauseAudio" },
           { type: "ClearProgressFrame" },
-          { type: "ClearRepeatTimer" },
           { type: "PublishPlaybackState", status: "stopped", cursorMs: event.cursorMs },
         ],
       };
     case "BoundaryReached": {
-      if (state.kind === "ready" && event.request) {
-        const boundaryEvent: HtmlAudioSessionEvent = {
-          cursorMs: event.cursorMs,
-          restartAudio: true,
-          type: "BoundaryReached",
-        };
-        if (event.repeatEnabled !== undefined) boundaryEvent.repeatEnabled = event.repeatEnabled;
-        if (event.repeatPauseMs !== undefined) boundaryEvent.repeatPauseMs = event.repeatPauseMs;
-        if (event.resetCursorMs !== undefined) boundaryEvent.resetCursorMs = event.resetCursorMs;
-        return transitionHtmlAudioSession(
-          {
-            kind: "starting",
-            ord: state.ord,
-            source: state.source,
-            request: event.request,
-            durationMs: state.durationMs,
-          },
-          boundaryEvent,
-        );
-      }
       if (state.kind !== "starting" && state.kind !== "playing") return noChange(state);
-      if (event.repeatEnabled ?? state.request.loop) {
-        if ((event.repeatPauseMs ?? 0) <= 0) {
-          return restartLoopTransition(state, event.restartAudio === true);
-        }
-        return {
-          state: {
-            kind: "repeat_waiting",
-            ord: state.ord,
-            source: state.source,
-            request: state.request,
-            durationMs: state.durationMs,
-            resumeAtMs: htmlAudioLoopStartMs(state.request),
-          },
-          effects: [
-            { type: "PauseAudio" },
-            { type: "ClearProgressFrame" },
-            { type: "StartRepeatTimer", pauseMs: event.repeatPauseMs ?? 0 },
-            { type: "PublishRepeatWaitingState", cursorMs: htmlAudioLoopStartMs(state.request) },
-          ],
-        };
-      }
       const resetCursorMs = event.resetCursorMs ?? htmlAudioLoopStartMs(state.request);
+      const mediaExhausted = event.cursorMs >= state.durationMs;
       return {
-        state: readyFromActive(state, resetCursorMs),
+        state: {
+          ...readyFromActive(state, resetCursorMs),
+          ...(mediaExhausted ? { mediaExhausted: true as const } : {}),
+        },
         effects: [
           { type: "PauseAudio" },
           { type: "ClearProgressFrame" },
-          { type: "ClearRepeatTimer" },
+          { request: state.request, type: "ReportPassCompleted" },
           { cursorMs: resetCursorMs, type: "CompletePlayback" },
         ],
       };
     }
-    case "RepeatDelayElapsed":
-      if (state.kind !== "repeat_waiting") return noChange(state);
-      if (event.repeatEnabled === false) {
-        const resetCursorMs = htmlAudioLoopStartMs(state.request);
-        return {
-          state: readyFromActive(state, resetCursorMs),
-          effects: [
-            { type: "ClearRepeatTimer" },
-            { cursorMs: resetCursorMs, type: "CompletePlayback" },
-          ],
-        };
-      }
-      return restartLoopTransition(state, true);
     case "AudioError":
       if (state.kind === "empty" || state.kind === "failed") return noChange(state);
       return failedTransition(
@@ -303,118 +250,40 @@ export function transitionHtmlAudioSession(
       return {
         state: initialHtmlAudioSessionState(state.ord),
         effects: [
-          { type: "PauseAudio" },
           { type: "ClearAudioSource" },
           { type: "ClearProgressFrame" },
           { type: "ClearMetadataTimer" },
-          { type: "ClearRepeatTimer" },
           { type: "PublishPlaybackState", status: "stopped" },
-        ],
-      };
-    case "PostEditAutoplayRequested":
-      if (
-        state.kind !== "loading" &&
-        state.kind !== "ready" &&
-        state.kind !== "starting" &&
-        state.kind !== "playing" &&
-        state.kind !== "paused" &&
-        state.kind !== "repeat_waiting" &&
-        state.kind !== "post_edit_waiting"
-      ) {
-        return noChange(state);
-      }
-      if (event.intent.sourceFilename !== state.source.sourceFilename) {
-        return noChange(state);
-      }
-      if (isDuplicateActivePostEditAutoplay(state, event.request)) {
-        return noChange(state);
-      }
-      return {
-        state: {
-          kind: "post_edit_waiting",
-          ord: state.ord,
-          source: state.source,
-          postEdit: event.intent,
-          request: event.request,
-          cursorMs: currentCursorMs(state),
-          graphDurationMs: null,
-          readyDispatched: false,
-        },
-        effects: [],
-      };
-    case "GraphRenderedForSource":
-    case "PostEditReadyConfirmed":
-      if (state.kind !== "post_edit_waiting") {
-        return noChange(state);
-      }
-      if (event.sourceFilename !== state.postEdit.sourceFilename) {
-        return noChange(state);
-      }
-      if (state.readyDispatched) {
-        return {
-          state: {
-            ...state,
-            graphDurationMs: event.durationMs,
-          },
-          effects: [],
-        };
-      }
-      return {
-        state: {
-          kind: "ready",
-          ord: state.ord,
-          source: state.source,
-          durationMs: event.durationMs,
-          cursorMs: state.request.cursorMs,
-        },
-        effects: [
-          { type: "ClearMetadataTimer" },
-          {
-            type: "DispatchPostEditReady",
-            ord: state.postEdit.fieldOrd,
-            generation: state.postEdit.generation,
-            sourceFilename: state.postEdit.sourceFilename,
-          },
         ],
       };
     case "SourceCleared":
       return {
         state: initialHtmlAudioSessionState(state.ord),
         effects: [
-          { type: "PauseAudio" },
           { type: "ClearAudioSource" },
           { type: "ClearProgressFrame" },
           { type: "ClearMetadataTimer" },
-          { type: "ClearRepeatTimer" },
           { type: "PublishPlaybackState", status: "stopped" },
         ],
       };
     case "MetadataTimeout":
       if (state.kind !== "loading") return noChange(state);
       return failedTransition(state, state.cursorMs, "metadata_timeout");
+    case "RecoveryClaimed":
+      if (state.kind !== "failed" || state.recovery !== "available") return noChange(state);
+      return { state: { ...state, recovery: "claimed" }, effects: [] };
     default:
       return exhaustive(event);
   }
 }
 
-function isDuplicateActivePostEditAutoplay(
-  state: Extract<HtmlAudioSessionState, { kind: "loading" | "ready" | "starting" | "playing" | "paused" | "repeat_waiting" | "post_edit_waiting" }>,
-  request: Extract<HtmlAudioSessionEvent, { type: "PostEditAutoplayRequested" }>["request"],
+function sameConfiguredSource(
+  state: HtmlAudioSessionState,
+  source: Extract<HtmlAudioSessionEvent, { type: "SourceConfigured" }>["source"],
 ): boolean {
-  if (
-    state.kind !== "starting" &&
-    state.kind !== "playing" &&
-    state.kind !== "paused" &&
-    state.kind !== "repeat_waiting"
-  ) {
-    return false;
-  }
-  return state.request.source === "post_edit"
-    && request.source === "post_edit"
-    && state.request.cursorMs === request.cursorMs
-    && state.request.endMs === request.endMs
-    && state.request.loop === request.loop
-    && state.request.ord === request.ord
-    && state.request.regionMode === request.regionMode
-    && state.request.resetCursorMs === request.resetCursorMs;
+  if (state.kind === "empty" || state.kind === "failed") return false;
+  if (state.source.kind !== source.kind) return false;
+  if (state.source.sourceFilename !== source.sourceFilename) return false;
+  return state.source.kind !== "learner_recording"
+    || (source.kind === "learner_recording" && state.source.attemptId === source.attemptId);
 }

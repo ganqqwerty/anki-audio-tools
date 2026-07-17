@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { completePlayback, startSourcePlayback } from "../src/editor-inline/actions.js";
 import { dispatchHtmlAudioSessionEvent } from "../src/editor-inline/html-audio-session-controller.js";
+import { readEditorPracticeSnapshot } from "../src/editor-inline/editor-practice-controller.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
@@ -82,19 +83,6 @@ afterEach(() => {
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Closed settings.");
   });
 
-  it("keeps post-edit playback blocked when the legacy busy attribute is corrupted", async () => {
-    initializeEditorRuntime({ audioFieldIndices: [0] });
-    scan({ audioFieldIndices: [0] });
-    await Promise.resolve();
-    window.__aqeSetVisualizer?.(0, track, 400);
-    window.__aqeSetBusy?.(0, true, "Still processing. Please wait.");
-
-    document.body.dataset.aqeBusy = "false";
-
-    expect(window.__aqePlayAfterEdit?.(0)).toBe(false);
-    expect(bridgeCommands()).not.toContain("aqe:play");
-  });
-
   it("keeps the final edit summary after a successful graph redraw", async () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
@@ -120,37 +108,6 @@ afterEach(() => {
     );
   });
 
-  it("restores the stable status after post-edit playback completes", async () => {
-    initializeEditorRuntime({
-      audioFieldIndices: [0],
-      initialStatusByField: {
-        0: { kind: "info", message: "Undid: Increased speed to x1.5." },
-      },
-    });
-    scan({
-      audioFieldIndices: [0],
-      initialStatusByField: {
-        0: { kind: "info", message: "Undid: Increased speed to x1.5." },
-      },
-    });
-
-    await Promise.resolve();
-    window.__aqeSetVisualizer?.(0, track, 400);
-    prepareHtmlAudio(0);
-
-    expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
-
-    const visualizer = document.querySelector('[data-testid="aqe-graph-0"]') as Parameters<typeof completePlayback>[0] | null;
-    expect(visualizer).not.toBeNull();
-
-    completePlayback(visualizer!);
-
-    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "Undid: Increased speed to x1.5.",
-    );
-    expect(bridgeCommands()).toContain("aqe:play-ended");
-  });
-
   it("clears playback-owned warning without erasing edit-owned status", async () => {
     const config = {
       audioFieldIndices: [0],
@@ -166,6 +123,9 @@ afterEach(() => {
     const status = document.querySelector<HTMLElement>('[data-testid="aqe-status-0"]')!;
     const visualizer = document.querySelector('[data-testid="aqe-graph-0"]') as Parameters<typeof completePlayback>[0] | null;
     expect(visualizer).not.toBeNull();
+    prepareHtmlAudio(0);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
 
     window.__aqeSetStatus?.("Selected repeat playback needs browser audio.", "warning", "playback");
     expect(status).toHaveTextContent("Selected repeat playback needs browser audio.");
@@ -183,6 +143,7 @@ afterEach(() => {
     await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 400);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
     audio.pause = vi.fn<() => void>(() => undefined);
@@ -192,7 +153,6 @@ afterEach(() => {
     await Promise.resolve();
 
     expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("playing");
     expect(window.__aqeGraphStateForTest?.(0)?.playbackEngine).toBe("html");
@@ -218,7 +178,6 @@ afterEach(() => {
 
     expect(audio.loop).toBe(false);
     expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       hidden: true,
@@ -269,7 +228,6 @@ afterEach(() => {
     await Promise.resolve();
 
     expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackEngine: "html",
@@ -287,6 +245,7 @@ afterEach(() => {
     setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
     audio.pause = vi.fn<() => void>(() => undefined);
@@ -296,7 +255,6 @@ afterEach(() => {
     await Promise.resolve();
 
     expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackStartMs: 250,
@@ -311,6 +269,7 @@ afterEach(() => {
     await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 400);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
     audio.pause = vi.fn<() => void>(() => undefined);
@@ -336,6 +295,7 @@ afterEach(() => {
     await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 700);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
     audio.pause = vi.fn<() => void>(() => undefined);
@@ -346,7 +306,6 @@ afterEach(() => {
     await Promise.resolve();
 
     expect(bridgeCommands()).not.toContain("aqe:play");
-    expect(window.__aqeLastPlaybackRequest).toBeNull();
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
       "Browser audio is unavailable.",
     );
@@ -372,7 +331,7 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
   });
 
-  it("starts a same-source loading HTML session once graph duration is known", async () => {
+  it("keeps a same-source session loading until browser metadata is known", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -403,13 +362,17 @@ afterEach(() => {
     await Promise.resolve();
     await Promise.resolve();
 
+    expect(audio.play).not.toHaveBeenCalled();
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    audio.dispatchEvent(new Event("loadedmetadata"));
+    await Promise.resolve();
+
     expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
     resolvePlay();
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:play");
   });
 
@@ -423,6 +386,7 @@ afterEach(() => {
     setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
     audio.pause = vi.fn<() => void>(() => undefined);
@@ -433,7 +397,6 @@ afterEach(() => {
     await Promise.resolve();
 
     expect(bridgeCommands()).not.toContain("aqe:play");
-    expect(window.__aqeLastPlaybackRequest).toBeNull();
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
       "Browser audio is unavailable.",
     );
@@ -443,6 +406,7 @@ afterEach(() => {
       selectionEndMs: 750,
       playbackRegionMode: "selection",
     });
+    expect(readEditorPracticeSnapshot()).toBeNull();
   });
 
   it("warns without selected repeat fallback when HTML play rejects", async () => {
@@ -456,6 +420,7 @@ afterEach(() => {
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
     audio.pause = vi.fn<() => void>(() => undefined);

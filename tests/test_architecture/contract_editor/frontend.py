@@ -30,6 +30,7 @@ FRONTEND_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_frontend.playback": contract(
         "editor_frontend.playback",
         layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("contracts_generated", "editor_pending_intent"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_frontend.refresh": contract(
@@ -63,7 +64,12 @@ FRONTEND_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_recording_frontend": contract(
         "editor_recording_frontend",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("contracts_generated", "editor_recording_state", "prosody_types"),
+        allowed_addon_deps=(
+            "contracts_generated",
+            "editor_recording_state",
+            "prosody_types",
+            "recorder.model",
+        ),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
 }

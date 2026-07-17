@@ -22,9 +22,7 @@ from .editor_actions import (
     CMD_HISTORY_JUMP,
     CMD_OPEN_URL,
     CMD_PITCH_HUM,
-    CMD_POST_EDIT_PLAYBACK_READY,
     CMD_PRESET,
-    CMD_RECORD_VOICE,
     CMD_REDO,
     CMD_REDUCE_SIZE,
     CMD_RNNOISE,
@@ -34,8 +32,6 @@ from .editor_actions import (
     CMD_SHARE_RECORDING,
     CMD_SHOW_RECORDING_FILE,
     CMD_SOURCE_METADATA,
-    CMD_STOP_PLAYBACK,
-    CMD_STOP_RECORDING,
     CMD_VOICE_ONLY,
     EditorCommandPayload,
     decode_editor_command_payload,
@@ -69,6 +65,10 @@ def handle_bridge_command(editor: Any, command: str, deps: BridgeDeps) -> None:
     try:
         if payload.field_ord is not None:
             editor.currentField = payload.field_ord
+        if payload.field_ord is not None and payload.post_edit_autoplay is not None:
+            session = deps.sessions.get(editor)
+            if session is not None:
+                session.post_edit_autoplay_by_field[payload.field_ord] = payload.post_edit_autoplay
         if deps.handle_non_processing_command(editor, payload):
             return
         deps.update_state_and_render(editor, payload)
@@ -152,15 +152,11 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,
         "aqe:set-cursor": deps.set_cursor_from_web,
-        "aqe:play": deps.play,
         "aqe:frontend-log": deps.handle_editor_frontend_log,
-        CMD_STOP_RECORDING: deps.stop_learner_recording,
-        CMD_STOP_PLAYBACK: deps.stop_playback,
         CMD_SHOW_RECORDING_FILE: deps.show_learner_recording_file,
         CMD_SAVE_SPLIT_DEFAULTS: deps.save_split_defaults_from_frontend,
         CMD_SOURCE_METADATA: deps.request_source_metadata,
         "aqe:show-file": deps.show_current_audio_file,
-        "aqe:play-ended": deps.play_ended,
         "aqe:undo": deps.undo,
         CMD_REDO: deps.redo,
         CMD_SETTINGS: deps.open_settings_from_editor,
@@ -186,15 +182,9 @@ def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: Bri
         CMD_DPDFNET: lambda: deps.dpdfnet_async(editor, payload),
         CMD_HISTORY_JUMP: lambda: deps.history_jump(editor, payload),
         CMD_PITCH_HUM: lambda: deps.pitch_hum_async(editor, payload),
-        CMD_POST_EDIT_PLAYBACK_READY: lambda: deps.handle_post_edit_playback_ready(editor, payload),
         CMD_PRESET: lambda: deps.run_processing_preset_async(editor, payload),
         CMD_SHARE: lambda: deps.share_current_audio_file(editor, payload),
         CMD_SHARE_RECORDING: lambda: deps.share_learner_recording_file(editor, payload),
-        CMD_RECORD_VOICE: lambda: deps.record_learner_voice(
-            editor,
-            graph_settings=payload.graph_settings,
-            start_cursor_ms=payload.start_cursor_ms,
-        ),
     }
     handler = handlers.get(payload.command)
     if handler is None:

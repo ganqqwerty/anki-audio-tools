@@ -9,6 +9,7 @@ import {
   markerIndexForExactStart,
   type ChorusingState,
 } from "./chorusing-state";
+import { readChorusingState, writeChorusingStateForOrd } from "./chorusing-state-store.js";
 import { controlsForRawOrd } from "./dom-selectors.js";
 import { selectionForVisualizer } from "./selection-controller.js";
 import type { VisualizerElement } from "./types.js";
@@ -33,11 +34,11 @@ export interface ChorusingControlsState {
 }
 
 export function chorusingStateForVisualizer(visualizer: VisualizerElement): ChorusingState {
-  return visualizer.__aqeChorusingState ?? emptyChorusingState();
+  return readChorusingState(Number(visualizer.dataset.aqeFieldOrd || "0"));
 }
 
 export function writeChorusingState(visualizer: VisualizerElement, state: ChorusingState): void {
-  visualizer.__aqeChorusingState = state;
+  writeChorusingStateForOrd(Number(visualizer.dataset.aqeFieldOrd || "0"), state);
   visualizer.dataset.chorusingState = "stopped";
   visualizer.dataset.chorusingBaseStartMs = state.baseRegion ? String(Math.round(state.baseRegion.startMs)) : "";
   visualizer.dataset.chorusingBaseEndMs = state.baseRegion ? String(Math.round(state.baseRegion.endMs)) : "";

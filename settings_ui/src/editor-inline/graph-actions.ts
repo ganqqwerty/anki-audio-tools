@@ -12,6 +12,7 @@ import type { GraphSettings } from "./graph-settings.js";
 import {
   audioFieldSource,
   editorRuntimeConfig,
+  updateEditorRuntimeConfig,
 } from "./editor-runtime-config.js";
 import { logger } from "./logger.js";
 import { normalizeTrack, type DefaultGraphTarget, type VisualizerElement } from "./types.js";
@@ -170,9 +171,15 @@ export function setVisualizerStatus(ord: number, message: EditorStatusMessage, k
   setStatusForOrd(ord, message, kind, "", kind === "error" ? "error" : "graph");
 }
 
-export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: number): void {
+export function setVisualizer(
+  ord: number,
+  rawTrack: ProsodyPayload,
+  cursorMs: number,
+  backendMediaGeneration?: number,
+): void {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer || !rawTrack) return;
+  synchronizeBackendMediaTarget(ord, rawTrack.sourceFilename, backendMediaGeneration);
   const track = normalizeTrack(rawTrack);
   const pendingRedraw = pendingGraphRedrawMatches(ord, track.sourceFilename || "");
   renderVisualizerTrack(visualizer, track, {
@@ -203,6 +210,27 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   }
   finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
   logger.info("graph rendered", graphLogContext(ord, track));
+}
+
+function synchronizeBackendMediaTarget(
+  ord: number,
+  sourceFilename: string,
+  value: number | undefined,
+): void {
+  const backend = editorRuntimeConfig().backendEditorContext;
+  const existing = backend?.mediaTargetsByField?.[ord];
+  if (!backend || typeof value !== "number" || !Number.isInteger(value) || value < 0
+    || (existing !== undefined && value < existing.backendMediaGeneration)) return;
+  updateEditorRuntimeConfig({
+    backendEditorContext: {
+      ...backend,
+      backendMediaGeneration: Math.max(backend.backendMediaGeneration, value),
+      mediaTargetsByField: {
+        ...backend.mediaTargetsByField,
+        [ord]: { backendMediaGeneration: value, sourceFilename },
+      },
+    },
+  });
 }
 
 export function setVisualizerStatusFromPython(ord: number, message: EditorStatusMessage, kind = "info"): void {

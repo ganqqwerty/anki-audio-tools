@@ -288,7 +288,6 @@ def test_standard_render_commit_records_persistent_undo(tmp_path: Path, monkeypa
         current_field_index=lambda _editor: 0,
         dispose_editor_frontend_controls=MagicMock(),
         eval_history_availability=MagicMock(),
-        eval_playback_state=MagicMock(),
         record_standard_persistent_undo=record_standard_persistent_undo,
         request_history_availability_after_edit=MagicMock(),
         request_playback_after_edit=MagicMock(),
@@ -354,10 +353,8 @@ def _deps() -> SimpleNamespace:
         current_field_index=lambda _editor: 0,
         dispose_editor_frontend_controls=MagicMock(),
         eval_status=MagicMock(),
-        eval_playback_state=MagicMock(),
         request_history_availability_after_edit=MagicMock(),
         request_playback_after_edit=MagicMock(),
-        stop_session_playback=MagicMock(),
     )
 
 

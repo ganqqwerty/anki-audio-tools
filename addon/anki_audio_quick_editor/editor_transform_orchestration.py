@@ -36,12 +36,9 @@ def run_special_audio_transform_async(
     if existing and existing.processing.active:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    if existing and existing.playback.preparing:
-        deps.stop_session_playback(existing)
     session, current_path = deps.current_media_path(editor)
     cancel_graph_analysis_for_processing(editor, session, deps)
     config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
-    deps.stop_session_playback(session)
     field_index = session.field_index if session.field_index is not None else getattr(editor, "currentField", 0)
     guard = session.begin_processing(
         field_index=int(field_index),
@@ -49,7 +46,6 @@ def run_special_audio_transform_async(
         next_status_summary=command_status_summary(command or EditorCommandPayload(command=""), config),
     )
     deps.set_busy(editor, True, f"{label}...")
-    deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
     record_breadcrumb(
         "editor.special_transform.started",
         source="editor",

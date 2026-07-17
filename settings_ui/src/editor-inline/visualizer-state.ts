@@ -7,7 +7,7 @@ import {
   setSelectionRange,
 } from "./selection-state.js";
 import {
-  canonicalTimeViewport,
+  fullTimeViewport,
   type TimeViewport,
 } from "./time-viewport.js";
 import type { VisualizerElement } from "./types.js";
@@ -19,7 +19,6 @@ import {
 import {
   readRuntimeTimeViewport,
   readTargetDurationMsForVisualizer,
-  setPlaybackResetCursorMsRuntime,
   writeRuntimeTimeViewport,
 } from "./visualizer-runtime-state.js";
 
@@ -46,9 +45,8 @@ export function readVisualizerTimeViewport(visualizer: VisualizerElement): TimeV
 export function resetVisualizerTimeViewport(
   visualizer: VisualizerElement,
   durationMs = readVisualizerDurationMs(visualizer),
-  plotWidthPx?: number,
 ): void {
-  writeVisualizerTimeViewport(visualizer, canonicalTimeViewport(durationMs, Number(plotWidthPx) || 0));
+  writeVisualizerTimeViewport(visualizer, fullTimeViewport(durationMs));
 }
 
 export function writeVisualizerTimeViewport(visualizer: VisualizerElement, viewport: TimeViewport): void {
@@ -111,12 +109,6 @@ export function setVisualizerSelection(visualizer: VisualizerElement, range: Sel
 export function setVisualizerPlaybackRegion(visualizer: VisualizerElement, region: PlaybackRegion): void {
   const ord = fieldOrd(visualizer);
   const state = readFieldState(ord);
-  setPlaybackResetCursorMsRuntime(
-    visualizer,
-    region.mode === "selection"
-      ? region.startMs
-      : state.cursor.anchorMs || state.cursor.ms,
-  );
   writeFieldState(ord, {
     ...state,
     playback: {

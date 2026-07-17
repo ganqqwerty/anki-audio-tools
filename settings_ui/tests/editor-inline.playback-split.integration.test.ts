@@ -45,7 +45,7 @@ describe("editor inline Play split menu", () => {
 
     const autoAdvance = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-play-auto-advance"]')!;
     const repeats = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-play-auto-advance-repeats"]')!;
-    const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!;
+    const repeat = document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]')!;
     expect(autoAdvance).not.toBeNull();
     expect(repeats).not.toBeNull();
     expect(autoAdvance.disabled).toBe(true);
@@ -70,6 +70,7 @@ describe("editor inline Play split menu", () => {
 
     repeat.click();
     await Promise.resolve();
+    expect(repeat.checked).toBe(true);
     expect(autoAdvance.disabled).toBe(false);
     expect(autoAdvance.checked).toBe(false);
     expect(repeats.disabled).toBe(false);

@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "mutate": [
+    "src/editor-inline/html-audio-session-machine.ts",
+    "src/editor-inline/practice/{chorusing,once,record-once,reducer,repeat}.ts",
+    "src/editor-inline/transport/{event-policy,identity,validation}.ts"
+  ],
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts",
+    "related": true
+  },
+  "testFiles": [
+    "tests/html-audio-session-failures.test.ts",
+    "tests/html-audio-session-machine.test.ts",
+    "tests/html-audio-session-post-edit-repeat.test.ts",
+    "tests/html-audio-session-transition-matrix.test.ts",
+    "tests/practice-programs.test.ts",
+    "tests/practice-program-transition-matrix.test.ts",
+    "tests/transport-event-policy.test.ts",
+    "tests/transport-identity.test.ts",
+    "tests/transport-validation.test.ts"
+  ],
+  "coverageAnalysis": "perTest",
+  "concurrency": 2,
+  "reporters": [
+    "clear-text",
+    "progress",
+    "json"
+  ],
+  "jsonReporter": {
+    "fileName": "reports/mutation/state-management.json"
+  },
+  "thresholds": {
+    "high": 95,
+    "low": 90,
+    "break": 90
+  }
+}

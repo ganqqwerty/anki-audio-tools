@@ -14,7 +14,7 @@ const source = {
 };
 
 const learnerSource = {
-  generation: 3,
+  attemptId: 3,
   kind: "learner_recording" as const,
   sourceFilename: "learner.ogg",
   startCursorMs: 1200,
@@ -42,10 +42,10 @@ describe("html audio session progress", () => {
     expect(htmlAudioProgressMs(clock, 8000, 400)).toBe(1000);
   });
 
-  it("moves full-source repeat boundaries slightly early to avoid browser ended races", () => {
-    expect(htmlAudioBoundaryMsForRequest(request, true, 1000, 1000)).toBe(960);
-    expect(htmlAudioBoundaryMsForRequest({ ...request, cursorMs: 100 }, true, 1000, 1000)).toBe(1000);
-    expect(htmlAudioBoundaryMsForRequest(request, false, 1000, 1000)).toBe(1000);
+  it("keeps transport boundaries at the immutable pass end", () => {
+    expect(htmlAudioBoundaryMsForRequest(request, 1000, 1000)).toBe(1000);
+    expect(htmlAudioBoundaryMsForRequest({ ...request, loop: true }, 1000, 1000)).toBe(960);
+    expect(htmlAudioBoundaryMsForRequest({ ...request, cursorMs: 100 }, 1000, 1000)).toBe(1000);
   });
 
   it("returns source progress until the computed boundary is reached", () => {
@@ -55,8 +55,6 @@ describe("html audio session progress", () => {
       clock,
       graphDurationMs: 1000,
       nowMs: 5200,
-      repeatEnabled: false,
-      repeatPauseMs: 0,
       state,
     });
 
@@ -66,29 +64,40 @@ describe("html audio session progress", () => {
     });
   });
 
-  it("returns a boundary event with explicit repeat facts when source progress reaches the end", () => {
+  it("does not complete a pass from wall time while media currentTime is stalled", () => {
     const state = playingSourceState();
     const decision = htmlAudioProgressDecision({
-      audioProgressMs: 995,
+      audioProgressMs: 400,
+      clock,
+      graphDurationMs: 1000,
+      nowMs: 8000,
+      state,
+    });
+
+    expect(decision).toEqual({
+      kind: "source_progress",
+      progressMs: 1000,
+    });
+  });
+
+  it("returns a transport-only boundary event when source progress reaches the end", () => {
+    const state = playingSourceState();
+    const decision = htmlAudioProgressDecision({
+      audioProgressMs: 1000,
       clock,
       graphDurationMs: 1000,
       nowMs: 5200,
-      repeatEnabled: true,
-      repeatPauseMs: 300,
       state,
     });
 
     expect(decision).toEqual({
       event: {
         cursorMs: 1000,
-        repeatEnabled: true,
-        repeatPauseMs: 300,
         resetCursorMs: 0,
-        restartAudio: true,
         type: "BoundaryReached",
       },
       kind: "boundary",
-      progressMs: 995,
+      progressMs: 1000,
     });
   });
 
@@ -107,8 +116,6 @@ describe("html audio session progress", () => {
       clock: { cursorMs: 0, endMs: 700, startedAtMs: 5000 },
       graphDurationMs: 700,
       nowMs: 5250,
-      repeatEnabled: false,
-      repeatPauseMs: 0,
       state,
     })).toEqual({
       kind: "learner_progress",

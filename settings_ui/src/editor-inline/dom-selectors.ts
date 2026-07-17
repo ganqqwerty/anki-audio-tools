@@ -41,14 +41,14 @@ export function playButton(ord: number): HTMLButtonElement | null {
   return buttonFor(ord, "aqe:play");
 }
 
-export function repeatButtonForOrd(ord: number): HTMLButtonElement | null {
+export function repeatControlForOrd(ord: number): HTMLInputElement | null {
   const controls = controlsForOrd(ord);
-  return controls?.querySelector<HTMLButtonElement>(".aqe-repeat-button") ?? null;
+  return controls?.querySelector<HTMLInputElement>(".aqe-repeat-checkbox") ?? null;
 }
 
-export function repeatButtonsForOrd(ord: number): HTMLButtonElement[] {
+export function repeatControlsForOrd(ord: number): HTMLInputElement[] {
   const controls = controlsForOrd(ord);
-  return Array.from(controls?.querySelectorAll<HTMLButtonElement>(".aqe-repeat-button") ?? []);
+  return Array.from(controls?.querySelectorAll<HTMLInputElement>(".aqe-repeat-checkbox") ?? []);
 }
 
 export function playRepeatMenuButtonForOrd(ord: number): HTMLButtonElement | null {
@@ -64,8 +64,8 @@ export function allControls(): HTMLElement[] {
   return Array.from(document.querySelectorAll<HTMLElement>(".aqe-controls"));
 }
 
-export function allRepeatButtons(): HTMLButtonElement[] {
-  return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-repeat-button"));
+export function allRepeatControls(): HTMLInputElement[] {
+  return Array.from(document.querySelectorAll<HTMLInputElement>(".aqe-repeat-checkbox"));
 }
 
 export function allVisualizers(): VisualizerElement[] {

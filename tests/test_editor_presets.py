@@ -43,7 +43,6 @@ def _deps(editor, session: EditorSession, source: Path, config: dict) -> SimpleN
         artifact_root=MagicMock(return_value=source.parent / "artifacts"),
         config=MagicMock(return_value=config),
         current_media_path=MagicMock(return_value=(session, source)),
-        eval_playback_state=MagicMock(),
         eval_status=MagicMock(),
         main=lambda _editor, callback: callback(),
         make_output_filename=lambda filename, **_kwargs: filename,
@@ -59,7 +58,6 @@ def _deps(editor, session: EditorSession, source: Path, config: dict) -> SimpleN
         sessions={editor: session},
         set_busy=MagicMock(),
         still_processing_message="Still processing. Please wait.",
-        stop_session_playback=MagicMock(),
         temp_final_path=lambda filename: source.parent / "tmp" / filename,
         threading=SimpleNamespace(Thread=ImmediateThread),
     )

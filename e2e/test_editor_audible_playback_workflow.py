@@ -14,6 +14,7 @@ from e2e.audible_audio_capture import (
     finish_audible_capture,
     install_audible_capture,
 )
+from e2e.editor_graph_helpers import _drag_cursor_to_ratio, _graph_state_js
 from e2e.editor_note_helpers import ADDON_NUMERIC_ID, _button_selector, _sound_filename
 from e2e.editor_region_loop_helpers import _normal_drag, _set_repeat, _shift_drag_region
 from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
@@ -217,7 +218,7 @@ def test_audible_unsupported_m4a_recovery_converts_plays_and_preserves_history(
             and value["state"]["htmlAudioReadinessState"] == "failed",
             timeout=10.0,
         )
-        install_audible_capture(editor, max_duration_ms=8000)
+        install_audible_capture(editor, max_duration_ms=4000)
         _trusted_click_selector(editor, '[data-testid="aqe-split-0-play-menu"]')
         wait_for_js_condition(
             editor.web,
@@ -245,14 +246,14 @@ def test_audible_unsupported_m4a_recovery_converts_plays_and_preserves_history(
         )
         assert "AQE-MEDIA-002" not in failure["statusText"]
         assert _sound_filename(_note.fields[0]) == source_name
-        failed_capture = finish_audible_capture(editor)
-        failed_verdict = analyze_audible_capture(
-            failed_capture,
-            contract=[{"kind": "silence", "minMs": 450, "maxMs": 6000}],
+        unsupported_capture = finish_audible_capture(editor)
+        unsupported_verdict = analyze_audible_capture(
+            unsupported_capture,
+            contract=[{"kind": "silence", "minMs": 450, "maxMs": 3000}],
             manifest_path=MANIFEST,
             source_file_name=source_name,
         )
-        assert failed_verdict["pass"], failed_verdict["diagnosis"]
+        assert unsupported_verdict["pass"], unsupported_verdict
 
         click_selector(editor.web, '[data-testid="aqe-convert-to-mp3-0"]', timeout=5.0)
         generated_name = _wait_for_generated_audio(
@@ -263,7 +264,6 @@ def test_audible_unsupported_m4a_recovery_converts_plays_and_preserves_history(
             timeout=30.0,
         )
         _wait_for_real_html_playback(editor)
-        install_audible_capture(editor, max_duration_ms=2000)
         wait_for_js_condition(
             editor.web,
             _real_audio_probe_js(),
@@ -272,26 +272,62 @@ def test_audible_unsupported_m4a_recovery_converts_plays_and_preserves_history(
             and value["state"]["sourceFilename"] == generated_name,
             timeout=8.0,
         )
+        _trusted_click_selector(editor, _button_selector("aqe:play"))
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None and value["playbackState"] == "paused",
+            timeout=5.0,
+        )
+        _drag_cursor_to_ratio(editor, 0.0)
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None
+            and value["playbackState"] == "paused"
+            and value["resumeRequiresRestart"] is True
+            and value["cursorMs"] <= 80,
+            timeout=5.0,
+        )
+        install_audible_capture(editor, max_duration_ms=1600)
+        click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+        _wait_for_real_html_playback(editor)
+        wait_for_js_condition(
+            editor.web,
+            _real_audio_probe_js(),
+            lambda value: value is not None
+            and value["currentTimeMs"] >= 700
+            and value["state"]["sourceFilename"] == generated_name,
+            timeout=5.0,
+        )
+        frames_before_stop = audible_capture_status(editor)["totalFrames"]
+        _trusted_click_selector(editor, _button_selector("aqe:play"))
+        wait_for_condition(
+            lambda: (status := audible_capture_status(editor))["totalFrames"]
+            >= frames_before_stop + status["sampleRate"] * 0.12,
+            timeout=3.0)
         capture = finish_audible_capture(editor)
-        _stop_real_audio_playback(editor)
         verdict = analyze_audible_capture(
             capture,
-            contract=[
-                {
-                    "kind": "segment",
-                    "source": source_name,
-                    "startMs": 0,
-                    "endMs": 700,
-                    "startPositionToleranceMs": 120,
-                    "endPositionToleranceMs": 170,
-                },
-            ],
+            contract=[{
+                "kind": "segment",
+                "source": source_name,
+                "startMs": 0,
+                "endMs": 700,
+                "startPositionToleranceMs": 120,
+                "endPositionToleranceMs": 170,
+            }],
             manifest_path=MANIFEST,
             source_file_name=source_name,
-            options={"durationToleranceMs": 180, "sourcePositionToleranceMs": 80},
+            options={
+                "durationToleranceMs": 180,
+                "maxLeadingSilenceMs": 250,
+                "sourcePositionToleranceMs": 80,
+            },
         )
         assert audible_capture_status(editor)["error"] is None
-        assert verdict["pass"], verdict["diagnosis"]
+        assert capture["totalFrames"] < capture["maxFrames"], capture
+        assert verdict["pass"], verdict
         assert anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID)["output_format"] == "flac"
 
         _trusted_click_selector(editor, _button_selector("aqe:undo"))

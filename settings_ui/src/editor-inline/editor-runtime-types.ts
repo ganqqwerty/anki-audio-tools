@@ -1,5 +1,6 @@
 import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
 import type { SizeReductionMode } from "../lib/size-reduction-parameters.js";
+import type { PendingEditorAutoplay, PendingEditorIntent } from "../lib/generated/contracts.js";
 import type {
   EditorButtonModes,
   EditorCommand as SharedEditorCommand,
@@ -39,13 +40,15 @@ export interface EditorRuntimeConfig {
   initialHistorySnapshotsByField?: Record<number, HistorySnapshot>;
   locale?: string;
   messages?: Record<string, string>;
-  pendingPostEditPlayback?: {
-    expectedDurationMs?: number;
-    fieldOrd: number;
-    generation: number;
-    requireGraphRedraw?: boolean;
-    sourceKind: "generated_edit" | "existing_media";
-    sourceFilename?: string;
+  pendingEditorIntent?: PendingEditorIntent | null;
+  backendEditorContext?: {
+    backendMediaGeneration: number;
+    editorSessionId: number;
+    mediaTargetsByField?: Record<number, {
+      backendMediaGeneration: number;
+      sourceFilename: string;
+    }>;
+    noteId: number | null;
   } | null;
   repeatPlaybackByDefault?: boolean;
   selectionMarkerShiftButtonsEnabled?: boolean;
@@ -103,10 +106,9 @@ export interface SplitButtonDefaults {
 }
 
 export interface EditorCommandPayload {
-  command: EditorCommand | "aqe:history-jump" | "aqe:open-url" | "aqe:post-edit-playback-ready";
+  command: EditorCommand | "aqe:history-jump" | "aqe:open-url";
   direction?: "redo" | "undo";
   fieldOrd?: number;
-  generation?: number;
   presetId?: string;
   sourceFilename?: string;
   startCursorMs?: number;
@@ -132,6 +134,7 @@ export interface EditorCommandPayload {
     volumeStepDb?: number;
   };
   graphSettings?: GraphSettings;
+  postEditAutoplay?: Pick<PendingEditorAutoplay, "kind" | "repeatPauseMs">;
 }
 
 export interface FieldSplitButtonState {

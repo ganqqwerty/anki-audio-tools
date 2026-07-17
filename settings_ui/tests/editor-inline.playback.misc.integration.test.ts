@@ -38,6 +38,7 @@ describe("editor inline playback fallback and diagnostics", () => {
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
     audio.pause = vi.fn<() => void>(() => undefined);

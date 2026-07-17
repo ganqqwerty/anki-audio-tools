@@ -10,12 +10,12 @@ from . import (
     editor_analysis,
     editor_bridge,
     editor_conversion,
+    editor_cursor_bridge,
     editor_dependencies,
     editor_deps_protocols,
     editor_frontend_callbacks,
     editor_history,
     editor_persistent_undo,
-    editor_playback,
     editor_presets,
     editor_processing,
     editor_recording,
@@ -34,7 +34,6 @@ from . import (
 _dispose_editor_frontend_controls = editor_frontend_callbacks._dispose_editor_frontend_controls
 _eval_history_availability = editor_frontend_callbacks._eval_history_availability
 _eval_history_snapshot = editor_frontend_callbacks._eval_history_snapshot
-_eval_playback_state = editor_frontend_callbacks._eval_playback_state
 _eval_status = editor_frontend_callbacks._eval_status
 _eval_visualizer_status = editor_frontend_callbacks._eval_visualizer_status
 _eval_visualizer_status_for_field = editor_frontend_callbacks._eval_visualizer_status_for_field
@@ -43,10 +42,8 @@ _eval_learner_recording_state = editor_frontend_callbacks._eval_learner_recordin
 _graph_redraw_expression = editor_frontend_callbacks._graph_redraw_expression
 _history_availability_expression = editor_frontend_callbacks._history_availability_expression
 _history_snapshot_expression = editor_frontend_callbacks._history_snapshot_expression
-_handle_post_edit_playback_ready = editor_frontend_callbacks._handle_post_edit_playback_ready
 _main = editor_frontend_callbacks._main
-pending_post_edit_playback_payload = editor_frontend_callbacks._pending_post_edit_playback_payload
-_playback_after_edit_expression = editor_frontend_callbacks._playback_after_edit_expression
+pending_editor_intent_payload = editor_frontend_callbacks._pending_editor_intent_payload
 _request_history_availability_after_edit = editor_frontend_callbacks._request_history_availability_after_edit
 _request_history_snapshot_after_edit = editor_frontend_callbacks._request_history_snapshot_after_edit
 _request_playback_after_edit = editor_frontend_callbacks._request_playback_after_edit
@@ -64,22 +61,20 @@ _set_busy_for_field = editor_frontend_callbacks._set_busy_for_field
 _EXPORT_NAMES = (
     "analysis_failed", "analysis_finished", "analyze_current_async",
     "analyze_field_from_frontend", "analyze_requested_field_async", "begin_field_analysis",
-    "can_persistent_undo", "cleanup_temp_playback", "convert_async",
+    "can_persistent_undo", "convert_async",
     "delete_selection_from_frontend", "delete_selection_with_request", "denoise_standard_async",
     "dispose_editor_frontend_controls", "dpdfnet_async", "end_field_analysis",
     "eval_history_availability", "eval_history_snapshot", "eval_learner_recording_state",
-    "eval_playback_state", "eval_status", "eval_visualizer_status",
+    "eval_status", "eval_visualizer_status",
     "eval_visualizer_status_for_field", "eval_with_callback", "fail_field_analysis_without_generation",
     "finish_ignored_field_analysis", "finish_shared_audio", "graph_redraw_expression",
     "handle_bridge_command", "handle_editor_frontend_log", "handle_non_processing_command",
-    "handle_pending_command_payload", "handle_post_edit_playback_ready", "history_availability_expression",
+    "handle_pending_command_payload", "history_availability_expression",
     "history_jump", "history_snapshot_expression", "is_current_field_analysis",
     "latest_persistent_undo_item", "log_editor_frontend_payload", "log_special_transform_failure",
     "main", "open_external_url", "open_settings_from_editor",
-    "parse_graph_analysis_request", "parse_region_delete_request", "pending_post_edit_playback_payload",
-    "persistent_undo_items", "pitch_hum_async", "play",
-    "play_ended", "play_with_request",
-    "playback_after_edit_expression",
+    "parse_graph_analysis_request", "parse_region_delete_request", "pending_editor_intent_payload",
+    "persistent_undo_items", "pitch_hum_async",
     "record_dpdfnet_failure_context", "record_learner_voice", "record_rnnoise_failure_context",
     "record_spleeter_failure_context", "record_standard_persistent_undo", "redo",
     "reduce_size_async", "refresh_editor_after_settings_save", "region_delete_log_context",
@@ -97,8 +92,7 @@ _EXPORT_NAMES = (
     "schedule_history_snapshot_attempt", "set_busy", "set_busy_for_field",
     "set_cursor_from_web", "share_current_audio_file", "share_failed",
     "share_learner_recording_file", "show_current_audio_file", "show_learner_recording_file",
-    "start_field_analysis_async", "stop_audio_playback",
-    "stop_learner_recording", "stop_playback", "stop_session_playback",
+    "start_field_analysis_async", "stop_learner_recording",
     "undo", "update_state_and_render", "voice_only_async", "write_generated_media",
 )
 DepsT = TypeVar("DepsT")
@@ -142,8 +136,8 @@ def _region_delete_deps() -> editor_deps_protocols.RegionDeleteDeps:
     return editor_dependencies.region_delete_deps(exports, exports)
 
 
-def _playback_deps() -> editor_deps_protocols.PlaybackDeps:
-    return _deps(editor_dependencies.playback_deps)
+def _cursor_deps() -> editor_deps_protocols.CursorDeps:
+    return _deps(editor_dependencies.cursor_deps)
 
 
 def _history_deps() -> editor_deps_protocols.HistoryDeps:
@@ -261,16 +255,6 @@ _region_delete_source_filename = editor_region_delete.region_delete_source_filen
 _region_delete_trigger = editor_region_delete.region_delete_trigger
 _region_delete_log_context = editor_region_delete.region_delete_log_context
 
-_stop_audio_playback = editor_playback.stop_audio_playback
-stop_session_playback = editor_runtime.stop_session_playback
-_cleanup_temp_playback = editor_playback.cleanup_temp_playback
-_play = _with_deps(editor_playback.play, _playback_deps)
-_play_ended = _with_deps(editor_playback.play_ended, _playback_deps)
-_stop_playback = _with_deps(editor_playback.stop_playback, _playback_deps)
-_play_with_request = _with_deps(editor_playback.play_with_request, _playback_deps)
-_playback_request_values = _with_deps(editor_playback.playback_request_values, _playback_deps)
-_apply_html_playback_request = _with_deps(editor_playback.apply_html_playback_request, _playback_deps)
-
 _record_learner_voice = _with_keyword_deps(
     editor_recording.record_learner_voice,
     _recording_deps,
@@ -279,6 +263,17 @@ _stop_learner_recording = _with_deps(
     editor_recording.stop_learner_recording,
     _recording_deps,
 )
+_cancel_learner_recording = _with_keyword_deps(
+    editor_recording.cancel_learner_recording,
+    _recording_deps,
+)
+
+# Public lifecycle-envelope façade. Ordinary editor links still dispatch through
+# the dependency namespace above; generated envelopes call these same wrappers.
+record_learner_voice = _record_learner_voice
+stop_learner_recording = _stop_learner_recording
+cancel_learner_recording = _cancel_learner_recording
+convert_async = _convert_async
 _undo = _with_deps(editor_history.undo, _history_deps)
 _redo = _with_deps(editor_history.redo, _history_deps)
 _history_jump = _with_deps(editor_history.history_jump, _history_deps)
@@ -329,4 +324,4 @@ _parse_graph_analysis_request = editor_analysis.parse_graph_analysis_request
 _begin_field_analysis = editor_analysis.begin_field_analysis
 _is_current_field_analysis = editor_analysis.is_current_field_analysis
 _end_field_analysis = editor_analysis.end_field_analysis
-_set_cursor_from_web = _with_deps(editor_playback.set_cursor_from_web, _playback_deps)
+_set_cursor_from_web = _with_deps(editor_cursor_bridge.set_cursor_from_web, _cursor_deps)

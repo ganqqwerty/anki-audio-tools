@@ -12,6 +12,7 @@ from anki_audio_quick_editor.editor_session import (
     GraphVisualizationState,
 )
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, build_prosody_track
+from anki_audio_quick_editor.recorder.service import RecorderService
 from tests.thread_fakes import ImmediateThread as _ImmediateThread
 
 
@@ -45,6 +46,8 @@ class _FakeRecorder:
         self.generation: int | None = None
         self.started = False
         self.stopped = False
+        self.cancelled: list[str] = []
+        self.disposed = False
         self._on_completed: Callable[[RecordingResult], None] | None = None
 
     def start(
@@ -90,6 +93,18 @@ class _FakeRecorder:
             )
         )
 
+    def cancel(self, reason: str) -> None:
+        if self.cancelled or self.disposed:
+            return
+        self.cancelled.append(reason)
+
+    def dispose(self) -> None:
+        if self.disposed:
+            return
+        if not self.cancelled and not self.stopped:
+            self.cancel("dispose")
+        self.disposed = True
+
 
 def _editor_with_target(tmp_path: Path) -> tuple[Any, EditorSession, Path]:
     media_dir = tmp_path / "media"
@@ -127,7 +142,6 @@ def _deps(
 ) -> SimpleNamespace:
     statuses: list[tuple[str, str]] = []
     busy_calls: list[tuple[int, bool, str]] = []
-    stopped: list[bool] = []
 
     def default_factory(output_path: Path, _mw: Any, _parent: Any) -> _FakeRecorder:
         if recorder is not None:
@@ -161,6 +175,7 @@ def _deps(
         is_busy=is_busy,
         main=lambda _editor, callback: callback(),
         recorder_factory=recorder_factory or default_factory,
+        recorder_service=RecorderService(),
         resolve_requested_field_media=lambda _editor, field_index, filename: (
             (filename, source_path)
             if field_index == editor.currentField and filename == "target.wav"
@@ -171,8 +186,6 @@ def _deps(
             (field_index, busy, message)
         ),
         statuses=statuses,
-        stopped=stopped,
-        stop_session_playback=lambda _session: stopped.append(True),
         threading=SimpleNamespace(Thread=_ImmediateThread),
         busy_calls=busy_calls,
     )

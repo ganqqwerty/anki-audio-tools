@@ -41,6 +41,12 @@ def configure_mutmut_package_aliases() -> None:
         "addon.anki_audio_quick_editor.prosody_cache",
         "addon.anki_audio_quick_editor.prosody_svg",
         "addon.anki_audio_quick_editor.prosody_types",
+        "addon.anki_audio_quick_editor.recorder",
+        "addon.anki_audio_quick_editor.recorder.model",
+        "addon.anki_audio_quick_editor.recorder.native_backend",
+        "addon.anki_audio_quick_editor.recorder.native_types",
+        "addon.anki_audio_quick_editor.recorder.service",
+        "addon.anki_audio_quick_editor.recorder.validation",
         "addon.anki_audio_quick_editor.settings_state",
         "addon.anki_audio_quick_editor.sound_refs",
     ]

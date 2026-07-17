@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  CANONICAL_TIME_MS_PER_PIXEL,
   MAX_ZOOMED_OUT_TIME_MS_PER_PIXEL,
-  canonicalTimeViewport,
   fullTimeViewport,
   hasScrollableTimeRange,
   isFullTimeViewport,
@@ -23,11 +21,8 @@ describe("editor inline time viewport", () => {
     expect(fullTimeViewport(Number.NaN)).toEqual({ startMs: 0, endMs: 0, durationMs: 0 });
   });
 
-  it("builds canonical viewports from rendered plot width", () => {
-    expect(CANONICAL_TIME_MS_PER_PIXEL).toBe(3.125);
+  it("caps zoomed-out viewports from rendered plot width", () => {
     expect(MAX_ZOOMED_OUT_TIME_MS_PER_PIXEL).toBe(25);
-    expect(canonicalTimeViewport(500, 600)).toEqual({ startMs: 0, endMs: 1875, durationMs: 500 });
-    expect(canonicalTimeViewport(4000, 600)).toEqual({ startMs: 0, endMs: 1875, durationMs: 4000 });
     expect(maxZoomedOutViewportSpan(600)).toBe(15000);
   });
 

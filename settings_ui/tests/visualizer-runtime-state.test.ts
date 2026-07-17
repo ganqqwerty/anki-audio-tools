@@ -4,22 +4,14 @@ import type { VisualizerElement } from "../src/editor-inline/types.js";
 import {
   clearVisualizerRuntimeStates,
   emptyVisualizerRuntimeState,
-  isRepeatPauseWaitingRuntime,
-  preserveStatusOnPlaybackEndRuntime,
   readLearnerDurationMsForVisualizer,
-  readPlaybackClockRuntime,
-  readPlaybackPassRuntime,
   readRepeatPauseSecondsRuntime,
   readRuntimeTimeViewport,
   readTargetDurationMsForVisualizer,
   readVisualizerRuntimeState,
   resetVisualizerRuntimeState,
   setLearnerDurationMsForVisualizer,
-  setPlaybackClockRuntime,
-  setPlaybackPassRuntime,
-  setPreserveStatusOnPlaybackEndRuntime,
   setRepeatPauseSecondsRuntime,
-  setRepeatPauseWaitingRuntime,
   setTargetDurationMsForVisualizer,
   writeRuntimeTimeViewport,
 } from "../src/editor-inline/visualizer-runtime-state.js";
@@ -43,7 +35,7 @@ describe("visualizer runtime state", () => {
   it("returns typed defaults without reading DOM projection", () => {
     const node = visualizer();
     node.dataset.targetDurationMs = "900";
-    node.dataset.playbackLoop = "true";
+    node.dataset.repeatPauseSeconds = "9";
 
     expect(readVisualizerRuntimeState(0)).toEqual(emptyVisualizerRuntimeState());
     expect(readTargetDurationMsForVisualizer(node, 1000)).toBe(1000);
@@ -75,59 +67,20 @@ describe("visualizer runtime state", () => {
     });
   });
 
-  it("stores playback pass and clock metadata", () => {
-    const node = visualizer();
-    vi.spyOn(performance, "now").mockReturnValue(12345);
-
-    setPlaybackPassRuntime(node, {
-      endMs: 900,
-      loop: true,
-      regionMode: "selection",
-      resetCursorMs: 250,
-      startMs: 100,
-    });
-    setPlaybackClockRuntime(node, 100);
-    node.dataset.playbackLoop = "false";
-    node.dataset.playbackResetCursorMs = "0";
-
-    expect(readPlaybackPassRuntime(node, 10)).toEqual({
-      loop: true,
-      resetCursorMs: 250,
-    });
-    expect(readPlaybackClockRuntime(node)).toEqual({
-      playStartedAt: 12345,
-      playStartMs: 100,
-    });
-  });
-
-  it("stores repeat pause and preserve-status flags", () => {
+  it("stores repeat pause", () => {
     const node = visualizer();
 
     expect(setRepeatPauseSecondsRuntime(node, 25)).toBe(10);
-    setRepeatPauseWaitingRuntime(node, true);
-    setPreserveStatusOnPlaybackEndRuntime(node, true);
-
     expect(readRepeatPauseSecondsRuntime(node)).toBe(10);
-    expect(isRepeatPauseWaitingRuntime(node)).toBe(true);
-    expect(preserveStatusOnPlaybackEndRuntime(node)).toBe(true);
   });
 
   it("resets state and projection", () => {
     const node = visualizer();
     setTargetDurationMsForVisualizer(node, 700);
-    setPlaybackPassRuntime(node, {
-      endMs: 700,
-      loop: true,
-      regionMode: "full",
-      resetCursorMs: 111,
-      startMs: 0,
-    });
 
     resetVisualizerRuntimeState(0, node);
 
     expect(readVisualizerRuntimeState(0)).toEqual(emptyVisualizerRuntimeState());
     expect(node.dataset.targetDurationMs).toBe("0");
-    expect(node.dataset.playbackLoop).toBe("false");
-    expect(node.dataset.playbackResetCursorMs).toBe("0");
   });
 });

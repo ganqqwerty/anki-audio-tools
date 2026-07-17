@@ -67,6 +67,7 @@ describe("editor inline split-button command integration", () => {
     expect(peekPendingCommandPayload()?.command).toBe("aqe:denoise-standard");
     expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
     expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("standard");
+    consumePendingCommandPayload();
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();

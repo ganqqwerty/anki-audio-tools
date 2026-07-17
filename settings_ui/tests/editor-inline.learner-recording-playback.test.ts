@@ -8,6 +8,7 @@ import {
   bridgeCommands,
   mockAnimationFrames,
   muteConsole,
+  publishRecorderSnapshot,
   renderFields,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -91,11 +92,14 @@ describe("editor inline learner recording HTML playback", () => {
         sourceFilename: "voice recording.wav",
       },
     });
+    const audio = learnerAudio();
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     expect(handleHtmlPlaybackCommand(0)).toBe(true);
+    audio.dispatchEvent(new Event("loadedmetadata"));
     await flushMicrotasks();
 
     expect(playSpy).toHaveBeenCalledTimes(1);
-    const audio = learnerAudio();
     expect(audio.getAttribute("src")).toBe("clip%20one.mp3");
     expect(readHtmlAudioSessionState(0)).toMatchObject({
       kind: "playing",
@@ -199,13 +203,12 @@ describe("editor inline learner recording HTML playback", () => {
 });
 
 function publishReadyRecording(
-  overrides: Partial<Parameters<NonNullable<typeof window.__aqeSetLearnerRecordingState>>[0]> = {},
+  overrides: Parameters<typeof publishRecorderSnapshot>[0] = {},
 ): void {
-  window.__aqeSetLearnerRecordingState?.({
+  publishRecorderSnapshot({
+    attemptId: 1,
     fieldOrd: 0,
-    generation: 1,
     mediaFilename: "target__aqe_voice.wav",
-    playbackStatus: "stopped",
     recordingDurationMs: 500,
     startCursorMs: 0,
     status: "ready",

@@ -10,9 +10,22 @@ from unittest.mock import MagicMock
 import aqt
 
 
+class FakeSignal:
+    def __init__(self) -> None:
+        self.callbacks = []
+
+    def connect(self, callback) -> None:
+        self.callbacks.append(callback)
+
+    def emit(self, *args: object) -> None:
+        for callback in self.callbacks:
+            callback(*args)
+
+
 class FakeQDialog:
     def __init__(self, parent: object) -> None:
         self.parent = parent
+        self.finished = FakeSignal()
 
     def setWindowTitle(self, title: str) -> None:
         self.window_title = title
@@ -45,6 +58,7 @@ class FakeWebView:
         self.eval_calls: list[str] = []
         self.page_object = SimpleNamespace(runJavaScript=MagicMock())
         self.bridge = None
+        self.cleanup_calls = 0
         self.context = None
         self.html = ""
 
@@ -58,6 +72,9 @@ class FakeWebView:
 
     def eval(self, js: str) -> None:
         self.eval_calls.append(js)
+
+    def cleanup(self) -> None:
+        self.cleanup_calls += 1
 
     def page(self):
         return self.page_object
@@ -150,6 +167,29 @@ def test_settings_dialog_run_js_uses_eval_and_page_callback(monkeypatch, request
     dialog._webview.page_object.runJavaScript.assert_called_once_with("window.answer", callback)
 
 
+def test_settings_dialog_drops_async_publication_after_finished(monkeypatch, request) -> None:
+    settings = _reload_settings_with_fake_qt(request)
+    monkeypatch.setattr(settings, "build_initial_state", lambda config: json.dumps({"config": config}))
+    eval_functions = []
+    monkeypatch.setattr(
+        settings,
+        "handle_settings_command",
+        lambda _cmd, eval_fn, _dialog: eval_functions.append(eval_fn) or True,
+    )
+    dialog = settings.SettingsDialog(parent=object())
+    assert dialog._webview.bridge('bridge:{"command":"settings.async"}') is True
+    eval_fn = eval_functions[0]
+
+    eval_fn("window.onAsyncDone({before: true})")
+    dialog.finished.emit(0)
+    eval_fn("window.onAsyncDone({after: true})")
+
+    assert dialog._accepts_async_publications is False
+    assert dialog._cleaned_up is False
+    assert dialog._webview.cleanup_calls == 0
+    assert dialog._webview.eval_calls == ["window.onAsyncDone({before: true})"]
+
+
 def test_settings_dialog_opens_runtime_installer(monkeypatch, request) -> None:
     settings = _reload_settings_with_fake_qt(request)
     import anki_audio_quick_editor.runtime_installer_dialog as runtime_installer_dialog
@@ -175,14 +215,17 @@ def _reload_settings_with_fake_qt(request):
 
     original_qdialog = aqt.qt.QDialog
     original_qvboxlayout = aqt.qt.QVBoxLayout
+    original_qconnect = aqt.qt.qconnect
     original_webview = aqt.webview.AnkiWebView
     aqt.qt.QDialog = FakeQDialog
     aqt.qt.QVBoxLayout = FakeLayout
+    aqt.qt.qconnect = lambda signal, callback: signal.connect(callback)
     aqt.webview.AnkiWebView = FakeWebView
 
     def restore_settings_module() -> None:
         aqt.qt.QDialog = original_qdialog
         aqt.qt.QVBoxLayout = original_qvboxlayout
+        aqt.qt.qconnect = original_qconnect
         aqt.webview.AnkiWebView = original_webview
         importlib.reload(settings)
 

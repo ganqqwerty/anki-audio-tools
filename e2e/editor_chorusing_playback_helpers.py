@@ -17,7 +17,7 @@ def _configure_play_repeat(editor, *, pause_seconds: float) -> None:
           const repeat = document.querySelector('[data-testid="aqe-repeat-0"]');
           const pause = document.querySelector('[data-testid="aqe-split-0-repeat-value"]');
           if (!repeat || !pause) return null;
-          if (repeat.getAttribute("aria-pressed") !== "true") repeat.click();
+          if (!repeat.checked) repeat.click();
           pause.value = "{pause_seconds}";
           pause.dispatchEvent(new Event("input", {{ bubbles: true }}));
           return window.__aqeGraphStateForTest?.(0) || null;
@@ -43,7 +43,7 @@ def _configure_play_auto_advance(editor, *, pause_seconds: float, repeat_count: 
           const autoAdvance = document.querySelector('[data-testid="aqe-split-0-play-auto-advance"]');
           const repeatCount = document.querySelector('[data-testid="aqe-split-0-play-auto-advance-repeats"]');
           if (!repeat || !pause || !autoAdvance || !repeatCount) return null;
-          if (repeat.getAttribute("aria-pressed") !== "true") repeat.click();
+          if (!repeat.checked) repeat.click();
           pause.value = "{pause_seconds}";
           pause.dispatchEvent(new Event("input", {{ bubbles: true }}));
           if (!autoAdvance.checked) autoAdvance.click();

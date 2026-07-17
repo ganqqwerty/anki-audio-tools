@@ -5,8 +5,8 @@ import type {
 } from "./recording-state.js";
 
 export interface LearnerRecordingFieldState {
+  attemptId: number | null;
   failureMessage: string;
-  generation: number | null;
   mediaFilename: string;
   playbackStatus: LearnerPlaybackStatus;
   recordingDurationMs: number;
@@ -19,8 +19,8 @@ const recordingStates: Map<number, LearnerRecordingFieldState> = new Map();
 
 export function emptyLearnerRecordingState(): LearnerRecordingFieldState {
   return {
+    attemptId: null,
     failureMessage: "",
-    generation: null,
     mediaFilename: "",
     playbackStatus: "stopped",
     recordingDurationMs: 0,
@@ -28,10 +28,6 @@ export function emptyLearnerRecordingState(): LearnerRecordingFieldState {
     startCursorMs: 0,
     targetDurationMs: 0,
   };
-}
-
-function normalizePlaybackStatus(value: LearnerRecordingStatePayload["playbackStatus"]): LearnerPlaybackStatus {
-  return value === "playing" || value === "paused" ? value : "stopped";
 }
 
 function normalizeStartCursorMs(value: unknown, fallback: number): number {
@@ -55,10 +51,10 @@ export function writeLearnerRecordingState(
   const previous = readLearnerRecordingState(ord);
   const status = payload.status || "idle";
   const next: LearnerRecordingFieldState = {
+    attemptId: payload.attemptId == null ? null : payload.attemptId,
     failureMessage: payload.failureMessage || "",
-    generation: payload.generation == null ? null : payload.generation,
     mediaFilename: payload.mediaFilename || "",
-    playbackStatus: status === "ready" ? normalizePlaybackStatus(payload.playbackStatus) : "stopped",
+    playbackStatus: status === "ready" ? previous.playbackStatus : "stopped",
     recordingDurationMs: status === "idle" && payload.recordingDurationMs == null
       ? 0
       : normalizeDurationMs(payload.recordingDurationMs, previous.recordingDurationMs),
@@ -70,6 +66,16 @@ export function writeLearnerRecordingState(
       ? 0
       : normalizeDurationMs(payload.targetDurationMs, previous.targetDurationMs),
   };
+  recordingStates.set(ord, next);
+  return next;
+}
+
+export function writeLearnerPlaybackStatus(
+  ord: number,
+  playbackStatus: LearnerPlaybackStatus,
+): LearnerRecordingFieldState {
+  const previous = readLearnerRecordingState(ord);
+  const next = { ...previous, playbackStatus };
   recordingStates.set(ord, next);
   return next;
 }

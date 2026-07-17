@@ -175,7 +175,7 @@ describe("editor inline visualizer renderer", () => {
     applyVisualizerTimeViewport(visualizer, { startMs: 0, endMs: 500, durationMs: 1000 });
     const zoomedPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
 
-    expect(fullPath).toContain("L 170.00 80.80");
+    expect(fullPath).toContain("L 310.00 80.80");
     expect(zoomedPath).toContain("L 610.00 80.80");
   });
 
@@ -227,7 +227,7 @@ describe("editor inline visualizer renderer", () => {
     expect(visualizer.querySelectorAll(".aqe-learner-pitch-path")).toHaveLength(0);
   });
 
-  it("resets new graph tracks to canonical rendered-pixel scale", () => {
+  it("fits new graph tracks to the rendered plot width", () => {
     const shortTrack: NormalizedProsodyTrack = {
       ...voicedTrack,
       durationMs: 500,
@@ -243,10 +243,10 @@ describe("editor inline visualizer renderer", () => {
 
     renderVisualizerTrack(visualizer, shortTrack);
 
-    expect(readVisualizerTimeViewport(visualizer)).toEqual({ startMs: 0, endMs: 1875, durationMs: 500 });
+    expect(readVisualizerTimeViewport(visualizer)).toEqual({ startMs: 0, endMs: 500, durationMs: 500 });
     const pitchPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
-    expect(pitchPath).toContain("L 170.00 63.20");
-    expect(pitchPath).not.toContain("L 610.00");
+    expect(pitchPath).toContain("L 310.00 80.80");
+    expect(pitchPath).toContain("L 610.00 63.20");
   });
 
   it("syncs the plot clip and x-axis to the rendered SVG width", () => {
@@ -261,7 +261,7 @@ describe("editor inline visualizer renderer", () => {
     const lastTick = Array.from(visualizer.querySelectorAll<SVGLineElement>(".aqe-x-tick")).at(-1)!;
     expect(svg.getAttribute("viewBox")).toBe("0 0 1240 150");
     expect(clipRect.getAttribute("width")).toBe("1220");
-    expect(intensity.getAttribute("d")).toContain("L 329.96 116.00 Z");
+    expect(intensity.getAttribute("d")).toContain("L 1230.00 116.00 Z");
     expect(lastTick.getAttribute("x1")).toBe("1230.00");
   });
 

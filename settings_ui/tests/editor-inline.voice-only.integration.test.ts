@@ -33,6 +33,7 @@ describe("editor inline Voice Only integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
     await Promise.resolve();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-preset-voice_only"]')!.click();
+    await Promise.resolve();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
 
     expect(bridgeCommands()).toContain("aqe:command-payload");

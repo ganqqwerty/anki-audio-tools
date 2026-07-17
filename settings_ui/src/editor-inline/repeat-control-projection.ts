@@ -3,7 +3,7 @@ import { t } from "../lib/i18n.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import {
   playRepeatMenuButtonForOrd,
-  repeatButtonsForOrd,
+  repeatControlsForOrd,
 } from "./dom-selectors.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
 import type { VisualizerElement } from "./types.js";
@@ -20,9 +20,8 @@ export function projectRepeatEnabled(visualizer: VisualizerElement, enabled: boo
     ...current,
     playback: { ...current.playback, repeat: enabled },
   });
-  for (const button of repeatButtonsForOrd(ord)) {
-    button.ariaPressed = enabled ? "true" : "false";
-    button.dataset.aqeButtonState = enabled ? "active" : "default";
+  for (const control of repeatControlsForOrd(ord)) {
+    control.checked = enabled;
   }
   const menuButton = playRepeatMenuButtonForOrd(ord);
   if (!menuButton) return;

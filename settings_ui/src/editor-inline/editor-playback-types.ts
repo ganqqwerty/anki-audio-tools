@@ -1,7 +1,6 @@
-import type { ChorusingState } from "./chorusing-state";
 import type { GraphSettings } from "./graph-settings.js";
-import type { HtmlAudioReadinessReason, HtmlAudioReadinessState } from "./audio-readiness.js";
-import type { PlaybackProgressPlan } from "./playback-progress-clock.js";
+import type { HtmlAudioReadinessReason, HtmlAudioReadinessState } from "./html-audio-readiness-types.js";
+import type { PendingEditorAutoplay } from "../lib/generated/contracts.js";
 
 export type { FrontendLogPayload as FrontendLogQueueItem } from "../lib/generated/contracts.js";
 
@@ -58,6 +57,7 @@ export interface RegionDeleteRequest {
   operation: RegionDeleteOperation;
   ord: number;
   playbackActive: boolean;
+  postEditAutoplay?: Pick<PendingEditorAutoplay, "kind" | "repeatPauseMs">;
   selectionEndMs: number;
   selectionStartMs: number;
   sourceFilename: string;
@@ -109,6 +109,19 @@ export interface GraphStateForTest {
   pitchMarkerVisible: boolean;
   pitchMarkerX: number | null;
   pitchMarkerY: number | null;
+  practiceProgramKind: "chorusing" | "once" | "record_once" | "repeat" | null;
+  practiceProgramPhase:
+    | "cancelled"
+    | "completed"
+    | "countdown"
+    | "failed"
+    | "paused"
+    | "playing"
+    | "recording"
+    | "starting_recorder"
+    | "stopping_transport"
+    | "waiting"
+    | null;
   buttonIconCount: number;
   buttonIconStrokeValues: string[];
   playButtonLabel: string;
@@ -127,7 +140,6 @@ export interface GraphStateForTest {
   regionDeleteRestButtonHidden: boolean;
   repeatEnabled: boolean;
   repeatPauseSeconds: number;
-  repeatPauseWaiting: boolean;
   targetDurationMs: number;
   resumeRequiresRestart: boolean;
   selectionActive: boolean;
@@ -187,7 +199,6 @@ export interface CursorPositionForTest {
 }
 
 export type AudioClockElement = HTMLAudioElement & {
-  __aqeClockHandlersInstalled?: boolean;
   __aqeTestDriverInstalled?: boolean;
   __aqeTestFrame?: number | null;
   __aqeTestLastNow?: number;
@@ -195,27 +206,11 @@ export type AudioClockElement = HTMLAudioElement & {
 };
 
 export type VisualizerElement = HTMLElement & {
-  __aqeAudioClockAvailable?: boolean;
-  __aqeAudioClockFallback?: boolean;
-  __aqeAudioClockLastSeekedMs?: number;
-  __aqeHtmlAudioFailureReason?: HtmlAudioReadinessReason | "";
-  __aqeHtmlAudioMediaErrorCode?: number | null;
-  __aqeHtmlAudioMediaResponseStatus?: number | null;
   __aqeCursorPaintedAtMs?: number;
   __aqeCursorRenderCache?: CursorRenderCache;
   __aqeCursorTextPaintedAtMs?: number;
-  __aqeLiveProgressMs?: number;
-  __aqePlaybackGeneration?: number;
-  __aqePlaybackPlan?: PlaybackProgressPlan;
-  __aqeChorusingState?: ChorusingState;
   __aqeLearnerTrack?: NormalizedProsodyTrack;
-  __aqeRecordingCursorFrame?: number | null;
-  __aqeRecordingStartedAt?: number | null;
-  __aqeRecordCountdownTimer?: number | null;
   __aqeTrack?: NormalizedProsodyTrack;
-  __aqePlaybackTimer?: number | null;
-  __aqeRepeatPauseTimer?: number | null;
-  __aqeRepeatPauseOverlayTimer?: number | null;
 };
 
 interface CursorRenderCache {

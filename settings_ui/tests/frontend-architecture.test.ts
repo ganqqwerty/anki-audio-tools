@@ -46,21 +46,14 @@ const querySelectorAllowlist = new Set([
 ]);
 
 const requestAnimationFrameAllowlist = new Set([
-  "src/editor-inline/html-audio-session-controller.ts",
-  "src/editor-inline/playback-controller.ts",
-  "src/editor-inline/playback-controller-frame.ts",
-  "src/editor-inline/learner-recording-playback.ts",
+  "src/editor-inline/html-audio-session-resources.ts",
   "src/editor-inline/recording-actions.ts",
   "src/editor-inline/recording-actions-state.ts",
   "src/editor-inline/test-contract.ts",
 ]);
 
 const audioElementAllowlist = new Set([
-  "src/editor-inline/audio-clock.ts",
   "src/editor-inline/html-audio-session-audio-element.ts",
-  "src/editor-inline/learner-recording-playback.ts",
-  "src/editor-inline/playback-controller.ts",
-  "src/editor-inline/playback-controller-audio.ts",
   "src/editor-inline/test-contract.ts",
 ]);
 
@@ -69,12 +62,10 @@ const internalWindowStateNames = new Set([
   "__aqeHistoryAvailabilityByField",
   "__aqeHistorySnapshotsByField",
   "__aqeLastCursorIntent",
-  "__aqeLastPlaybackRequest",
   "__aqePendingCommandPayload",
   "__aqePendingGraphRedrawField",
   "__aqePendingGraphRedrawPreserveLearnerOverlay",
   "__aqePendingGraphRedrawSource",
-  "__aqePendingPlaybackRequest",
   "__aqeSplitButtonStates",
 ]);
 
@@ -196,15 +187,55 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps source playback boundaries out of the legacy progress controller", () => {
+  it("keeps practice program models pure", () => {
+    const forbiddenImports = [
+      "bridge",
+      "editor-practice-controller",
+      "field-state-store",
+      "html-audio-session-controller",
+      "recording-actions",
+      "visualizer-runtime-state",
+    ];
+    const forbiddenRuntimeTerms = [
+      "clearInterval",
+      "clearTimeout",
+      "document",
+      "HTMLAudioElement",
+      "pycmd",
+      "setInterval",
+      "setTimeout",
+      "window",
+    ];
+    const offenders = practiceModelFiles().flatMap((path) => {
+      const relPath = toRelPath(path);
+      const source = withoutComments(readFileSync(path, "utf-8"));
+      const runtimeSource = withoutStringLiterals(source);
+      return [
+        ...forbiddenImports
+          .filter((module) => importsParentRelativeModule(source, module))
+          .map((module) => `${relPath}: imports ${module}`),
+        ...forbiddenRuntimeTerms
+          .filter((term) => new RegExp(`\\b${term}\\b`).test(runtimeSource))
+          .map((term) => `${relPath}: runtime term ${term}`),
+      ];
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps deleted legacy playback controllers absent", () => {
+    expect([
+      "audio-clock.ts",
+      "playback-controller.ts",
+      "playback-controller-audio.ts",
+      "playback-controller-frame.ts",
+      "playback-controller-state.ts",
+      "playback-plan-state.ts",
+    ].filter((file) => existsSync(join(sourceRoot, "editor-inline", file)))).toEqual([]);
     const forbiddenPatterns = [
       {
         relPath: "src/editor-inline/actions-playback.ts",
         patterns: [/handleSourcePlaybackBoundary/, /source-playback-controller/],
-      },
-      {
-        relPath: "src/editor-inline/playback-controller.ts",
-        patterns: [/handleSourceLoopBoundary/],
       },
       {
         relPath: "src/editor-inline/actions-audio-clock.ts",
@@ -221,14 +252,33 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps source audio element mutation in the HTML audio session operations", () => {
-    const source = withoutComments(readFileSync(join(projectRoot, "src/editor-inline/audio-clock.ts"), "utf-8"));
-    const forbiddenExports = Array.from(
-      source.matchAll(/export function (pauseAudioClock|clearAudioClockSource|reloadAudioClockSource|configureAudioClock|setAudioClockLoop)\b/g),
-      (match) => match[1],
-    );
+  it("keeps deleted practice boundary and countdown hooks absent", () => {
+    expect([
+      "selection-auto-advance.ts",
+      "selection-auto-advance-controller.ts",
+    ].filter((file) => existsSync(join(sourceRoot, "editor-inline", file)))).toEqual([]);
 
-    expect(forbiddenExports).toEqual([]);
+    const forbiddenTerms = [
+      "__aqeRecordCountdownTimer",
+      "__aqeStopEditorPlayback",
+      "RepeatDelayElapsed",
+      "repeat_waiting",
+      "setHtmlAudioSourceBoundaryHandler",
+      "sourceBoundaryHandler",
+    ];
+    const offenders = productionFiles().flatMap((path) => {
+      const relPath = toRelPath(path);
+      const source = withoutComments(readFileSync(path, "utf-8"));
+      return forbiddenTerms
+        .filter((term) => source.includes(term))
+        .map((term) => `${relPath}: ${term}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps source audio element mutation in the HTML audio session operations", () => {
+    expect(existsSync(join(projectRoot, "src/editor-inline/audio-clock.ts"))).toBe(false);
   });
 
   it("keeps reviewer panel trigger as a runtime-mounted selector client", () => {
@@ -349,6 +399,12 @@ function htmlAudioSessionModelFiles(): string[] {
     });
 }
 
+function practiceModelFiles(): string[] {
+  return productionFiles()
+    .filter((path) => toRelPath(path).startsWith("src/editor-inline/practice/"))
+    .filter((path) => !path.endsWith("/runtime.ts"));
+}
+
 function isHandMaintainedFrontendFile(relPath: string): boolean {
   return ![
     /^src\/lib\/generated\//,
@@ -409,6 +465,11 @@ function importsFrontendArea(source: string, prefix: string): boolean {
 
 function importsRelativeModule(source: string, module: string): boolean {
   const pattern = new RegExp(`\\bfrom\\s+["']\\./${module}\\.js["']|\\bimport\\s+["']\\./${module}\\.js["']`);
+  return pattern.test(source);
+}
+
+function importsParentRelativeModule(source: string, module: string): boolean {
+  const pattern = new RegExp(`\\bfrom\\s+["']\\.\\./${module}\\.js["']|\\bimport\\s+["']\\.\\./${module}\\.js["']`);
   return pattern.test(source);
 }
 

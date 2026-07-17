@@ -1,0 +1,652 @@
+[
+  {
+    "context": "editor",
+    "command": "aqe:analyze-field",
+    "constant": "CMD_ANALYZE_FIELD",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:chorusing-next",
+    "constant": "CMD_BACK_CHAIN_NEXT",
+    "category": "chorusing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:chorusing-previous",
+    "constant": "CMD_BACK_CHAIN_PREVIOUS",
+    "category": "chorusing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:command-payload",
+    "constant": "CMD_COMMAND_PAYLOAD",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:convert",
+    "constant": "CMD_CONVERT",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:delete-rest",
+    "constant": "CMD_DELETE_REST",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:delete-selection",
+    "constant": "CMD_DELETE_SELECTION",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:denoise-standard",
+    "constant": "CMD_DENOISE_STANDARD",
+    "category": "denoise",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:dpdfnet",
+    "constant": "CMD_DPDFNET",
+    "category": "denoise",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:faster",
+    "constant": "CMD_FASTER",
+    "category": "processing",
+    "handler": "update_state_and_render()",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:history-jump",
+    "constant": "CMD_HISTORY_JUMP",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:open-url",
+    "constant": "CMD_OPEN_URL",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:pitch-hum",
+    "constant": "CMD_PITCH_HUM",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:preset",
+    "constant": "CMD_PRESET",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:redo",
+    "constant": "CMD_REDO",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:reduce-size",
+    "constant": "CMD_REDUCE_SIZE",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:remove-pauses",
+    "constant": "CMD_REMOVE_PAUSES",
+    "category": "processing",
+    "handler": "update_state_and_render()",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:rnnoise",
+    "constant": "CMD_RNNOISE",
+    "category": "denoise",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:save-split-defaults",
+    "constant": "CMD_SAVE_SPLIT_DEFAULTS",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:settings",
+    "constant": "CMD_SETTINGS",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:share",
+    "constant": "CMD_SHARE",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:share-recording",
+    "constant": "CMD_SHARE_RECORDING",
+    "category": "recording",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:show-recording-file",
+    "constant": "CMD_SHOW_RECORDING_FILE",
+    "category": "recording",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:slower",
+    "constant": "CMD_SLOWER",
+    "category": "processing",
+    "handler": "update_state_and_render()",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:source-metadata",
+    "constant": "CMD_SOURCE_METADATA",
+    "category": "non_processing",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:voice-only",
+    "constant": "CMD_VOICE_ONLY",
+    "category": "denoise",
+    "handler": "",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:volume-down",
+    "constant": "CMD_VOLUME_DOWN",
+    "category": "processing",
+    "handler": "update_state_and_render()",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:volume-up",
+    "constant": "CMD_VOLUME_UP",
+    "category": "processing",
+    "handler": "update_state_and_render()",
+    "protocol": "raw pycmd (aqe:* namespace)",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:scan",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "eval_status + window.__aqeScan()",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:analyze",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "analyze_current_async()",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:set-cursor",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "set_cursor_from_web()",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:frontend-log",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "handle_editor_frontend_log()",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:show-file",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "show_current_audio_file()",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:undo",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "undo()",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "aqe:command-payload",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "handle_pending_command_payload()",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "editor",
+    "command": "focus:*",
+    "constant": "",
+    "category": "non_processing",
+    "handler": "editor.currentField = ord",
+    "protocol": "raw pycmd",
+    "ts_sender": "src/editor-inline/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.editor_bridge.py"
+  },
+  {
+    "context": "settings",
+    "command": "settings.async",
+    "constant": "",
+    "category": "settings",
+    "handler": "handle_async_settings_command",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/lib/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.settings.commands.py"
+  },
+  {
+    "context": "settings",
+    "command": "settings.cancel",
+    "constant": "",
+    "category": "settings",
+    "handler": "dialog.reject",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/lib/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.settings.commands.py"
+  },
+  {
+    "context": "settings",
+    "command": "settings.check_media",
+    "constant": "",
+    "category": "settings",
+    "handler": "_handle_check_media",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/lib/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.settings.commands.py"
+  },
+  {
+    "context": "settings",
+    "command": "settings.open_runtime_installer",
+    "constant": "",
+    "category": "settings",
+    "handler": "_handle_open_runtime_installer",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/lib/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.settings.commands.py"
+  },
+  {
+    "context": "settings",
+    "command": "settings.reset_defaults",
+    "constant": "",
+    "category": "settings",
+    "handler": "_handle_reset_defaults",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/lib/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.settings.commands.py"
+  },
+  {
+    "context": "settings",
+    "command": "settings.save",
+    "constant": "",
+    "category": "settings",
+    "handler": "_handle_settings_save",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/lib/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.settings.commands.py"
+  },
+  {
+    "context": "batch",
+    "command": "batch.cancel",
+    "constant": "",
+    "category": "batch",
+    "handler": "self._cancel_or_close",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/batch/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.browser_dialog.py"
+  },
+  {
+    "context": "batch",
+    "command": "batch.close",
+    "constant": "",
+    "category": "batch",
+    "handler": "self._close_dialog",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/batch/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.browser_dialog.py"
+  },
+  {
+    "context": "batch",
+    "command": "batch.copy_log",
+    "constant": "",
+    "category": "batch",
+    "handler": "_clipboard_set_text",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/batch/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.browser_dialog.py"
+  },
+  {
+    "context": "batch",
+    "command": "frontend.log",
+    "constant": "",
+    "category": "batch",
+    "handler": "_handle_frontend_log",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/batch/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.browser_dialog.py"
+  },
+  {
+    "context": "batch",
+    "command": "webview.open_url",
+    "constant": "",
+    "category": "batch",
+    "handler": "open_trusted_external_url_from_payload",
+    "protocol": "bridge:{json} envelope",
+    "ts_sender": "src/batch/bridge.ts",
+    "python_handler": "anki_audio_quick_editor.browser_dialog.py"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetBusy",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "setControlsBusy",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetHistoryAvailability",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "setHistoryAvailability",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetHistorySnapshot",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "setHistorySnapshot",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetLearnerRecordingState",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "receiveRecorderSnapshot",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetLearnerVisualizer",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "setLearnerVisualizer",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetStatus",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "setStatus",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetVisualizer",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "setVisualizer",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeSetVisualizerStatus",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "setVisualizerStatusFromPython",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeResetGraphAfterEdit",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "resetGraphAfterEdit",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeGetCursorMs",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "getCursorMs",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeGetCursorIntent",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "getCursorIntent",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqePrepareForNewNote",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "prepareForNewNote",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqePopFrontendLog",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "popEditorFrontendLog",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqePopPendingGraphAnalysisRequest",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "popPendingGraphAnalysisRequest",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqePopPendingRegionDeleteRequest",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "popPendingRegionDeleteRequest",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqePopPendingSplitDefaultSaveRequest",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "popPendingSplitDefaultSaveRequest",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqePopPendingSourceMetadataRequest",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "popPendingSourceMetadataRequest",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  },
+  {
+    "context": "window_contract",
+    "command": "__aqeReceiveSourceMetadataResponse",
+    "constant": "",
+    "category": "python_to_js",
+    "handler": "receiveSourceMetadataResponse",
+    "protocol": "evalWithCallback / web.eval",
+    "ts_sender": "N/A (Python calls JS)",
+    "python_handler": "anki_audio_quick_editor.editor_frontend/"
+  }
+]

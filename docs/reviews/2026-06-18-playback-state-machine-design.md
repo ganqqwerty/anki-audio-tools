@@ -4,6 +4,13 @@ Date: 2026-06-18
 
 Related audit: [Playback State Machine Risk Audit](2026-06-18-playback-state-machine-risks.md)
 
+> **Superseded (2026-07-16).** This backend-mirror design is retained as
+> historical context only. The implemented
+> [playback/recording state-management mitigation plan](../plans/2026-07-16-playback-recording-state-management-mitigation-plan.md)
+> makes the frontend HTML-audio transport the sole playback owner, moves
+> multi-pass behavior into pure practice programs, and deletes the Python
+> playback mirror and native editor-playback states described below.
+
 ## Purpose
 
 This document proposes the conceptual backend playback state machine that should replace the remaining direct playback flag writes identified in the risk audit. It is not an implementation plan. It defines the invariants, state vocabulary, transition boundaries, and testing shape that an implementation plan should preserve.

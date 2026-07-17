@@ -29,9 +29,9 @@ export function sendRegionDelete(
   if (!request) return;
   const command = commandForOperation(operation);
   if (typeof node.focus === "function") node.focus();
-  rememberPostEditPlaybackIntent(ord);
+  const postEditAutoplay = rememberPostEditPlaybackIntent(ord);
   stopProgressClock(visualizer, { clearAudio: true });
-  setPendingRegionDeleteRequest(request);
+  setPendingRegionDeleteRequest({ ...request, postEditAutoplay });
   window.__aqeActiveField = ord;
   logger.info("region delete request queued", {
     ord,

@@ -17,8 +17,7 @@ def _frontend_exports() -> SimpleNamespace:
         graph_redraw_expression=_graph_redraw_expression,
         history_availability_expression=_history_availability_expression,
         history_snapshot_expression=_history_snapshot_expression,
-        playback_after_edit_expression=_playback_after_edit_expression,
-        pending_post_edit_playback_payload=_pending_post_edit_playback_payload,
+        pending_editor_intent_payload=_pending_editor_intent_payload,
         request_history_availability_after_edit=_request_history_availability_after_edit,
         request_history_snapshot_after_edit=_request_history_snapshot_after_edit,
         retry_history_availability=_retry_history_availability,
@@ -54,15 +53,6 @@ def _eval_visualizer_status_for_field(
     kind: str = "info",
 ) -> None:
     editor_frontend.eval_visualizer_status_for_field(editor, field_index, message, kind=kind)
-
-
-def _eval_playback_state(
-    editor: Any,
-    field_index: int | None,
-    state: str,
-    cursor_ms: int,
-) -> None:
-    editor_frontend.eval_playback_state(editor, field_index, state, cursor_ms)
 
 
 def _eval_learner_recording_state(editor: Any, state: Any) -> None:
@@ -116,12 +106,8 @@ def _request_playback_after_edit(
     )
 
 
-def _pending_post_edit_playback_payload(session: Any | None) -> dict[str, object] | None:
-    return editor_frontend.pending_post_edit_playback_payload(session)
-
-
-def _handle_post_edit_playback_ready(editor: Any, payload: Any) -> None:
-    editor_frontend.handle_post_edit_playback_ready(editor, payload, _frontend_deps())
+def _pending_editor_intent_payload(session: Any | None) -> dict[str, object] | None:
+    return editor_frontend.pending_editor_intent_payload(session)
 
 
 def _request_history_availability_after_edit(
@@ -227,8 +213,6 @@ def _graph_redraw_expression(
     )
 
 
-def _playback_after_edit_expression(field_index: int) -> str:
-    return editor_frontend.playback_after_edit_expression(field_index)
 
 
 def _history_availability_expression(field_index: int, can_undo: bool, can_redo: bool) -> str:

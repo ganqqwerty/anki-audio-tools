@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  planPlaybackBoundary,
-  planPlaybackPass,
   planPlaybackRequest,
-  playbackCompletionCursor,
-  type PlaybackPass,
   type PlaybackSnapshot,
 } from "../src/editor-inline/playback-model.js";
 
@@ -222,107 +218,4 @@ describe("playback model", () => {
     });
   });
 
-  it("plans an active playback pass with a selected completion reset cursor", () => {
-    expect(planPlaybackPass({
-      ...baseSnapshot,
-      region: { startMs: 400, endMs: 800, mode: "selection" },
-      repeat: true,
-    }, 650)).toEqual({
-      endMs: 800,
-      loop: true,
-      regionMode: "selection",
-      resetCursorMs: 400,
-      startMs: 650,
-    });
-  });
-
-  it("keeps boundary playback active before pass end", () => {
-    const pass = selectedPass();
-
-    expect(planPlaybackBoundary({
-      nextMs: 799,
-      pass,
-      repeat: true,
-      repeatPauseMs: 0,
-    })).toEqual({ kind: "continue" });
-  });
-
-  it("repeats at boundary from the pass reset cursor when repeat is enabled", () => {
-    const pass = selectedPass();
-
-    expect(planPlaybackBoundary({
-      nextMs: 800,
-      pass,
-      repeat: true,
-      repeatPauseMs: 250,
-    })).toEqual({
-      kind: "loop",
-      pass: {
-        ...pass,
-        startMs: 400,
-      },
-      repeatPauseMs: 250,
-    });
-  });
-
-  it("restarts a resumed selected loop from the selection start after the current pass", () => {
-    const pass = planPlaybackPass({
-      ...baseSnapshot,
-      cursorMs: 650,
-      region: { startMs: 400, endMs: 800, mode: "selection" },
-      repeat: true,
-    }, 650);
-
-    expect(planPlaybackBoundary({
-      nextMs: 800,
-      pass,
-      repeat: true,
-      repeatPauseMs: 0,
-    })).toEqual({
-      kind: "loop",
-      pass: {
-        ...pass,
-        startMs: 400,
-      },
-      repeatPauseMs: 0,
-    });
-  });
-
-  it("completes selected playback at boundary and resets to selection start", () => {
-    const pass = selectedPass();
-
-    expect(planPlaybackBoundary({
-      nextMs: 800,
-      pass,
-      repeat: false,
-      repeatPauseMs: 0,
-    })).toEqual({
-      kind: "complete",
-      resetCursorMs: 400,
-    });
-    expect(playbackCompletionCursor(pass)).toBe(400);
-  });
-
-  it("completes full playback at boundary and resets to anchor", () => {
-    const pass = planPlaybackPass(baseSnapshot, 250);
-
-    expect(planPlaybackBoundary({
-      nextMs: 1000,
-      pass,
-      repeat: false,
-      repeatPauseMs: 0,
-    })).toEqual({
-      kind: "complete",
-      resetCursorMs: 250,
-    });
-    expect(playbackCompletionCursor(pass)).toBe(250);
-  });
 });
-
-function selectedPass(): PlaybackPass {
-  return planPlaybackPass({
-    ...baseSnapshot,
-    region: { startMs: 400, endMs: 800, mode: "selection" },
-    repeat: true,
-  }, 400);
-}

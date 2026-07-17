@@ -65,9 +65,8 @@
     autoAdvanceRepeats = state.chorusingRepeatCount;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
   }
-  function toggleRepeat(event: MouseEvent): void {
-    const button = event.currentTarget as HTMLButtonElement;
-    const enabled = button.ariaPressed !== "true";
+  function changeRepeat(event: Event): void {
+    const enabled = (event.currentTarget as HTMLInputElement).checked;
     defaultSaved = false;
     pressed = enabled;
     setRepeatEnabledForOrd(target.ord, enabled);
@@ -228,25 +227,23 @@
           {t("links.see_video")}
         </a>
       </p>
-      <AqeTooltip>
-        {#snippet trigger({ props })}
-          <button
-            {...props}
-            type="button"
-            class="aqe-button aqe-repeat-button aqe-repeat-toggle-button aqe-tooltip-target"
-            data-aqe-button-state={pressed ? "active" : "default"}
-            data-aqe-tooltip-content={repeatTooltip}
-            data-testid={`aqe-repeat-${target.ord}`}
-            aria-label={repeatTooltip}
-            aria-pressed={pressed ? "true" : "false"}
-            onmousedown={(event) => event.preventDefault()}
-            onclick={toggleRepeat}
-          >
-            <EditorCommandIcon icon="repeat-2" />
-            <span class="aqe-button-label">{t("editor.repeat.label")}</span>
-          </button>
-        {/snippet}
-      </AqeTooltip>
+      <label class="aqe-split-checkbox-row">
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <input
+              {...props}
+              type="checkbox"
+              class="aqe-repeat-checkbox aqe-tooltip-target"
+              checked={pressed}
+              data-aqe-tooltip-content={repeatTooltip}
+              data-testid={`aqe-repeat-${target.ord}`}
+              aria-label={repeatTooltip}
+              onchange={changeRepeat}
+            />
+          {/snippet}
+        </AqeTooltip>
+        <span>{t("editor.repeat.label")}</span>
+      </label>
       <PlayRepeatControls
         onValueInput={applyValue}
         {repeatPauseSeconds}

@@ -2,10 +2,19 @@
 
 **Status:** Proposed  
 **Plan date:** 2026-07-11  
+**Architecture dependency revised:** 2026-07-16
 **Source baseline inspected:** `anki-audio-quick-editor` `1.9.0rc2`, commit `8f25fb39c0c0a3808ee950eb21f2edeca3a02b35`  
 **Developer working repository:** `/Users/iuriikatkov/IdeaProjects/shadowing-pratice`  
 **Read-only source repository:** `/Users/iuriikatkov/IdeaProjects/anki-audio-tools`  
 **Target:** A separate Electron repository that runs without Anki and preserves the current chorusing, shadowing-by-composition, learner recording, playback, and prosody-comparison behavior.
+
+The inspected commit above is historical planning evidence, not an eligible
+extraction baseline. `import-source` must select and record a commit containing
+the implemented 2026-07-16 state-management mitigation: one frontend
+transport owner, pure practice programs, the application-scoped recorder
+service, and generated lifecycle/source-mutation contracts. Do not copy the
+older Python playback mirror, global boundary callbacks, DOM state bags, or
+editor-specific recording bundle into the standalone core.
 
 ## 1. Outcome
 
@@ -66,12 +75,13 @@ The initial app opens one audio file at a time and does not add project/library 
 
 | Area | Current owners | Extraction treatment |
 |---|---|---|
-| Chorusing marker math and suffix navigation | `settings_ui/src/editor-inline/chorusing-state.ts` | Move first as pure TypeScript and port its tests unchanged where possible. |
-| Chorusing coordination | `chorusing-controller.ts`, `chorusing-dom.ts`, `chorusing-toolbar.ts` | Split pure decisions from Anki field/DOM lookup. Reuse decisions; rebuild bindings for one standalone practice surface. |
-| Playback state machines and HTML audio | `playback-model.ts`, `html-audio-session-*`, `source-playback-*`, `playback-controller-*` | Preserve HTML-audio ownership and state transitions; replace field ordinals and Anki discovery with a single session/asset ID. |
+| Transport contracts and HTML audio | `settings_ui/src/editor-inline/transport/`, `html-audio-session-machine.ts`, controller/port/resource collaborators | Import the model, exhaustive identities, validators, reducer, and port contracts first. Replace editor field ordinals with a standalone session/asset identity while preserving one transport writer and one direct media-capability adapter. |
+| Practice programs | `settings_ui/src/editor-inline/practice/` | Import the pure once/repeat/chorusing/record-once reducers and transition matrices unchanged where possible. Replace only the runtime ports and scheduler adapter. |
+| Chorusing UI projection | `chorusing-state.ts`, `chorusing-dom.ts`, `chorusing-toolbar.ts` | Retain projection/marker editing behavior, but let the imported chorusing program own pass/gap/suffix decisions. Rebuild Anki DOM bindings for one standalone practice surface. |
 | Selection, cursor, zoom, visualizer rendering | `field-state-store.ts`, `visualizer-*`, `selection-*`, `viewport-*` | Reuse typed state and render logic; remove Anki field scanning, injected control mounting, and dataset-based discovery. |
-| Learner recording frontend state | `recording-state-store.ts`, `recording-actions-*`, `learner-recording-playback-*` | Reuse the lifecycle and typed store; replace bridge calls with the typed preload API. |
-| Recording validation/state semantics | `audio_recording.py`, `editor_recording_state.py`, `editor_recording_analysis.py` | Preserve result validation, monotonic generations, stale-result rejection, and status semantics. Replace Qt/macOS-helper capture and editor session plumbing. |
+| Learner recording frontend projection | `recording-state-store.ts`, `recording-actions-*`, `learner-recording-playback-*` | Reuse generated recorder snapshots and transport-backed learner-take playback; replace editor bridge calls with the typed preload API. |
+| Recording lifecycle/state semantics | `addon/anki_audio_quick_editor/recorder/model.py`, `recorder/service.py`, `recorder/native_types.py` | Preserve attempts, takes, exact ownership, cancellation/finalization, validators, stale/duplicate rejection, and probed duration. Replace Qt/macOS native adapters and editor target lookup. |
+| Lifecycle message contracts | `contracts/communication.schema.json`, generated TypeScript/Python types, `editor_lifecycle_bridge.py` | Derive versioned preload/main IPC messages from the recorder/transport/program values. Reuse schemas or generators, not WebView globals or raw dict payloads. |
 | Prosody analysis | `prosody_types.py`, `prosody_settings.py`, `prosody_analyzer.py`, `prosody_praat.py`, `prosody_fallback.py`, `prosody_cache.py` | Package as an Anki-free Python sidecar behind a versioned JSON contract. Do not rewrite the analysis algorithm during extraction. |
 | Configuration | `config.schema.json`, editor injection defaults, split-button state | Copy only practice-related keys into a new app schema and settings store. |
 | Localization | Shared/editor locale keys used by the selected UI | Copy only reachable keys, retain all currently supported translations, and add an unused/missing-key check. |
@@ -81,9 +91,9 @@ The initial app opens one audio file at a time and does not add project/library 
 | Current dependency | Standalone replacement |
 |---|---|
 | `editor_recording_requests.py` reads the active Anki field and collection media directory | Main-process session service resolves an opaque asset ID to an allowlisted target path and creates a recording output path. |
-| `editor_recording.py` coordinates `EditorSession`, Anki task scheduling, and `web.eval()` | Typed application state machine plus main/preload IPC events. |
+| `editor_recording.py` adapts editor/session targets to the application-scoped recorder service and frontend snapshots | Electron composition root plus main/preload IPC adapters around the imported recorder contracts. |
 | `NativeRecordingController` uses `aqt._macos_helper` or PyQt6 multimedia | Chromium `getUserMedia`/`MediaRecorder` capture adapter, followed by ffmpeg normalization to PCM WAV. |
-| `editor_recording_frontend.py` interpolates JSON into `window.__aqe*` calls | Structured IPC messages validated on both sides. |
+| `editor_lifecycle_bridge.py` and editor WebView callbacks deliver generated messages through Anki | Structured preload/main IPC messages validated on both sides with the same lifecycle identities. |
 | `editor_ui.py` and WebView injection mount controls beside Anki fields | A normal Svelte route/component rendered once in the Electron window. |
 | `resolve_requested_field_media()` and Anki media writes | Asset registry owned by the main process; the target remains read-only and recordings are written under app data. |
 | `editor.mw.taskman` and Python threads | Electron main-process jobs with cancellable child processes and renderer events. |
@@ -100,6 +110,8 @@ The extraction baseline is behavior, not only a coverage percentage.
 - Recording orchestration and stale-generation behavior:
   - `tests/test_editor_recording.py`
   - `tests/test_editor_recording_state.py`
+  - `tests/test_recorder_model.py`
+  - `tests/test_recorder_service.py`
 - Prosody algorithms and serialization:
   - `tests/test_prosody_analyzer.py`
   - `tests/test_prosody_fallback.py`
@@ -111,6 +123,12 @@ The extraction baseline is behavior, not only a coverage percentage.
   - `settings_ui/tests/editor-inline.recording.integration.test.ts`
   - `settings_ui/tests/editor-inline.learner-recording-playback.test.ts`
   - `settings_ui/tests/recording-state-store.test.ts`
+- Portable transport and practice behavior:
+  - `settings_ui/tests/html-audio-session-transition-matrix.test.ts`
+  - `settings_ui/tests/transport-identity.test.ts`
+  - `settings_ui/tests/transport-validation.test.ts`
+  - `settings_ui/tests/practice-programs.test.ts`
+  - `settings_ui/tests/practice-program-transition-matrix.test.ts`
 - Frontend chorusing:
   - `settings_ui/tests/editor-inline.chorusing-state.test.ts`
   - `settings_ui/tests/editor-inline.chorusing.integration.test.ts`
@@ -534,7 +552,7 @@ Tasks:
 
 1. Implement `import-source` with a reviewed allowlist manifest and import the selected TypeScript, Python, locale, fixture, and test files from committed source content.
 2. Record every imported/adapted path and hash in `EXTRACTION_PROVENANCE.md`.
-3. Move pure chorusing calculations, playback decisions, recording lifecycle transitions, and normalized visualizer types into `packages/practice-core` inside the target repository.
+3. Import the source transport model/identities/validators, pure practice programs, recorder model contracts, and normalized visualizer types into `packages/practice-core`; implement Electron-specific transport, scheduler, and recorder ports around them instead of re-deriving lifecycle rules.
 4. Separate DOM rendering from Anki field discovery and bridge dispatch; delete copied Anki adapters once their behavior has a standalone owner.
 5. Introduce an Anki-free `ProsodyAnalysisConfig` in the sidecar and make the entry point accept a path plus focused config.
 6. Preserve lazy Parselmouth imports and ffmpeg fallback.
@@ -556,7 +574,7 @@ Goal: run target-audio graph/playback/chorusing in Electron without recording ye
 
 Tasks:
 
-1. Integrate the imported portable TypeScript modules and tests into the standalone renderer and practice UI.
+1. Integrate the imported transport contracts, pure practice programs, and their transition/identity/validator tests into the standalone renderer and practice UI.
 2. Build a single-session Svelte practice surface from the reusable visualizer components.
 3. Replace field ordinals, field scanning, and injected globals with session/asset state.
 4. Implement the asset registry, Open Audio dialog, and `practice-audio://` protocol with byte-range support.
@@ -580,7 +598,7 @@ Tasks:
 1. Implement microphone permission and device-error handling.
 2. Implement chunked MediaRecorder capture and the main-process recording file service.
 3. Normalize capture to WAV and validate duration/file integrity.
-4. Port countdown, start-cursor, live recording cursor, timeline expansion, stop, analyze, failure, and stale-generation behavior.
+4. Port `RecordOnce` countdown/stop-before-capture ordering and the recorder attempt/take reducer semantics, then add live cursor, timeline expansion, normalization, analysis, failure, cancellation, and stale/duplicate completion behavior through Electron adapters.
 5. Analyze the learner WAV with the same sidecar and render the offset learner overlay.
 6. Port learner HTML-audio play/pause.
 7. Add reveal and existing share actions through narrow main-process services.

@@ -55,14 +55,16 @@ def test_selected_repeat_waits_configured_pause_between_html_loop_passes(
                 editor,
                 lambda state: state["playbackState"] == "playing"
                 and state["progressClockMode"] == "stopped"
-                and state["repeatPauseWaiting"] is True
+                and state["practiceProgramKind"] == "repeat"
+                and state["practiceProgramPhase"] == "waiting"
                 and state["repeatPauseSeconds"] == 0.2
                 and abs(state["cursorMs"] - 500) <= PLAYBACK_INTERVAL_TOLERANCE_MS,
                 timeout=2.0,
             )
             restarted = _wait_for_html_playback(
                 editor,
-                lambda state: state["repeatPauseWaiting"] is False
+                lambda state: state["practiceProgramKind"] == "repeat"
+                and state["practiceProgramPhase"] == "playing"
                 and state["repeatPauseSeconds"] == 0.2
                 and state["progressMs"] >= 500,
                 timeout=5.0,

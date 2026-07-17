@@ -65,7 +65,6 @@ def _patch_common(monkeypatch) -> None:
         "anki_audio_quick_editor.editor_dependencies.threading.Thread",
         ImmediateThread,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
 
 def test_convert_replaces_current_media_using_default_output_format(
@@ -105,7 +104,7 @@ def test_convert_replaces_current_media_using_default_output_format(
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 
-def test_convert_records_pending_post_edit_playback(tmp_path: Path, monkeypatch) -> None:
+def test_convert_records_pending_editor_intent(tmp_path: Path, monkeypatch) -> None:
     editor, _source = _setup_editor(tmp_path, config={"output_format": "flac"})
 
     def fake_render_converted_audio(
@@ -128,9 +127,9 @@ def test_convert_records_pending_post_edit_playback(tmp_path: Path, monkeypatch)
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
     session = SESSIONS[editor]
     assert editor.note.fields == [f"[sound:{saved_name}]"]
-    assert session.post_edit_playback.pending_field_index == 0
-    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
-    assert session.post_edit_playback.pending_source_filename == saved_name
+    assert session.pending_editor_intent is not None
+    assert session.pending_editor_intent.target.field_ord == 0
+    assert session.pending_editor_intent.target.source_filename == saved_name
 
 
 def test_convert_uses_payload_target_format_override(tmp_path: Path, monkeypatch) -> None:

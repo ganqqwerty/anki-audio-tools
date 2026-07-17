@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { readHtmlAudioSessionState } from "../src/editor-inline/html-audio-session-controller.js";
+import { readEditorPracticeSnapshot } from "../src/editor-inline/editor-practice-controller.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import {
   clickMarkerRail,
@@ -65,6 +66,12 @@ describe("editor inline selected-repeat auto-advance interactions", () => {
     await flushPlaybackWork();
     await startSelectedPlayback();
 
+    expect(readEditorPracticeSnapshot()?.state).toMatchObject({
+      completedPasses: 0,
+      kind: "chorusing",
+      selection: { endMs: 1000, startMs: 500 },
+    });
+
     expect(audio.play).toHaveBeenCalledTimes(1);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackStartMs: 500,
@@ -75,13 +82,14 @@ describe("editor inline selected-repeat auto-advance interactions", () => {
     });
 
     await forceSelectedPlaybackBoundary();
+    expect(readEditorPracticeSnapshot()?.state).toMatchObject({ completedPasses: 1, kind: "chorusing" });
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingRepeatPassesCompleted: 1,
       playbackState: "playing",
       selectionEndMs: 1000,
       selectionStartMs: 500,
     });
-    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(audio.play).toHaveBeenCalledTimes(2);
 
     await forceSelectedPlaybackBoundary();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -91,7 +99,7 @@ describe("editor inline selected-repeat auto-advance interactions", () => {
       selectionEndMs: 1000,
       selectionStartMs: 0,
     });
-    expect(audio.play).toHaveBeenCalledTimes(2);
+    expect(audio.play).toHaveBeenCalledTimes(3);
   });
 
   it("auto-advances on live HTML progress boundaries", async () => {
@@ -205,6 +213,8 @@ describe("editor inline selected-repeat auto-advance interactions", () => {
     });
 
     await forceAudioEndedBoundary();
+    expect(readHtmlAudioSessionState(0).kind).toBe("playing");
+    expect(readEditorPracticeSnapshot()?.state).toMatchObject({ completedPasses: 0, kind: "chorusing" });
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingRepeatPassesCompleted: 0,
       selectionEndMs: 1000,

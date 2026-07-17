@@ -12,8 +12,7 @@ class FrontendDeps(Protocol):
     graph_redraw_expression: Callable[..., str]
     history_availability_expression: Callable[..., str]
     history_snapshot_expression: Callable[..., str]
-    pending_post_edit_playback_payload: Callable[..., Any]
-    playback_after_edit_expression: Callable[..., str]
+    pending_editor_intent_payload: Callable[..., Any]
     request_history_availability_after_edit: Callable[..., None]
     request_history_snapshot_after_edit: Callable[..., None]
     retry_graph_redraw: Callable[..., None]
@@ -40,17 +39,13 @@ class BridgeDeps(Protocol):
     handle_editor_frontend_log: Callable[..., None]
     handle_non_processing_command: Callable[..., bool]
     handle_pending_command_payload: Callable[..., None]
-    handle_post_edit_playback_ready: Callable[..., None]
     history_jump: Callable[..., None]
     log_editor_frontend_payload: Callable[..., None]
     main: Callable[[Any, Callable[[], None]], None]
     open_external_url: Callable[..., None]
     open_settings_from_editor: Callable[..., None]
     pitch_hum_async: Callable[..., None]
-    play: Callable[..., None]
-    play_ended: Callable[..., None]
     probe_audio_metadata: Callable[..., Any]
-    record_learner_voice: Callable[..., None]
     redo: Callable[..., None]
     reduce_size_async: Callable[..., None]
     request_source_metadata: Callable[..., None]
@@ -58,14 +53,13 @@ class BridgeDeps(Protocol):
     rnnoise_async: Callable[..., None]
     run_processing_preset_async: Callable[..., None]
     save_split_defaults_from_frontend: Callable[..., None]
+    sessions: dict[Any, Any]
     set_busy: Callable[..., None]
     set_cursor_from_web: Callable[..., None]
     share_current_audio_file: Callable[..., None]
     share_learner_recording_file: Callable[..., None]
     show_current_audio_file: Callable[..., None]
     show_learner_recording_file: Callable[..., None]
-    stop_learner_recording: Callable[..., None]
-    stop_playback: Callable[..., Any]
     threading: Any
     undo: Callable[..., None]
     update_state_and_render: Callable[..., None]
@@ -80,11 +74,11 @@ class RecordingDeps(Protocol):
     is_busy: Callable[[Any], bool]
     main: Callable[[Any, Callable[[], None]], None]
     recorder_factory: Callable[..., Any]
+    recorder_service: Any
     resolve_requested_field_media: Callable[..., Any]
     sessions: dict[Any, Any]
     set_busy_for_field: Callable[..., None]
     still_processing_message: str
-    stop_session_playback: Callable[[Any], None]
     threading: Any
 
 
@@ -111,7 +105,6 @@ class HistoryDeps(Protocol):
     dispose_editor_frontend_controls: Callable[[Any], None]
     eval_history_availability: Callable[..., None]
     eval_history_snapshot: Callable[..., None]
-    eval_playback_state: Callable[..., None]
     eval_status: Callable[..., None]
     is_busy: Callable[[Any], bool]
     latest_persistent_undo_item: Callable[..., Any]
@@ -125,7 +118,6 @@ class HistoryDeps(Protocol):
     restore_persistent_undo_steps: Callable[..., bool]
     session_and_source: Callable[[Any], tuple[Any, Path]]
     still_processing_message: str
-    stop_session_playback: Callable[[Any], None]
 
 
 class ProcessingDeps(Protocol):
@@ -140,7 +132,6 @@ class ProcessingDeps(Protocol):
     dispose_editor_frontend_controls: Callable[[Any], None]
     eval_history_availability: Callable[..., None]
     eval_history_snapshot: Callable[..., None]
-    eval_playback_state: Callable[..., None]
     eval_status: Callable[..., None]
     format_ffmpeg_command: Callable[[tuple[str, ...]], str]
     is_busy: Callable[[Any], bool]
@@ -178,7 +169,6 @@ class ProcessingDeps(Protocol):
     set_busy: Callable[..., None]
     set_busy_for_field: Callable[..., None]
     still_processing_message: str
-    stop_session_playback: Callable[[Any], None]
     support_report_hint: str
     temp_final_path: Callable[[str], Path]
     threading: Any
@@ -194,26 +184,12 @@ class SettingsActionDeps(Protocol):
     refresh_editor_after_settings_save: Callable[..., None]
     sessions: dict[Any, Any]
     still_processing_message: str
-    stop_session_playback: Callable[[Any], None]
 
 
-class PlaybackDeps(Protocol):
-    cleanup_temp_playback: Callable[..., None]
-    current_field_audio_missing: str
+class CursorDeps(Protocol):
     current_field_index: Callable[[Any], int]
-    eval_learner_recording_state: Callable[..., None]
-    eval_playback_state: Callable[..., None]
-    eval_status: Callable[..., None]
     eval_with_callback: Callable[..., None]
-    is_busy: Callable[[Any], bool]
-    play_with_request: Callable[..., None]
-    referenced_audio_missing: str
     session_and_source: Callable[[Any], tuple[Any, Path]]
-    sessions: dict[Any, Any]
-    set_busy: Callable[..., None]
-    still_processing_message: str
-    stop_audio_playback: Callable[[], None]
-    stop_session_playback: Callable[[Any], None]
     visualized_duration_for_field: Callable[..., int | None]
 
 
@@ -253,7 +229,6 @@ class RegionDeleteDeps(Protocol):
     dispose_editor_frontend_controls: Callable[[Any], None]
     eval_history_availability: Callable[..., None]
     eval_history_snapshot: Callable[..., None]
-    eval_playback_state: Callable[..., None]
     eval_status: Callable[..., None]
     eval_with_callback: Callable[..., None]
     format_ffmpeg_command: Callable[[tuple[str, ...]], str]
@@ -276,7 +251,6 @@ class RegionDeleteDeps(Protocol):
     set_busy: Callable[..., None]
     set_busy_for_field: Callable[..., None]
     still_processing_message: str
-    stop_session_playback: Callable[[Any], None]
     temp_final_path: Callable[[str], Path]
     threading: Any
     write_generated_media: Callable[[Any, str, Path], str]
@@ -306,10 +280,8 @@ class ProcessingSharedDeps(Protocol):
 class PersistentUndoDeps(Protocol):
     current_field_index: Callable[[Any], int]
     dispose_editor_frontend_controls: Callable[[Any], None]
-    eval_playback_state: Callable[..., None]
     eval_status: Callable[..., None]
     request_playback_after_edit: Callable[..., None]
-    stop_session_playback: Callable[[Any], None]
 
 
 class ProcessingGuardDeps(Protocol):

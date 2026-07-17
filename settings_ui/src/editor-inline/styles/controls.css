@@ -329,14 +329,6 @@ body.nightMode .aqe-controls,
   display: none;
 }
 
-.aqe-repeat-button[data-aqe-button-state="active"] {
-  background: color-mix(in srgb, Canvas 90%, var(--aqe-border-color));
-  border-color: var(--aqe-accent-border-color);
-  border-style: solid;
-  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
-  color: inherit;
-}
-
 .aqe-status,
 .aqe-ui-root .aqe-status {
   font-size: 12px;

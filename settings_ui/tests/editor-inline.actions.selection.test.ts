@@ -6,7 +6,6 @@ import {
   commitSelectionDraft,
   draftSelectionForVisualizer,
   effectivePlaybackRegion,
-  getPlaybackRequest,
   playbackRequest,
   shouldTreatSelectionGestureAsClick,
   selectionForVisualizer,
@@ -116,9 +115,10 @@ describe("editor inline selection workflows", () => {
     expect(setSelection(visualizer, 100, 300, { updateCursor: false })).toBe(true);
     expect(readFieldState(0).cursor.ms).toBe(300);
     window.__aqeActiveField = 0;
-    const request = getPlaybackRequest();
+    const request = playbackRequest(0);
     expect(request).toMatchObject({ cursorMs: 100, endMs: 300, regionMode: "selection" });
-    expect(readFieldState(0).playback.engine).toBe(request.engine);
+    expect(request.engine).toBe("html");
+    expect(readFieldState(0).playback.engine).toBe("");
 
     setTargetDurationMsForVisualizer(visualizer, 0);
     updateFieldState(0, (state) => ({

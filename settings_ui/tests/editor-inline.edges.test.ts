@@ -9,11 +9,7 @@ import {
   setVisualizer,
   setVisualizerStatus,
 } from "../src/editor-inline/actions.js";
-import {
-  popPendingPlaybackRequest,
-  sendBridgeCommand,
-  setPendingPlaybackRequest,
-} from "../src/editor-inline/bridge.js";
+import { sendBridgeCommand } from "../src/editor-inline/bridge.js";
 import {
   cursorMsFromEvent,
   drawLabels,
@@ -33,16 +29,12 @@ import { isPlaybackState, normalizeTrack } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";
 
 describe("editor inline defensive edges", () => {
-  it("keeps bridge helpers safe without pycmd and without pending playback", () => {
+  it("keeps bridge helpers safe without pycmd", () => {
     const globalWithPycmd = globalThis as unknown as { pycmd: ((cmd: string) => void) | undefined };
     const original = globalWithPycmd.pycmd;
     globalWithPycmd.pycmd = undefined;
 
     expect(() => sendBridgeCommand("aqe:play")).not.toThrow();
-    expect(popPendingPlaybackRequest()).toBeNull();
-    setPendingPlaybackRequest({ action: "start", cursorMs: 1, ord: 2 });
-    expect(popPendingPlaybackRequest()).toEqual({ action: "start", cursorMs: 1, ord: 2 });
-    expect(popPendingPlaybackRequest()).toBeNull();
 
     globalWithPycmd.pycmd = original;
     sendBridgeCommand("aqe:play");

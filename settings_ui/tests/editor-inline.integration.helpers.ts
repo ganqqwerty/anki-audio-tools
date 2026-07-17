@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import { popPendingCommandPayload } from "../src/editor-inline/bridge.js";
 import { graphPixelBounds } from "../src/editor-inline/plot.js";
 import type { EditorCommandPayload } from "../src/editor-inline/types.js";
+import { Status, type RecorderSnapshot } from "../src/lib/generated/contracts.js";
 import { pycmdMock } from "./setup.js";
 
 export const track = {
@@ -24,6 +25,13 @@ export function commandLog(): string[] {
   return pycmdMock.mock.calls.map(([command]) => command);
 }
 
+export function bridgeEnvelopes(commandName?: string): Array<{ command: string; payload?: unknown }> {
+  return commandLog()
+    .filter((command) => command.startsWith("bridge:"))
+    .map((command) => JSON.parse(command.slice("bridge:".length)) as { command: string; payload?: unknown })
+    .filter((envelope) => commandName === undefined || envelope.command === commandName);
+}
+
 export function bridgeCommands(): string[] {
   return commandLog().filter((command) => command.startsWith("focus:") || command.startsWith("aqe:"));
 }
@@ -39,6 +47,24 @@ export function peekPendingCommandPayload(): EditorCommandPayload | null {
 
 export function clearPendingCommandPayload(): void {
   window.__aqePendingCommandPayload = null;
+}
+
+export function publishRecorderSnapshot(
+  patch: Partial<Omit<RecorderSnapshot, "status">> & { status?: `${Status}` },
+): void {
+  const { status = Status.Idle, ...values } = patch;
+  window.__aqeSetLearnerRecordingState?.({
+    attemptId: null,
+    failureMessage: null,
+    fieldOrd: null,
+    mediaFilename: null,
+    recordingDurationMs: null,
+    schemaVersion: 1,
+    startCursorMs: 0,
+    targetDurationMs: null,
+    ...values,
+    status: status as Status,
+  });
 }
 
 export function renderFields(): void {
@@ -161,6 +187,8 @@ export function setFullGraphViewport(ord = 0): void {
 
 export function prepareHtmlAudio(ord = 0): HTMLAudioElement {
   const audio = document.querySelector<HTMLAudioElement>(`[data-testid="aqe-audio-clock-${ord}"]`)!;
+  const durationMs = window.__aqeGraphStateForTest?.(ord)?.durationMs || 1000;
+  Object.defineProperty(audio, "duration", { configurable: true, value: durationMs / 1000 });
   Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
   audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
   audio.pause = vi.fn<() => void>(() => undefined);
@@ -176,10 +204,10 @@ export async function openPlayOptions(ord = 0): Promise<void> {
   }
 }
 
-export async function setRepeatMode(enabled: boolean, ord = 0): Promise<HTMLButtonElement> {
+export async function setRepeatMode(enabled: boolean, ord = 0): Promise<HTMLInputElement> {
   await openPlayOptions(ord);
-  const repeat = document.querySelector<HTMLButtonElement>(`[data-testid="aqe-repeat-${ord}"]`)!;
-  if ((repeat.getAttribute("aria-pressed") === "true") !== enabled) {
+  const repeat = document.querySelector<HTMLInputElement>(`[data-testid="aqe-repeat-${ord}"]`)!;
+  if (repeat.checked !== enabled) {
     repeat.click();
     await Promise.resolve();
   }

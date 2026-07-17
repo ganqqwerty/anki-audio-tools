@@ -34,33 +34,23 @@ export {
   setVisualizerStatusFromPython,
 } from "./graph-actions.js";
 export {
-  audioProgressMs,
   completePlayback,
   currentProgressMs,
   getCursorIntent,
   getCursorMs,
-  getPlaybackRequest,
   handleHtmlPlaybackCommand,
-  manualProgressMs,
-  paintProgressFromClock,
   pauseProgressClock,
   playbackEngineFor,
   playbackRequest,
   playbackStateFor,
-  sendPlaybackRequest,
   setPlaybackButtonLabel,
-  setPlaybackState,
-  startAudioProgressClock,
   startSourcePlayback,
-  startManualProgressClock,
-  startProgressClock,
   stopEditorPlayback,
   stopProgressClock,
 } from "./playback-actions.js";
 export { handlePlaybackBoundary } from "./playback-actions.js";
 export {
   clearPlaybackFrame,
-  playbackControllerDependencies,
   playbackRequestForStart,
   seekAudioElementForCursorPreview,
   setCursor,

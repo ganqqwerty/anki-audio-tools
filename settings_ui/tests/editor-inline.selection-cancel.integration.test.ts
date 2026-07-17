@@ -109,6 +109,7 @@ describe("editor inline selection cancel integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     await Promise.resolve();
+    audio.currentTime = 0.3;
     now = 1100;
     frames.shift()?.(now);
 

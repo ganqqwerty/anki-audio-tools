@@ -45,7 +45,6 @@ describe("editor inline cursor, selection, playback integration", () => {
       repeatEnabled: true,
       selectionActive: true,
     });
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(audio.play).toHaveBeenCalledTimes(1);
   });
@@ -203,7 +202,7 @@ describe("editor inline cursor, selection, playback integration", () => {
       sourceFilename: "processed.mp3",
       viewportStartMs: 0,
     });
-    expect(window.__aqeGraphStateForTest?.(0)?.viewportEndMs).toBeGreaterThan(track.durationMs);
+    expect(window.__aqeGraphStateForTest?.(0)?.viewportEndMs).toBe(track.durationMs);
   });
 });
 

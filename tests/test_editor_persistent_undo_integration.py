@@ -48,7 +48,6 @@ def test_persistent_undo_restores_after_session_history_is_empty(
         "anki_audio_quick_editor.editor_persistent_undo.history_db_path_for_editor",
         lambda _editor: db_path,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     handle_bridge_command(editor, "aqe:undo")
@@ -269,7 +268,6 @@ def test_persistent_history_jump_restores_selected_depth_and_marks_rows(
         "anki_audio_quick_editor.editor_persistent_undo.history_db_path_for_editor",
         lambda _editor: db_path,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":2}')

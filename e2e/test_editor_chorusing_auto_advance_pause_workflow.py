@@ -158,7 +158,8 @@ def test_play_split_auto_advance_after_pausing_during_repeat_wait(
             editor,
             lambda state: state["playbackState"] == "playing"
             and state["progressClockMode"] == "stopped"
-            and state["repeatPauseWaiting"] is True
+            and state["practiceProgramKind"] == "repeat"
+            and state["practiceProgramPhase"] == "waiting"
             and state["selectionStartMs"] == 600
             and state["selectionEndMs"] == 1600,
         )
@@ -171,19 +172,20 @@ def test_play_split_auto_advance_after_pausing_during_repeat_wait(
             and state["selectionEndMs"] == 1600,
         )
 
-        _configure_play_auto_advance(editor, pause_seconds=5.0, repeat_count=1)
+        _configure_play_auto_advance(editor, pause_seconds=0.0, repeat_count=1)
         _click_play_from_split_menu(editor)
         resumed = _state(
             editor,
             lambda state: state["playbackState"] == "playing"
             and state["repeatEnabled"] is True
-            and state["repeatPauseWaiting"] is False
+            and state["practiceProgramKind"] == "chorusing"
+            and state["practiceProgramPhase"] == "playing"
             and state["selectionStartMs"] == 600
             and state["selectionEndMs"] == 1600,
         )
         auto_advanced = _force_repeat_wrap(editor, 500)
 
-        assert waiting["repeatPauseWaiting"] is True
+        assert waiting["practiceProgramPhase"] == "waiting"
         assert paused["playbackState"] == "paused"
         assert resumed["playbackStartMs"] == 600
         assert auto_advanced["chorusingRepeatPassesCompleted"] == 0

@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
+from .editor_actions import parse_post_edit_autoplay
+from .editor_session_types import PostEditAutoplayPreference
 from .i18n import t
 from .sound_refs import safe_media_basename
 
@@ -27,6 +29,7 @@ class RegionDeleteRequest:
     trigger: str
     playback_active: bool
     operation: RegionDeleteOperation = "delete-selection"
+    post_edit_autoplay: PostEditAutoplayPreference | None = None
 
     @property
     def selected_duration_ms(self) -> int:
@@ -81,6 +84,7 @@ def parse_region_delete_request(request: Any) -> RegionDeleteRequest | None:
         trigger=region_delete_trigger(request),
         playback_active=bool(request.get("playbackActive")),
         operation=operation,
+        post_edit_autoplay=parse_post_edit_autoplay(request.get("postEditAutoplay")),
     )
 
 

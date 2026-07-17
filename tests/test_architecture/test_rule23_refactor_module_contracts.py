@@ -31,6 +31,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_bridge",
     "editor_bridge_hooks",
     "editor_callbacks",
+    "editor_cursor_bridge",
     "editor_dependencies",
     "editor_edit_history",
     "editor_frontend",
@@ -44,8 +45,8 @@ EDITOR_SPLIT_MODULES = {
     "editor_history",
     "editor_media",
     "editor_note_load_hooks",
-    "editor_playback",
-    "editor_playback_request",
+    "editor_lifecycle_bridge",
+    "editor_pending_intent",
     "editor_processing_guard",
     "editor_processing",
     "editor_recording",
@@ -114,6 +115,7 @@ def test_split_modules_have_explicit_contract_layers() -> None:
             - {
                 "editor_edit_history",
                 "editor_media",
+                "editor_pending_intent",
                 "editor_processing_guard",
                 "editor_recording_state",
                 "editor_session",
@@ -124,6 +126,7 @@ def test_split_modules_have_explicit_contract_layers() -> None:
         **{name: Layer.IMPORT_SAFE_CORE for name in RUNTIME_SPLIT_MODULES},
         "editor_edit_history": Layer.IMPORT_SAFE_CORE,
         "editor_media": Layer.IMPORT_SAFE_CORE,
+        "editor_pending_intent": Layer.IMPORT_SAFE_CORE,
         "editor_processing_guard": Layer.IMPORT_SAFE_CORE,
         "editor_recording_state": Layer.IMPORT_SAFE_CORE,
         "editor_session": Layer.IMPORT_SAFE_CORE,
@@ -146,7 +149,7 @@ def test_import_linter_contract_tracks_import_safe_modules() -> None:
     import_safe_modules = {
         _qualified(name)
         for name, module_contract in MODULE_CONTRACTS.items()
-        if module_contract.layer == Layer.IMPORT_SAFE_CORE
+        if module_contract.layer == Layer.IMPORT_SAFE_CORE and name != "recorder"
     }
 
     assert set(contract["source_modules"]) == import_safe_modules

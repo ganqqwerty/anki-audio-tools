@@ -4,19 +4,28 @@ import {
   clearHtmlAudioSession,
   clearAllHtmlAudioSessions,
   dispatchHtmlAudioSessionEvent,
+  dispatchHtmlAudioSessionSourceFact,
+  readHtmlAudioPortSnapshot,
+  readHtmlAudioTransportSourceIdentity,
+  readHtmlAudioTransportPosition,
   readHtmlAudioSessionState,
 } from "../src/editor-inline/html-audio-session-controller.js";
+import { setStatusForOrd } from "../src/editor-inline/control-actions.js";
 import { readFieldState } from "../src/editor-inline/field-state-store.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
-  bridgeCommands,
-  clearQueuedAnimationFrames,
   mockAnimationFrames,
   prepareHtmlAudio,
   renderFields,
-  setRepeatMode,
-  track,
 } from "./editor-inline.integration.helpers.js";
+
+function dispatchCurrentSourceFact(
+  event: Parameters<typeof dispatchHtmlAudioSessionSourceFact>[2],
+): void {
+  const identity = readHtmlAudioTransportSourceIdentity(0);
+  if (!identity) throw new Error("expected current transport source identity");
+  dispatchHtmlAudioSessionSourceFact(0, identity, event);
+}
 
 describe("editor inline html audio session controller", () => {
   beforeEach(() => {
@@ -43,7 +52,7 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "clip one.mp3" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, {
+    dispatchCurrentSourceFact({
       durationMs: 1000,
       type: "MetadataLoaded",
     });
@@ -76,6 +85,55 @@ describe("editor inline html audio session controller", () => {
     expect(audio.play).toHaveBeenCalledOnce();
   });
 
+  it("reads port readiness without evaluating a recursive media duration getter", () => {
+    const audio = prepareHtmlAudio(0);
+    const readDuration = vi.fn(() => 1);
+    Object.defineProperty(audio, "duration", {
+      configurable: true,
+      get: readDuration,
+    });
+
+    expect(readHtmlAudioPortSnapshot(0)).toMatchObject({
+      currentTimeMs: 0,
+      present: true,
+      readyState: 1,
+    });
+    expect(readDuration).not.toHaveBeenCalled();
+  });
+
+  it("publishes interpolated transport position while media currentTime lags", async () => {
+    const frames = mockAnimationFrames();
+    let nowMs = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => nowMs);
+    const audio = prepareHtmlAudio(0);
+
+    dispatchHtmlAudioSessionEvent(0, {
+      cursorMs: 0,
+      source: { kind: "source", sourceFilename: "clip one.mp3" },
+      type: "SourceConfigured",
+    });
+    dispatchCurrentSourceFact({ durationMs: 1000, type: "MetadataLoaded" });
+    dispatchHtmlAudioSessionEvent(0, {
+      request: {
+        cursorMs: 0,
+        endMs: 1000,
+        loop: false,
+        ord: 0,
+        regionMode: "full",
+        source: "user",
+      },
+      type: "StartRequested",
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    nowMs = 300;
+    frames.shift()?.(nowMs);
+
+    expect(audio.currentTime).toBe(0);
+    expect(readHtmlAudioTransportPosition(0)).toBe(300);
+  });
+
   it("stores failed and stopped state when source playback is rejected", async () => {
     const audio = prepareHtmlAudio(0);
     audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
@@ -85,7 +143,7 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "clip one.mp3" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, {
+    dispatchCurrentSourceFact({
       durationMs: 1000,
       type: "MetadataLoaded",
     });
@@ -129,7 +187,7 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "clip one.mp3" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, {
+    dispatchCurrentSourceFact({
       durationMs: 1000,
       type: "MetadataLoaded",
     });
@@ -163,7 +221,7 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "clip one.mp3" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, {
+    dispatchCurrentSourceFact({
       durationMs: 1000,
       type: "MetadataLoaded",
     });
@@ -200,7 +258,7 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "missing.mp3" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, {
+    dispatchCurrentSourceFact({
       durationMs: 1000,
       type: "MetadataLoaded",
     });
@@ -244,7 +302,7 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "clip.m4a" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, { durationMs: 1000, type: "MetadataLoaded" });
+    dispatchCurrentSourceFact({ durationMs: 1000, type: "MetadataLoaded" });
     dispatchHtmlAudioSessionEvent(0, {
       request: {
         cursorMs: 0,
@@ -273,24 +331,54 @@ describe("editor inline html audio session controller", () => {
     expect(document.querySelector('[data-testid="aqe-convert-to-mp3-0"]')).toBeInstanceOf(HTMLButtonElement);
   });
 
+  it("preserves an edit error when passive media readiness fails later", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 200 }));
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "error", {
+      configurable: true,
+      value: { code: 4 },
+    });
+    setStatusForOrd(
+      0,
+      { code: "AQE-AUDIO-001", message: "Transform failed." },
+      "error",
+      "",
+      "error",
+    );
+    dispatchHtmlAudioSessionEvent(0, {
+      cursorMs: 0,
+      source: { kind: "source", sourceFilename: "invalid.wav" },
+      type: "SourceConfigured",
+    });
+
+    audio.dispatchEvent(new Event("error"));
+
+    await vi.waitFor(() => expect(readHtmlAudioSessionState(0).kind).toBe("failed"));
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "AQE-AUDIO-001: Transform failed. Help",
+    );
+  });
+
   it("keeps the error code paired with a delayed route response after metadata races", async () => {
     let resolveFetch = (_value: { status: number }): void => undefined;
     vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => {
       resolveFetch = resolve;
     })));
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
-    const visualizer = audio.closest<HTMLElement>(".aqe-visualizer") as HTMLElement & {
-      __aqeHtmlAudioMediaErrorCode?: number | null;
-      __aqeHtmlAudioMediaResponseStatus?: number | null;
-    };
     Object.defineProperty(audio, "error", { configurable: true, value: { code: 4 } });
 
     audio.dispatchEvent(new Event("error"));
     audio.dispatchEvent(new Event("loadedmetadata"));
     resolveFetch({ status: 200 });
 
-    await vi.waitFor(() => expect(visualizer.__aqeHtmlAudioMediaResponseStatus).toBe(200));
-    expect(visualizer.__aqeHtmlAudioMediaErrorCode).toBe(4);
+    await vi.waitFor(() => expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "failed",
+      mediaResponseStatus: 200,
+    }));
+    expect(readHtmlAudioSessionState(0)).toMatchObject({
+      kind: "failed",
+      mediaErrorCode: 4,
+    });
   });
 
   it("keeps recovery actionable when post-edit autoplay restores an unsupported source", async () => {
@@ -302,17 +390,10 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "restored.m4a" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, { durationMs: 1000, type: "MetadataLoaded" });
+    dispatchCurrentSourceFact({ durationMs: 1000, type: "MetadataLoaded" });
     dispatchHtmlAudioSessionEvent(0, {
-      intent: {
-        fieldOrd: 0,
-        generation: 2,
-        requireGraphRedraw: true,
-        sourceFilename: "restored.m4a",
-        sourceKind: "existing_media",
-      },
       request: { cursorMs: 0, endMs: 1000, loop: false, ord: 0, regionMode: "full", source: "post_edit" },
-      type: "PostEditAutoplayRequested",
+      type: "StartRequested",
     });
 
     audio.dispatchEvent(new Event("error"));
@@ -324,7 +405,7 @@ describe("editor inline html audio session controller", () => {
     expect(document.querySelector('[data-testid="aqe-convert-to-mp3-0"]')).toBeInstanceOf(HTMLButtonElement);
   });
 
-  it("ignores a stale play resolve after source reconfiguration", async () => {
+  it("ignores a stale play resolve after same-filename source replacement", async () => {
     let resolvePlay = (): void => {
       throw new Error("play promise was not created");
     };
@@ -338,7 +419,7 @@ describe("editor inline html audio session controller", () => {
       source: { kind: "source", sourceFilename: "clip one.mp3" },
       type: "SourceConfigured",
     });
-    dispatchHtmlAudioSessionEvent(0, {
+    dispatchCurrentSourceFact({
       durationMs: 1000,
       type: "MetadataLoaded",
     });
@@ -355,7 +436,8 @@ describe("editor inline html audio session controller", () => {
     });
     dispatchHtmlAudioSessionEvent(0, {
       cursorMs: 125,
-      source: { kind: "source", sourceFilename: "clip two.mp3" },
+      replace: true,
+      source: { kind: "source", sourceFilename: "clip one.mp3" },
       type: "SourceConfigured",
     });
 
@@ -366,7 +448,7 @@ describe("editor inline html audio session controller", () => {
     expect(readHtmlAudioSessionState(0)).toMatchObject({
       cursorMs: 125,
       kind: "loading",
-      source: { kind: "source", sourceFilename: "clip two.mp3" },
+      source: { kind: "source", sourceFilename: "clip one.mp3" },
     });
   });
 
@@ -388,59 +470,4 @@ describe("editor inline html audio session controller", () => {
     expect(readHtmlAudioSessionState(0)).toEqual({ kind: "empty", ord: 0, cursorMs: 0 });
   });
 
-  it("routes source audio ended through the session boundary before the RAF boundary", async () => {
-    vi.useFakeTimers();
-    const frames = mockAnimationFrames();
-    disposeEditorRuntime();
-    clearAllHtmlAudioSessions();
-    renderFields();
-    const config = {
-      audioFieldIndices: [0],
-      splitButtonDefaults: {
-        denoiseAlgorithm: "standard" as const,
-        pauseAggressiveness: "normal" as const,
-        repeatPauseSeconds: 2,
-        speedStep: 1.5,
-        volumeStepDb: 15,
-      },
-    };
-    initializeEditorRuntime(config);
-    scan(config);
-    await Promise.resolve();
-    window.__aqeSetVisualizer?.(0, track, 100);
-    await setRepeatMode(true);
-    clearQueuedAnimationFrames(frames);
-    const audio = prepareHtmlAudio(0);
-
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(readHtmlAudioSessionState(0)).toMatchObject({
-      kind: "playing",
-      source: { kind: "source", sourceFilename: "clip one.mp3" },
-    });
-    expect(frames.length).toBeGreaterThan(0);
-
-    audio.dispatchEvent(new Event("ended"));
-
-    expect(readHtmlAudioSessionState(0)).toMatchObject({
-      kind: "repeat_waiting",
-      resumeAtMs: 0,
-      source: { kind: "source", sourceFilename: "clip one.mp3" },
-    });
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      playbackState: "playing",
-      repeatPauseSeconds: 2,
-      repeatPauseWaiting: true,
-      cursorMs: 0,
-    });
-    expect(audio.pause).toHaveBeenCalled();
-    expect(audio.play).toHaveBeenCalledTimes(1);
-    expect(bridgeCommands()).not.toContain("aqe:play-ended");
-
-    await vi.advanceTimersByTimeAsync(2000);
-
-    expect(audio.play).toHaveBeenCalledTimes(2);
-  });
 });

@@ -1,12 +1,11 @@
 import { visualizerForOrd } from "./dom-selectors.js";
-import { seekAudioElementForCursorPreview as seekAudioElementForCursorPreviewElement } from "./audio-clock.js";
+import { previewHtmlAudioTransportPosition } from "./html-audio-session-controller.js";
 import type {
   PlaybackRequest,
   VisualizerElement,
 } from "./types.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import { repeatDefaultFromConfig } from "./control-actions.js";
-import { clearPlaybackFrame as clearPlaybackFrameFromController } from "./playback-controller-frame.js";
 import {
   clampProgressMs,
   setRepeatEnabled,
@@ -20,19 +19,17 @@ import { notifySelectionChanged } from "./selection-events.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
 import { repeatEnabledFor } from "./repeat-control-projection.js";
 import {
-  setPlaybackPassRuntime,
   setRepeatPauseSecondsRuntime,
 } from "./visualizer-runtime-state.js";
 
 export { setCursor } from "./cursor-actions.js";
-export { playbackControllerDependencies } from "./playback-controller-dependencies.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
 }
 
-export function clearPlaybackFrame(visualizer: VisualizerElement): void {
-  clearPlaybackFrameFromController(visualizer);
+export function clearPlaybackFrame(_visualizer: VisualizerElement): void {
+  // Attempt-owned frames are cleared only by transport effects.
 }
 
 export function setRepeatEnabledForOrd(ord: number, enabled: boolean): boolean {
@@ -71,10 +68,17 @@ export function playbackRequestForStart(
 }
 
 export function seekAudioElementForCursorPreview(visualizer: VisualizerElement, ms: number): boolean {
-  return seekAudioElementForCursorPreviewElement(visualizer, ms, readVisualizerTargetDurationMs(visualizer));
+  return previewHtmlAudioTransportPosition(
+    fieldOrd(visualizer),
+    ms,
+    readVisualizerTargetDurationMs(visualizer),
+  );
 }
 
-export function initializePlaybackRegionState(visualizer: VisualizerElement): void {
+export function initializePlaybackRegionState(
+  visualizer: VisualizerElement,
+  repeatDefault = repeatDefaultFromConfig(),
+): void {
   const s = readFieldState(fieldOrd(visualizer));
   writeFieldState(s.ord, {
     ...s,
@@ -85,14 +89,7 @@ export function initializePlaybackRegionState(visualizer: VisualizerElement): vo
       startMs: 0,
     },
   });
-  setPlaybackPassRuntime(visualizer, {
-    endMs: s.graph.durationMs || 0,
-    loop: repeatDefaultFromConfig(),
-    regionMode: "full",
-    resetCursorMs: 0,
-    startMs: 0,
-  });
-  setRepeatEnabled(visualizer, repeatDefaultFromConfig());
+  setRepeatEnabled(visualizer, repeatDefault);
   clearSelectionFromController(visualizer, { resetPlaybackRegion: false });
   notifySelectionChanged(visualizer, "system");
   syncSelectionToolbar(visualizer);

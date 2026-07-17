@@ -22,6 +22,8 @@ from .audio_operations import (
     apply_audio_operation,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .contracts_generated import AutoplayKind
+from .editor_session_types import PostEditAutoplayPreference
 from .external_links import trusted_external_url_or_none
 
 CMD_SLOWER = "aqe:slower"
@@ -42,7 +44,6 @@ CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
 CMD_SOURCE_METADATA = "aqe:source-metadata"
-CMD_STOP_PLAYBACK = "aqe:stop-playback"
 CMD_SETTINGS = "aqe:settings"
 CMD_HISTORY_JUMP = "aqe:history-jump"
 CMD_REDO = "aqe:redo"
@@ -50,11 +51,7 @@ CMD_SHARE = "aqe:share"
 CMD_PRESET = "aqe:preset"
 CMD_SHARE_RECORDING = "aqe:share-recording"
 CMD_OPEN_URL = "aqe:open-url"
-CMD_RECORD_VOICE = "aqe:record-voice"
-CMD_STOP_RECORDING = "aqe:stop-recording"
-CMD_PLAY_RECORDING = "aqe:play-recording"
 CMD_SHOW_RECORDING_FILE = "aqe:show-recording-file"
-CMD_POST_EDIT_PLAYBACK_READY = "aqe:post-edit-playback-ready"
 CMD_BACK_CHAIN_PREVIOUS = "aqe:chorusing-previous"
 CMD_BACK_CHAIN_NEXT = "aqe:chorusing-next"
 
@@ -65,23 +62,16 @@ BRIDGE_COMMANDS = (
     CMD_COMMAND_PAYLOAD,
     CMD_SAVE_SPLIT_DEFAULTS,
     CMD_SOURCE_METADATA,
-    CMD_STOP_PLAYBACK,
     "aqe:set-cursor",
-    "aqe:play",
-    "aqe:play-ended",
     CMD_BACK_CHAIN_PREVIOUS,
     CMD_BACK_CHAIN_NEXT,
     "aqe:frontend-log",
-    CMD_POST_EDIT_PLAYBACK_READY,
     "aqe:show-file",
     CMD_SHARE,
     CMD_PRESET,
     CMD_SHARE_RECORDING,
     CMD_SHOW_RECORDING_FILE,
     CMD_OPEN_URL,
-    CMD_RECORD_VOICE,
-    CMD_STOP_RECORDING,
-    CMD_PLAY_RECORDING,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,
@@ -153,7 +143,7 @@ class EditorCommandPayload:
     history_steps: int | None = None
     overrides: EditorCommandOverrides = EditorCommandOverrides()
     graph_settings: dict[str, object] | None = None
-    generation: int | None = None
+    post_edit_autoplay: PostEditAutoplayPreference | None = None
     preset_id: str | None = None
     share_target: str | None = None
     source_filename: str | None = None
@@ -217,6 +207,20 @@ def _graph_settings_from_raw(raw: Any) -> dict[str, object] | None:
     return dict(raw)
 
 
+def parse_post_edit_autoplay(raw: Any) -> PostEditAutoplayPreference | None:
+    """Validate the pure post-edit practice program embedded in an editor request."""
+    if not isinstance(raw, dict):
+        return None
+    try:
+        kind = AutoplayKind(raw.get("kind"))
+    except ValueError:
+        return None
+    repeat_pause_ms = _int_or_none(raw.get("repeatPauseMs"))
+    if repeat_pause_ms is None or repeat_pause_ms < 0:
+        return None
+    return PostEditAutoplayPreference(kind=kind, repeat_pause_ms=repeat_pause_ms)
+
+
 def _str_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
@@ -262,7 +266,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         history_steps=_history_steps_or_none(raw_payload.get("steps")),
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
         graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
-        generation=_int_or_none(raw_payload.get("generation")),
+        post_edit_autoplay=parse_post_edit_autoplay(raw_payload.get("postEditAutoplay")),
         preset_id=_str_or_none(raw_payload.get("presetId")),
         share_target=_share_target_or_none(raw_payload.get("shareTarget")),
         source_filename=_str_or_none(raw_payload.get("sourceFilename")),

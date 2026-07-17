@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from scripts.dev_scripts import testing as test_commands
 from scripts.dev_tasks import frontend
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_path: Path) -> None:
@@ -18,6 +21,15 @@ def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_pat
 
     assert frontend.cmd_build_ui() == 0
     assert calls == ["contracts-generate", "/usr/bin/npm run build"]
+
+
+def test_frontend_validation_runs_the_architecture_command() -> None:
+    package = json.loads((ROOT / "settings_ui" / "package.json").read_text(encoding="utf-8"))
+
+    assert package["scripts"]["architecture"] == (
+        "cd .. && depcruise -c .dependency-cruiser.js settings_ui/src"
+    )
+    assert "npm run architecture" in package["scripts"]["validate"]
 
 
 def test_build_ui_stops_when_contract_generation_fails(monkeypatch, tmp_path: Path) -> None:

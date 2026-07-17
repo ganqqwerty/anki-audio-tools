@@ -50,6 +50,7 @@ Use the archive to understand connections, then point readers back to source and
 
 - Settings JavaScript -> Python commands go through `settings_ui/src/lib/bridge.ts` as `bridge:{ command, payload }` JSON envelopes.
 - Inline editor JavaScript -> Python commands go through `settings_ui/src/editor-inline/bridge.ts`.
+- Lifecycle-bearing editor messages use the shared `bridge:{ command, payload }` framing with generated pending-intent, recorder, and source-mutation payloads from `contracts/communication.schema.json`; they are decoded by `editor_lifecycle_bridge.py`.
 - Browser batch JavaScript -> Python commands go through `settings_ui/src/batch/bridge.ts` as the same `bridge:{ command, payload }` envelope.
 - Python decodes settings and batch envelopes through `webview_bridge.py`; commands must use the shared JSON envelope.
 - All Python -> JavaScript async callbacks use `window.onAsyncProgress(...)`, `window.onAsyncDone(...)`, or `window.onSaveError(...)`.
@@ -66,7 +67,7 @@ Use the archive to understand connections, then point readers back to source and
 
 - Settings dialogs should render through Anki `AnkiWebView.stdHtml()` so Anki owns theme classes such as `html.night-mode`, `body.nightMode`, `data-bs-theme`, bundled webview CSS variables, and live theme updates. Settings Svelte styles should prefer Anki variables such as `--canvas`, `--canvas-elevated`, `--canvas-inset`, `--fg`, `--fg-subtle`, `--border`, and button variables.
 - Inline editor toolbar icons use Lucide Svelte with `currentColor`, so buttons inherit Anki/editor foreground color in light and dark modes. Keep derived visual button state scoped to `.aqe-button-label` and `data-aqe-button-state` so icon DOM stays intact; behavioral state belongs in the typed editor state modules.
-- Inline editor behavioral state must not be recovered from DOM `dataset` attributes. Use `field-state-store.ts` for field graph/playback/selection/source state, `editor-control-state.ts` for busy/status/history state, `recording-state-store.ts` for learner recording state, and `visualizer-runtime-state.ts` for runtime playback/viewport/duration state. Dataset writes belong in projection/sync helpers; dataset reads are limited to field ord, command, test-contract snapshots, and Anki DOM discovery such as source extraction.
+- Inline editor behavioral state must not be recovered from DOM `dataset` attributes. The HTML-audio transport owns playback lifecycle, identities, active media position, readiness, and transport resources; its field-store values are projections. Use `field-state-store.ts` for stopped/edit cursor plus graph/selection/source projection, `editor-control-state.ts` for busy/status/history state, `recording-state-store.ts` for recorder snapshot projection, and `visualizer-runtime-state.ts` for viewport/duration rendering state. Dataset writes belong in projection/sync helpers; dataset reads are limited to field ord, command, test-contract snapshots, and Anki DOM discovery such as source extraction.
 - Live settings and editor tooltips should use `settings_ui/src/lib/AqeTooltip.svelte` plus `AqeTooltipProvider.svelte`, backed by Bits UI with zero open delay. Do not rely on native HTML `title` attributes or SVG `<title>` nodes for shipped tooltip behavior.
 - Generated prosody SVG media must be self-contained. They are usually loaded as standalone image files, so use embedded light defaults plus `@media (prefers-color-scheme: dark)` rather than relying on card body classes.
 - Scripts inserted via `innerHTML` do not execute.
@@ -78,4 +79,14 @@ Use the archive to understand connections, then point readers back to source and
 - HTML audio playback observability has one canonical contract:
   [`docs/architecture/html-audio-observability.md`](docs/architecture/html-audio-observability.md).
   Link there instead of duplicating playback logging or invariant checklists in WebView docs.
+
+## Inline Editor State And Effect Boundaries
+
+- `html-audio-session-controller.ts` is the transport composition root and sole state writer. Direct `HTMLAudioElement` operations are restricted to `html-audio-session-audio-element.ts`; projections never call `play()`, `pause()`, `load()`, seek, or assign `src`.
+- `practice/` contains pure once/repeat/chorusing/record-once reducers. `practice/runtime.ts` owns program timers and invokes public transport/recorder ports; it does not inspect DOM or bridge state. The controller emits accepted, identity-bearing transport failures to the active field program so failure cannot leave a program stuck in `playing`.
+- `editor-command-coordinator.ts` stops and quiesces transport before a processing/source mutation is sent. The same boundary prevents record start while playback remains active.
+- Recorder UI receives generated `RecorderSnapshot` values. Python's application-scoped recorder service owns native handles and finalized takes; typed commands target a field explicitly, and frontend practice accepts only the backend attempt ID it bound from current snapshots.
+- `post-edit-playback.ts` is a bootstrap adapter, not a transport state. It applies a pending source delivery, waits for normal media readiness, starts the delivered `once` or `repeat` practice program (including its repeat pause), and returns one terminal receipt to end Python retry delivery.
+
+The raw toolbar labels `aqe:play`, `aqe:play-recording`, and record/stop actions are frontend commands. They must not be added to the Python bridge registry merely because their UI identifiers use the `aqe:` namespace.
 - Prefer stable `data-testid` attributes for settings controls that e2e tests must click. Text labels and Svelte structure are easier to disturb during UI polish than explicit test ids.

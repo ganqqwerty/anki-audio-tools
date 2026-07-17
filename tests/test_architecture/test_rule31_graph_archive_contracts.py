@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from scripts.graphs.python_modules import LAYERS, PKG, _build_python_catalog
 from scripts.graphs.relationships import _build_relationships
+from scripts.graphs.svelte_modules import _build_bridge_registry
 
 from .contracts import MODULE_CONTRACTS
 from .inspection import observe_all_modules
@@ -69,3 +70,8 @@ def test_python_graph_relationships_match_observed_addon_dependencies() -> None:
         f"dependencies. Missing: {sorted(expected - actual)}; "
         f"extra: {sorted(actual - expected)}"
     )
+
+
+def test_bridge_archive_omits_frontend_owned_playback_commands() -> None:
+    commands = {entry["command"] for entry in _build_bridge_registry()}
+    assert commands.isdisjoint({"aqe:play", "aqe:play-ended", "aqe:stop-playback"})

@@ -77,7 +77,6 @@ describe("editor inline selected repeat pause integration", () => {
       playbackState: "playing",
       progressClockMode: "stopped",
       repeatPauseSeconds: 2,
-      repeatPauseWaiting: true,
       cursorMs: 250,
     });
     expect(audio.pause).toHaveBeenCalled();
@@ -97,7 +96,6 @@ describe("editor inline selected repeat pause integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "playing",
       progressClockMode: "audio",
-      repeatPauseWaiting: false,
       cursorMs: 250,
     });
     expect(graphCountdownOverlay().hidden).toBe(true);
@@ -114,7 +112,6 @@ describe("editor inline selected repeat pause integration", () => {
     expect(audio.play).toHaveBeenCalledTimes(1);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "paused",
-      repeatPauseWaiting: false,
       cursorMs: 250,
     });
   });
@@ -130,9 +127,8 @@ describe("editor inline selected repeat pause integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "stopped",
       repeatEnabled: false,
-      repeatPauseWaiting: false,
       cursorMs: 250,
     });
-    expect(bridgeCommands()).toContain("aqe:play-ended");
+    expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 });

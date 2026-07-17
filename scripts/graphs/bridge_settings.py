@@ -95,7 +95,7 @@ def _build_window_contract() -> str:
     lines = [
         "flowchart TD",
         '    subgraph Python["Python (evalWithCallback / web.eval)"]',
-        "        py[\"editor_bridge.py<br/>editor_processing.py<br/>editor_playback.py\"]",
+        "        py[\"editor_bridge.py<br/>editor_lifecycle_bridge.py<br/>editor_recording.py\"]",
         "    end",
         "",
         '    subgraph Window["window.__aqe* JavaScript Contract"]',

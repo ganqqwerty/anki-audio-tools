@@ -60,7 +60,6 @@ describe("html audio session failures", () => {
     });
     expect(transition.effects.map((effect) => effect.type)).toEqual([
       "ClearProgressFrame",
-      "ClearRepeatTimer",
       "ClearMetadataTimer",
       "PauseAudio",
       "PublishPlaybackState",

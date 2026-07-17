@@ -42,6 +42,7 @@ from .error_codes import (
     coded_error,
 )
 from .i18n import t
+from .media_paths import existing_media_file_path
 from .permission_guidance import message_with_permission_guidance
 
 if TYPE_CHECKING:
@@ -56,8 +57,6 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
     if existing and existing.processing.active:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    if existing and existing.playback.preparing:
-        deps.stop_session_playback(existing)
     session, source_path = deps.session_and_source(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
     config = AudioProcessingConfig.from_config(deps.config(editor))
@@ -95,12 +94,10 @@ def render_and_replace_async(
         context={"source_filename": source_path.name},
         flush=True,
     )
-    deps.stop_session_playback(session)
     field_index = session.field_index if session.field_index is not None else deps.current_field_index(editor)
     guard_filename = session.current_filename or source_path.name
     guard = session.begin_processing(field_index=int(field_index), source_filename=guard_filename)
     deps.set_busy(editor, True, t("editor.status.processing"))
-    deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
 
     def _run() -> None:
         _run_standard_render_worker(editor, session, source_path, updated_state, config, guard, operation_id, deps)
@@ -248,7 +245,15 @@ def replace_current_field_after_render(
             saved_name,
             exc_info=True,
         )
-    should_redraw_graph = _replace_standard_render_session_state(session, field_index, saved_name, updated_state)
+    saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
+    saved_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
+    should_redraw_graph = _replace_standard_render_session_state(
+        session,
+        field_index,
+        saved_name,
+        updated_state,
+        backend_source_mtime_ns=saved_mtime_ns,
+    )
     deps.request_playback_after_edit(
         editor,
         field_index,
@@ -263,7 +268,6 @@ def replace_current_field_after_render(
     )
     _sync_history_availability(editor, session, deps)
     _request_history_availability_after_edit(editor, session, deps)
-    deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
         deps.request_graph_redraw(editor, saved_name)
     else:
@@ -295,6 +299,8 @@ def _replace_standard_render_session_state(
     field_index: int,
     saved_name: str,
     updated_state: AudioEditState,
+    *,
+    backend_source_mtime_ns: int | None = None,
 ) -> bool:
     if session is None:
         return False
@@ -303,6 +309,7 @@ def _replace_standard_render_session_state(
         updated_state,
         saved_name,
         session.processing.next_status_summary or session.status_summary,
+        backend_source_mtime_ns=backend_source_mtime_ns,
     )
 
 

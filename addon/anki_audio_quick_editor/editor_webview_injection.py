@@ -21,6 +21,7 @@ from .editor_media import audio_field_sources as _audio_field_sources
 from .editor_runtime import (
     SESSIONS as _SESSIONS,
 )
+from .editor_runtime import bind_backend_media_target as _bind_backend_media_target
 from .editor_runtime import (
     config as _config,
 )
@@ -34,6 +35,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
     """Return the shared inline controls script for one note-bearing editor surface."""
     config = _config(editor)
     audio_field_sources = _audio_field_sources(note)
+    _bind_backend_media_targets(editor, audio_field_sources)
     visible_editor_buttons = config.get("visible_editor_buttons", [])
     if not isinstance(visible_editor_buttons, list):
         visible_editor_buttons = []
@@ -57,7 +59,8 @@ def editor_injection_script(editor: Any, note: Any) -> str:
         initial_history_availability_by_field=_availability_by_field(initial_history_snapshots),
         initial_history_snapshots_by_field=initial_history_snapshots,
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
-        pending_post_edit_playback=_pending_post_edit_playback(editor),
+        pending_editor_intent=_pending_editor_intent(editor),
+        backend_editor_context=_backend_editor_context(editor),
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", True)),
         selection_marker_shift_buttons_enabled=bool(
             config.get("selection_marker_shift_buttons_enabled", False)
@@ -221,7 +224,42 @@ def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[st
     }
 
 
-def _pending_post_edit_playback(editor: Any) -> dict[str, Any] | None:
-    from .editor_callbacks import pending_post_edit_playback_payload
+def _pending_editor_intent(editor: Any) -> dict[str, Any] | None:
+    from .editor_callbacks import pending_editor_intent_payload
 
-    return pending_post_edit_playback_payload(_SESSIONS.get(editor))
+    return pending_editor_intent_payload(_SESSIONS.get(editor))
+
+
+def _backend_editor_context(editor: Any) -> dict[str, object] | None:
+    session = _SESSIONS.get(editor)
+    if session is None:
+        return None
+    return {
+        "editorSessionId": session.editor_session_id,
+        "noteId": session.note_id,
+        "backendMediaGeneration": session.backend_media_generation,
+        "mediaTargetsByField": {
+            int(field_index): {
+                "backendMediaGeneration": target.generation,
+                "sourceFilename": target.source_filename,
+            }
+            for field_index, target in session.backend_media_targets.items()
+        },
+    }
+
+
+def _bind_backend_media_targets(editor: Any, sources: dict[int, str]) -> None:
+    """Snapshot every mounted audio field before exposing mutation identities."""
+    session = _SESSIONS.get(editor)
+    if session is None:
+        return
+    for field_index, source_filename in sources.items():
+        try:
+            _bind_backend_media_target(editor, session, field_index, source_filename)
+        except OSError:
+            logger.debug(
+                "Could not bind backend media target field_index=%s source=%s.",
+                field_index,
+                source_filename,
+                exc_info=True,
+            )

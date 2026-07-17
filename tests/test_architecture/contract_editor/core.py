@@ -12,6 +12,8 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "audio_operation_params",
             "audio_operations",
             "audio_state",
+            "contracts_generated",
+            "editor_session_types",
             "external_links",
         ),
     ),
@@ -24,11 +26,6 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         "editor_media",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("editor_session", "errors", "i18n", "media_paths", "sound_refs"),
-    ),
-    "editor_playback_bounds": contract(
-        "editor_playback_bounds",
-        layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("prosody_types",),
     ),
     "editor_processing_shared": contract(
         "editor_processing_shared",
@@ -48,7 +45,7 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_region_delete_request": contract(
         "editor_region_delete_request",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("i18n", "sound_refs"),
+        allowed_addon_deps=("editor_actions", "editor_session_types", "i18n", "sound_refs"),
     ),
     "editor_processing_guard": contract(
         "editor_processing_guard",
@@ -57,6 +54,41 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_recording_state": contract(
         "editor_recording_state",
         layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("recorder.model",),
+    ),
+    "editor_pending_intent": contract(
+        "editor_pending_intent",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("contracts_generated",),
+    ),
+    "recorder": contract(
+        "recorder",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("recorder.service",),
+    ),
+    "recorder.model": contract(
+        "recorder.model",
+        layer=Layer.IMPORT_SAFE_CORE,
+    ),
+    "recorder.validation": contract(
+        "recorder.validation",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("recorder.model",),
+    ),
+    "recorder.native_types": contract(
+        "recorder.native_types",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("errors",),
+    ),
+    "recorder.service": contract(
+        "recorder.service",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("recorder.model", "recorder.validation"),
+    ),
+    "recorder.runtime": contract(
+        "recorder.runtime",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("recorder.service",),
     ),
     "editor_session_state": contract(
         "editor_session_state",
@@ -65,18 +97,23 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_session_types": contract(
         "editor_session_types",
         layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("contracts_generated",),
     ),
     "editor_session": contract(
         "editor_session",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
             "audio_state",
+            "contracts_generated",
             "editor_edit_history",
             "editor_processing_guard",
             "editor_recording_state",
             "editor_region_delete_request",
             "editor_session_state",
             "editor_session_types",
+            "errors",
+            "recorder.model",
+            "recorder.runtime",
         ),
     ),
     "editor_ui": contract("editor_ui", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),

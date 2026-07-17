@@ -1,62 +1,20 @@
 import { BUSY_COMMANDS, PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
-import { allVisualizers } from "./dom-selectors.js";
+import { quiesceTransportBeforeEditorMutation } from "./editor-command-coordinator.js";
 import { logger } from "./logger.js";
 import { requestGraph } from "./graph-actions.js";
 import { buildSplitCommandPayload } from "./split-button-state.js";
 import { rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
 import {
   handleHtmlPlaybackCommand,
-  playbackStateFor,
-  stopProgressClock,
 } from "./playback-actions.js";
 import { moveChorusingForOrd } from "./chorusing-controller.js";
 import { toggleLearnerRecordingHtmlPlayback } from "./learner-recording-playback.js";
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
 import { editorRuntimeConfig } from "./editor-runtime-config.js";
-import {
-  currentStatusState,
-  playbackWarningState,
-  type EditorStatusMessage,
-} from "./editor-control-state.js";
-import { clearPlaybackWarning } from "./control-status-renderer.js";
-import {
-  PLAYBACK_RECOVERY_REQUESTED_EVENT,
-  type PlaybackRecoveryAction,
-  type PlaybackRecoveryRequestedDetail,
-} from "./playback-recovery-types.js";
 
 type EditorDispatchCommand = EditorCommand | "aqe:history-jump";
-let playbackRecoveryHandlerInstalled = false;
-
-export function installPlaybackRecoveryHandler(): void {
-  if (playbackRecoveryHandlerInstalled) return;
-  playbackRecoveryHandlerInstalled = true;
-  window.addEventListener(PLAYBACK_RECOVERY_REQUESTED_EVENT, (event) => {
-    const detail = (event as CustomEvent<PlaybackRecoveryRequestedDetail>).detail;
-    const message = detail.surface === "warning"
-      ? playbackWarningState(detail.ord)
-      : currentStatusState(detail.ord).message;
-    const action = playbackRecoveryForMessage(message);
-    if (!action) return;
-    clearPlaybackWarning(detail.ord);
-    executePlaybackRecovery(action, detail.node);
-  });
-}
-
-export function executePlaybackRecovery(action: PlaybackRecoveryAction, node: HTMLElement): void {
-  send("aqe:convert", node, action.fieldOrd, {
-    command: "aqe:convert",
-    fieldOrd: action.fieldOrd,
-    overrides: { targetFormat: "mp3" },
-    sourceFilename: action.sourceFilename,
-  });
-}
-
-function playbackRecoveryForMessage(message: EditorStatusMessage): PlaybackRecoveryAction | null {
-  return typeof message === "string" ? null : message.recovery ?? null;
-}
 
 export function send(
   command: EditorDispatchCommand,
@@ -87,18 +45,26 @@ export function send(
     toggleLearnerRecordingHtmlPlayback(ord);
     return;
   }
-  if (shouldPlayAfterSuccessfulEdit(command)) {
-    rememberPostEditPlaybackIntent(ord);
-  }
+  const postEditAutoplay = shouldPlayAfterSuccessfulEdit(command)
+    ? rememberPostEditPlaybackIntent(ord)
+    : null;
   if (command !== "aqe:history-jump" && BUSY_COMMANDS.has(command)) {
     stopAllEditorPlayback();
     setControlsBusy(ord, true, processingMessage(command, payload, editorRuntimeConfig()));
   }
-  const effectivePayload =
+  let effectivePayload =
     payload ??
     (command === "aqe:pitch-hum" || command === "aqe:share" || command === "aqe:share-recording"
       ? buildSplitCommandPayload(command, ord)
       : undefined);
+  if (postEditAutoplay) {
+    effectivePayload = {
+      ...(effectivePayload ?? { command }),
+      command: effectivePayload?.command ?? command,
+      fieldOrd: effectivePayload?.fieldOrd ?? ord,
+      postEditAutoplay,
+    };
+  }
   if (effectivePayload) {
     focusAndSendCommandPayload(ord, effectivePayload);
     return;
@@ -117,9 +83,5 @@ function shouldPlayAfterSuccessfulEdit(command: EditorDispatchCommand): boolean 
 }
 
 function stopAllEditorPlayback(): void {
-  for (const editorVisualizer of allVisualizers()) {
-    if (playbackStateFor(editorVisualizer) === "stopped") continue;
-    stopProgressClock(editorVisualizer);
-    focusAndSendCommand(Number(editorVisualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
-  }
+  quiesceTransportBeforeEditorMutation();
 }

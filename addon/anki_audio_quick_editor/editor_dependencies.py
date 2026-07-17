@@ -28,9 +28,9 @@ from .audio_recording import NativeRecordingController
 from .editor_deps_protocols import (
     AnalysisDeps,
     BridgeDeps,
+    CursorDeps,
     FrontendDeps,
     HistoryDeps,
-    PlaybackDeps,
     ProcessingDeps,
     RecordingDeps,
     RegionDeleteDeps,
@@ -59,8 +59,7 @@ def frontend_deps(frontend_callbacks: Any) -> FrontendDeps:
         graph_redraw_expression=frontend_callbacks.graph_redraw_expression,
         history_availability_expression=frontend_callbacks.history_availability_expression,
         history_snapshot_expression=frontend_callbacks.history_snapshot_expression,
-        playback_after_edit_expression=frontend_callbacks.playback_after_edit_expression,
-        pending_post_edit_playback_payload=frontend_callbacks.pending_post_edit_playback_payload,
+        pending_editor_intent_payload=frontend_callbacks.pending_editor_intent_payload,
         request_history_availability_after_edit=frontend_callbacks.request_history_availability_after_edit,
         request_history_snapshot_after_edit=frontend_callbacks.request_history_snapshot_after_edit,
         retry_history_availability=frontend_callbacks.retry_history_availability,
@@ -92,20 +91,17 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> BridgeDeps:
         handle_non_processing_command=callbacks.handle_non_processing_command,
         handle_pending_command_payload=callbacks.handle_pending_command_payload,
         history_jump=callbacks.history_jump,
-        handle_post_edit_playback_ready=callbacks.handle_post_edit_playback_ready,
         log_editor_frontend_payload=callbacks.log_editor_frontend_payload,
         open_external_url=callbacks.open_external_url,
         open_settings_from_editor=callbacks.open_settings_from_editor,
-        play=callbacks.play,
-        play_ended=callbacks.play_ended,
         pitch_hum_async=callbacks.pitch_hum_async,
-        record_learner_voice=callbacks.record_learner_voice,
         redo=callbacks.redo,
         reduce_size_async=callbacks.reduce_size_async,
         request_source_metadata=callbacks.request_source_metadata,
         rnnoise_async=callbacks.rnnoise_async,
         run_processing_preset_async=callbacks.run_processing_preset_async,
         save_split_defaults_from_frontend=callbacks.save_split_defaults_from_frontend,
+        sessions=editor_runtime.SESSIONS,
         set_busy=frontend_callbacks.set_busy,
         set_cursor_from_web=callbacks.set_cursor_from_web,
         share_current_audio_file=callbacks.share_current_audio_file,
@@ -115,8 +111,6 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> BridgeDeps:
         main=frontend_callbacks.main,
         probe_audio_metadata=probe_audio_metadata,
         resolve_requested_field_media=resolve_requested_field_media,
-        stop_playback=callbacks.stop_playback,
-        stop_learner_recording=callbacks.stop_learner_recording,
         threading=threading,
         undo=callbacks.undo,
         update_state_and_render=callbacks.update_state_and_render,
@@ -136,11 +130,11 @@ def recording_deps(_callbacks: Any, frontend_callbacks: Any) -> RecordingDeps:
         is_busy=editor_runtime.is_busy,
         main=frontend_callbacks.main,
         recorder_factory=_native_recorder_factory,
+        recorder_service=editor_runtime.RECORDER_SERVICE,
         resolve_requested_field_media=resolve_requested_field_media,
         sessions=editor_runtime.SESSIONS,
         set_busy_for_field=frontend_callbacks.set_busy_for_field,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
-        stop_session_playback=editor_runtime.stop_session_playback,
         threading=threading,
     ))
 
@@ -177,7 +171,6 @@ def history_deps(callbacks: Any, frontend_callbacks: Any) -> HistoryDeps:
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
         eval_history_availability=frontend_callbacks.eval_history_availability,
         eval_history_snapshot=frontend_callbacks.eval_history_snapshot,
-        eval_playback_state=frontend_callbacks.eval_playback_state,
         eval_status=frontend_callbacks.eval_status,
         is_busy=editor_runtime.is_busy,
         latest_persistent_undo_item=callbacks.latest_persistent_undo_item,
@@ -191,7 +184,6 @@ def history_deps(callbacks: Any, frontend_callbacks: Any) -> HistoryDeps:
         restore_persistent_undo_steps=callbacks.restore_persistent_undo_steps,
         session_and_source=editor_runtime.session_and_source,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
-        stop_session_playback=editor_runtime.stop_session_playback,
     ))
 
 
@@ -208,7 +200,6 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> ProcessingDeps:
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
         eval_history_availability=frontend_callbacks.eval_history_availability,
         eval_history_snapshot=frontend_callbacks.eval_history_snapshot,
-        eval_playback_state=frontend_callbacks.eval_playback_state,
         eval_status=frontend_callbacks.eval_status,
         format_ffmpeg_command=format_ffmpeg_command,
         is_busy=editor_runtime.is_busy,
@@ -248,7 +239,6 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> ProcessingDeps:
         set_busy=frontend_callbacks.set_busy,
         set_busy_for_field=frontend_callbacks.set_busy_for_field,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
-        stop_session_playback=editor_runtime.stop_session_playback,
         support_report_hint=SUPPORT_REPORT_HINT,
         temp_final_path=temp_final_path,
         threading=threading,
@@ -268,30 +258,16 @@ def settings_action_deps(callbacks: Any, frontend_callbacks: Any) -> SettingsAct
         refresh_editor_after_settings_save=callbacks.refresh_editor_after_settings_save,
         sessions=editor_runtime.SESSIONS,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
-        stop_session_playback=editor_runtime.stop_session_playback,
     ))
 
 
-def playback_deps(callbacks: Any, frontend_callbacks: Any) -> PlaybackDeps:
+def cursor_deps(_callbacks: Any, frontend_callbacks: Any) -> CursorDeps:
     from . import editor_runtime
 
-    return cast(PlaybackDeps, SimpleNamespace(
-        cleanup_temp_playback=callbacks.cleanup_temp_playback,
-        current_field_audio_missing=editor_runtime.CURRENT_FIELD_AUDIO_MISSING,
+    return cast(CursorDeps, SimpleNamespace(
         current_field_index=current_field_index,
-        eval_learner_recording_state=callbacks.eval_learner_recording_state,
-        eval_playback_state=frontend_callbacks.eval_playback_state,
-        eval_status=frontend_callbacks.eval_status,
         eval_with_callback=frontend_callbacks.eval_with_callback,
-        is_busy=editor_runtime.is_busy,
-        play_with_request=callbacks.play_with_request,
-        referenced_audio_missing=editor_runtime.REFERENCED_AUDIO_MISSING,
         session_and_source=editor_runtime.session_and_source,
-        sessions=editor_runtime.SESSIONS,
-        set_busy=frontend_callbacks.set_busy,
-        still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
-        stop_audio_playback=callbacks.stop_audio_playback,
-        stop_session_playback=editor_runtime.stop_session_playback,
         visualized_duration_for_field=visualized_duration_for_field,
     ))
 
@@ -339,7 +315,6 @@ def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> RegionDeleteD
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
         eval_history_availability=frontend_callbacks.eval_history_availability,
         eval_history_snapshot=frontend_callbacks.eval_history_snapshot,
-        eval_playback_state=frontend_callbacks.eval_playback_state,
         eval_status=frontend_callbacks.eval_status,
         eval_with_callback=frontend_callbacks.eval_with_callback,
         format_ffmpeg_command=format_ffmpeg_command,
@@ -362,7 +337,6 @@ def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> RegionDeleteD
         set_busy=frontend_callbacks.set_busy,
         set_busy_for_field=frontend_callbacks.set_busy_for_field,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
-        stop_session_playback=editor_runtime.stop_session_playback,
         temp_final_path=temp_final_path,
         threading=threading,
         write_generated_media=callbacks.write_generated_media,

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from aqt import mw
-from aqt.qt import QDialog, QVBoxLayout
+from aqt.qt import QDialog, QVBoxLayout, qconnect
 from aqt.webview import AnkiWebView
 
 from ..i18n import active_locale, t
@@ -31,6 +31,7 @@ class SettingsDialog(QDialog):
         self.setMinimumWidth(900)
         self.setMinimumHeight(640)
         self._cleaned_up = False
+        self._accepts_async_publications = True
 
         addon_id = mw.addonManager.addonFromModule(__name__)
         config = mw.addonManager.getConfig(addon_id) or {}
@@ -40,8 +41,11 @@ class SettingsDialog(QDialog):
 
         self._webview = AnkiWebView(parent=self)
         self._webview.requiresCol = False
+        qconnect(self.finished, self._on_finished)
 
         def _eval_fn(js: str) -> None:
+            if not self._accepts_async_publications:
+                return
             self._webview.eval(js)
 
         def _on_bridge_cmd(cmd: str) -> bool:
@@ -53,10 +57,17 @@ class SettingsDialog(QDialog):
         layout.addWidget(self._webview)
 
     def closeEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
+        self._cleanup_webview()
+        super().closeEvent(event)
+
+    def _on_finished(self, _result: int) -> None:
+        self._accepts_async_publications = False
+
+    def _cleanup_webview(self) -> None:
+        self._accepts_async_publications = False
         if not self._cleaned_up:
             self._cleaned_up = True
             self._webview.cleanup()
-        super().closeEvent(event)
 
     def run_js(self, script: str, callback: Any = None) -> None:
         """Evaluate JavaScript in the settings webview."""

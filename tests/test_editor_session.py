@@ -12,8 +12,6 @@ from anki_audio_quick_editor.editor_processing import (
 )
 from anki_audio_quick_editor.editor_session import (
     EditorSession,
-    PlaybackState,
-    PostEditPlaybackState,
     ProcessingState,
     begin_processing_guard,
     invalidate_processing_guard,
@@ -24,13 +22,12 @@ from anki_audio_quick_editor.editor_session import (
 # 1. Processing lifecycle (X1, X4, X5, X6)
 # ---------------------------------------------------------------------------
 
-def test_replace_standard_render_clears_processing_and_playback() -> None:
+def test_replace_standard_render_clears_processing() -> None:
     session = EditorSession(
         state=AudioEditState("source.mp3"),
         current_filename="source.mp3",
         status_summary="original",
         processing=ProcessingState(active=True),
-        playback=PlaybackState(active=True, paused=True),
     )
     session.redo_history.push(AudioEditState("old.mp3"), "old.mp3")
 
@@ -40,8 +37,7 @@ def test_replace_standard_render_clears_processing_and_playback() -> None:
     )
 
     assert session.processing.active is False
-    assert session.playback.active is False
-    assert session.playback.paused is False
+    assert not hasattr(session, "playback")
     assert session.cursor_ms == 0
 
 
@@ -81,22 +77,6 @@ def test_replace_standard_render_clears_redo_on_new_edit() -> None:
     )
 
     assert session.redo_history.pop() is None
-
-
-def test_replace_standard_render_bumps_post_edit_generation() -> None:
-    session = EditorSession(
-        state=AudioEditState("source.mp3"),
-        current_filename="source.mp3",
-        processing=ProcessingState(active=True),
-        post_edit_playback=PostEditPlaybackState(generation=10),
-    )
-
-    _replace_standard_render_session_state(
-        session, field_index=0, saved_name="output.mp3",
-        updated_state=AudioEditState("output.mp3"),
-    )
-
-    assert session.post_edit_playback.generation == 11
 
 
 def test_replace_standard_render_uses_next_status_summary_when_set() -> None:

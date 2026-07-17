@@ -10,6 +10,7 @@ import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_callbacks import (
+    _analysis_failed,
     _analysis_finished,
     handle_bridge_command,
 )
@@ -60,6 +61,52 @@ def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
     assert "__aqeSetVisualizer(0," not in evals[0]
 
 
+def test_analysis_completion_after_web_teardown_clears_state_without_publication() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.web = None
+    session = EditorSession(
+        field_index=0,
+        analysis=AnalysisState(busy=True, busy_fields={0}, generation=2, generations_by_field={0: 2}),
+    )
+    SESSIONS[editor] = session
+    track = ProsodyTrack(
+        duration_ms=1000,
+        points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
+        pitch_min_hz=220.0,
+        pitch_max_hz=220.0,
+        source_filename="clip.mp3",
+        analyzer_name="test",
+    )
+
+    _analysis_finished(editor, 2, 0, track)
+
+    assert session.analysis.busy is False
+    assert session.analysis.generations_by_field == {}
+    assert session.graph.filenames_by_field == {}
+    assert session.graph.durations_by_field == {}
+
+
+def test_analysis_failure_after_web_teardown_clears_state_without_publication() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.web = None
+    session = EditorSession(
+        field_index=0,
+        analysis=AnalysisState(busy=True, busy_fields={0}, generation=2, generations_by_field={0: 2}),
+    )
+    SESSIONS[editor] = session
+
+    _analysis_failed(editor, 2, 0, "analysis failed")
+
+    assert session.analysis.busy is False
+    assert session.analysis.generations_by_field == {}
+
+
 def test_analysis_completion_renders_requested_field_when_session_tracks_another_field() -> None:
     class Editor:
         pass
@@ -67,6 +114,7 @@ def test_analysis_completion_renders_requested_field_when_session_tracks_another
     editor = Editor()
     editor.web = MagicMock()
     session = EditorSession(
+        backend_media_generation=7,
         field_index=0,
         current_filename="field-one.mp3",
         analysis=AnalysisState(busy=True, busy_fields={1}, generation=2, generations_by_field={1: 2}),
@@ -89,6 +137,7 @@ def test_analysis_completion_renders_requested_field_when_session_tracks_another
     assert session.graph.durations_by_field[1] == 900
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetVisualizer(1," in call for call in evals)
+    assert any(call.rstrip().endswith(", 7)") for call in evals)
 
 
 def test_analysis_completion_warns_when_graph_uses_ffmpeg_pcm_fallback() -> None:

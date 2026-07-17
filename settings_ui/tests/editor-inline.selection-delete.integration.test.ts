@@ -65,6 +65,7 @@ describe("editor inline selection delete integration", () => {
       durationMs: 1000,
       trigger: "button",
       playbackActive: false,
+      postEditAutoplay: { kind: "once", repeatPauseMs: 0 },
     });
     expect(bridgeCommands()).toEqual(expect.arrayContaining(["focus:0", "aqe:delete-selection"]));
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -114,6 +115,7 @@ describe("editor inline selection delete integration", () => {
       durationMs: 1000,
       trigger: "button",
       playbackActive: false,
+      postEditAutoplay: { kind: "once", repeatPauseMs: 0 },
     });
     expect(bridgeCommands()).toEqual(expect.arrayContaining(["focus:0", "aqe:delete-selection"]));
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({

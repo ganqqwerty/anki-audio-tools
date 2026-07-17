@@ -26,7 +26,6 @@
     splitButtonDefaults,
     visibleEditorButtons,
   } from "./editor-runtime-config.js";
-  import { installPlaybackRecoveryHandler } from "./command-actions.js";
 
   const TOOLBAR_PANEL_CLASSES: Record<ToolbarPanelSlug, string> = {
     "chorusing": "aqe-chorusing-toolbar-panel",
@@ -57,7 +56,6 @@
   const renderItems = buildEditorToolbarRenderItems(buttons);
   const initialStatusKind = $derived(initialStatus?.kind || "info");
   const initialStatusMessage = $derived(initialStatus?.message || "");
-  installPlaybackRecoveryHandler();
 
   function isSplitCommand(command: string): boolean {
     return [

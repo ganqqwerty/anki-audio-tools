@@ -1,19 +1,18 @@
-import { graphSettingsForField } from "./graph-split-state.js";
-import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
+import { RecorderCommandKind, type RecorderCommand } from "../lib/generated/contracts.js";
+import { sendBridgeEnvelope } from "../lib/bridge-transport.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import { clearLearnerVisualizerTrack } from "./visualizer-renderer.js";
 import { getSplitButtonState } from "./split-button-state.js";
 import {
   learnerRecordingStatusForOrd,
   recordingStartCursorMs,
-  recordingTargetReady,
   resetLearnerRecordingState,
   setLearnerRecordingState,
   setRecordingCursor,
   targetDurationForRecording,
 } from "./recording-actions-state.js";
-import { clearGraphCountdownOverlay } from "./graph-countdown-overlay.js";
 import { setLearnerDurationMsForVisualizer } from "./visualizer-runtime-state.js";
+import { startEditorRecordOnce } from "./editor-practice-controller.js";
 
 export function dispatchLearnerRecordingPrimary(node: HTMLElement, ord: number): boolean {
   const status = learnerRecordingStatusForOrd(ord);
@@ -31,7 +30,6 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
   const targetDurationMs = targetDurationForRecording(visualizer);
   if (!visualizer || targetDurationMs <= 0) return false;
 
-  window.__aqeStopEditorPlayback?.(ord);
   clearLearnerVisualizerTrack(visualizer);
   delete visualizer.__aqeLearnerTrack;
   const startCursorMs = recordingStartCursorMs(visualizer, targetDurationMs);
@@ -45,57 +43,25 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
   setRecordingCursor(visualizer, startCursorMs, targetDurationMs);
 
   const countdownSeconds = getSplitButtonState(ord).voiceRecordingCountdownSeconds;
-  if (visualizer.__aqeRecordCountdownTimer) {
-    window.clearTimeout(visualizer.__aqeRecordCountdownTimer);
-    visualizer.__aqeRecordCountdownTimer = null;
-  }
-  const dispatch = (): void => {
-    visualizer.__aqeRecordCountdownTimer = null;
-    if (!recordingTargetReady(ord)) {
-      resetLearnerRecordingState(ord);
-      return;
-    }
-    clearRecordingCountdownOverlay(visualizer);
-    if (typeof node.focus === "function") node.focus();
-    window.__aqeActiveField = ord;
-    focusAndSendCommandPayload(ord, {
-      command: "aqe:record-voice",
-      fieldOrd: ord,
-      graphSettings: graphSettingsForField(ord),
-      startCursorMs,
-    });
-  };
-  if (countdownSeconds <= 0) {
-    dispatch();
-    return true;
-  }
-  let remaining = countdownSeconds;
-  const tick = (): void => {
-    if (remaining <= 0) {
-      dispatch();
-      return;
-    }
-    setLearnerRecordingState({
-      fieldOrd: ord,
-      status: "countdown",
-      countdownSeconds: remaining,
-      startCursorMs,
-      targetDurationMs,
-    });
-    remaining -= 1;
-    visualizer.__aqeRecordCountdownTimer = window.setTimeout(tick, 1000);
-  };
-  tick();
-  return true;
+  if (startEditorRecordOnce(
+    node,
+    ord,
+    countdownSeconds * 1000,
+    startCursorMs,
+    targetDurationMs,
+  )) return true;
+  resetLearnerRecordingState(ord);
+  return false;
 }
 
 export function stopLearnerRecording(node: HTMLElement, ord: number): boolean {
   if (typeof node.focus === "function") node.focus();
   window.__aqeActiveField = ord;
-  focusAndSendCommand(ord, "aqe:stop-recording");
+  const command: RecorderCommand = {
+    fieldOrd: ord,
+    kind: RecorderCommandKind.Stop,
+    schemaVersion: 1,
+  };
+  sendBridgeEnvelope("editor.recorder-command", command);
   return true;
-}
-
-function clearRecordingCountdownOverlay(visualizer: HTMLElement): void {
-  clearGraphCountdownOverlay(visualizer);
 }

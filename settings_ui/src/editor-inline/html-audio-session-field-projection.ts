@@ -1,39 +1,25 @@
-import { focusAndSendCommand } from "./bridge.js";
-import { clearStatus, restoreStatusForOrd, setCommandButtonLabel } from "./control-actions.js";
+import { clearPlaybackStatusForOrd, restoreStatusForOrd, setCommandButtonLabel } from "./control-actions.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { setCachedProgressMs, updateFieldState } from "./field-state-store.js";
-import { audioForOrd } from "./html-audio-session-audio-element.js";
-import {
-  installLearnerAudioHandlers,
-  publishLearnerPlaybackState,
-} from "./html-audio-session-learner-projection.js";
+import { readFieldState, setCachedProgressMs, updateFieldState } from "./field-state-store.js";
+import { publishLearnerPlaybackState } from "./html-audio-session-learner-projection.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
-import type { HtmlAudioSessionEvent, HtmlAudioSessionState, HtmlAudioStartRequest } from "./html-audio-session-types.js";
-import {
-  preserveStatusOnPlaybackEndRuntime,
-  setPreserveStatusOnPlaybackEndRuntime,
-} from "./visualizer-runtime-state.js";
+import type { HtmlAudioSessionState, HtmlAudioStartRequest } from "./html-audio-session-types.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
+import { renderCursor } from "./visualizer-renderer.js";
 
 type HtmlAudioPlaybackStatus = "stopped" | "playing" | "paused";
-type ReadHtmlAudioSessionState = (ord: number) => HtmlAudioSessionState;
-type DispatchHtmlAudioSessionEvent = (ord: number, event: HtmlAudioSessionEvent) => void;
 
 interface PublishPlaybackStateOptions {
   cursorMs: number | undefined;
-  dispatchEvent: DispatchHtmlAudioSessionEvent;
   ord: number;
-  readState: ReadHtmlAudioSessionState;
   request: HtmlAudioStartRequest | null;
   session: HtmlAudioSessionState;
   status: HtmlAudioPlaybackStatus;
 }
 
 export function publishPlaybackState(options: PublishPlaybackStateOptions): void {
-  const { cursorMs, dispatchEvent, ord, readState, request, session, status } = options;
+  const { cursorMs, ord, request, session, status } = options;
   if (publishLearnerPlaybackState(ord, status, cursorMs, session)) {
-    const audio = audioForOrd(ord);
-    if (audio) installLearnerAudioHandlers(ord, audio, readState, dispatchEvent);
     return;
   }
   updateFieldState(ord, (field) => ({
@@ -89,9 +75,8 @@ export function publishRepeatWaitingState(
   }
 }
 
-export function completePlayback(ord: number, cursorMs: number): void {
+export function completePlayback(ord: number, cursorMs: number, preserveStatus = false): void {
   const visualizer = visualizerForOrd(ord);
-  const preserveStatus = visualizer ? preserveStatusOnPlaybackEndRuntime(visualizer) : false;
   updateFieldState(ord, (field) => ({
     ...field,
     cursor: {
@@ -109,13 +94,13 @@ export function completePlayback(ord: number, cursorMs: number): void {
   if (preserveStatus) {
     restoreStatusForOrd(ord);
   } else {
-    clearStatus(ord);
+    clearPlaybackStatusForOrd(ord);
   }
   if (visualizer) {
-    setPreserveStatusOnPlaybackEndRuntime(visualizer, false);
+    ensurePlaybackCursorVisible(visualizer, cursorMs);
+    renderCursor(visualizer, cursorMs, readFieldState(ord).graph.durationMs);
   }
   setCommandButtonLabel(ord, "aqe:play", "Play");
   if (visualizer) syncSelectionToolbar(visualizer);
   window.__aqeActiveField = ord;
-  focusAndSendCommand(ord, "aqe:play-ended");
 }

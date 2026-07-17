@@ -12,7 +12,7 @@ from e2e.helpers import (
 )
 
 
-def test_editor_graph_short_clip_initial_viewport_uses_canonical_pixel_scale(
+def test_editor_graph_short_clip_initial_viewport_fits_whole_clip(
     anki_mw,
     ffmpeg_config,
 ) -> None:
@@ -25,22 +25,10 @@ def test_editor_graph_short_clip_initial_viewport_uses_canonical_pixel_scale(
     try:
         state = wait_for_js_condition(
             editor.web,
-            """
-            (() => {
-              const state = window.__aqeGraphStateForTest?.(0);
-              const bounds = window.__aqeGraphPixelBoundsForTest?.(0);
-              if (!state || !bounds) return null;
-              const span = state.viewportEndMs - state.viewportStartMs;
-              return {
-                ...state,
-                audioWidthPx: span > 0 ? bounds.width * state.durationMs / span : 0,
-              };
-            })()
-            """,
+            _graph_zoom_state_js(),
             lambda value: value is not None
             and value["viewportStartMs"] == 0
-            and value["viewportEndMs"] > value["durationMs"]
-            and abs(value["audioWidthPx"] - 160) <= 12,
+            and value["viewportEndMs"] == value["durationMs"],
             timeout=5.0,
         )
 
@@ -50,7 +38,7 @@ def test_editor_graph_short_clip_initial_viewport_uses_canonical_pixel_scale(
         parent.close()
 
 
-def test_editor_graph_long_clip_initial_viewport_is_not_full_fit(
+def test_editor_graph_long_clip_initial_viewport_fits_whole_clip(
     anki_mw,
     ffmpeg_config,
 ) -> None:
@@ -66,11 +54,11 @@ def test_editor_graph_long_clip_initial_viewport_is_not_full_fit(
             _graph_zoom_state_js(),
             lambda value: value is not None
             and value["viewportStartMs"] == 0
-            and value["viewportEndMs"] < value["durationMs"],
+            and value["viewportEndMs"] == value["durationMs"],
             timeout=5.0,
         )
 
-        assert state["viewportEndMs"] > 1000
+        assert state["durationMs"] > 3000
     finally:
         editor.set_note(None)
         parent.close()
@@ -118,6 +106,18 @@ def test_editor_graph_zoom_scroll_to_end_snaps_viewport(
         "editor_graph_zoom_scroll_end.wav",
     )
     try:
+        run_js(
+            editor.web,
+            """
+            (() => {
+              const state = window.__aqeGraphStateForTest?.(0);
+              if (!state) return false;
+              window.__aqeSetCursorForTest?.(0, state.durationMs / 2, false);
+              document.querySelector('[data-testid="aqe-zoom-in-0"]')?.click();
+              return true;
+            })()
+            """,
+        )
         scrolled = wait_for_js_condition(
             editor.web,
             """

@@ -48,8 +48,6 @@ def run_processing_preset_async(
     if existing and existing.processing.active:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    if existing and existing.playback.preparing:
-        deps.stop_session_playback(existing)
     raw_config = deps.config(editor)
     try:
         preset = preset_by_id(
@@ -62,7 +60,6 @@ def run_processing_preset_async(
 
     session, current_path = deps.current_media_path(editor)
     cancel_graph_analysis_for_processing(editor, session, deps)
-    deps.stop_session_playback(session)
     field_index = session.field_index if session.field_index is not None else getattr(editor, "currentField", 0)
     guard = session.begin_processing(
         field_index=int(field_index),
@@ -71,7 +68,6 @@ def run_processing_preset_async(
         bump_post_edit_generation=True,
     )
     deps.set_busy(editor, True, t("editor.status.running_preset", {"preset": preset.name}))
-    deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
     operation_id = new_operation_id("preset")
     record_breadcrumb(
         "editor.preset.started",

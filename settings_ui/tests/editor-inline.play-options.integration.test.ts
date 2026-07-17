@@ -46,8 +46,8 @@ describe("editor inline play option integration", () => {
     expect(playMenu).toHaveAttribute("data-aqe-tooltip-content", "Play quick settings.");
     await openPlayOptions();
 
-    const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]');
-    expect(repeat).toHaveAttribute("aria-pressed", "true");
+    const repeat = document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]');
+    expect(repeat).toBeChecked();
     expect(repeat?.closest(".aqe-split-button")).not.toBeNull();
     expect(window.__aqeGraphStateForTest?.(0)?.repeatPauseSeconds).toBe(1.5);
 
@@ -81,7 +81,7 @@ describe("editor inline play option integration", () => {
     repeat?.click();
 
     expect(window.__aqeGraphStateForTest?.(0)?.repeatEnabled).toBe(false);
-    expect(repeat).toHaveAttribute("aria-pressed", "false");
+    expect(repeat).not.toBeChecked();
     expect(playMenu).toHaveAttribute("data-aqe-tooltip-content", "Play quick settings.");
   });
 });

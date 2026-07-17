@@ -11,7 +11,6 @@ import {
   pathForIntensity,
   pitchHzAtMs,
   plotGeometryForSvg,
-  plotWidth,
   svgViewBoxScale,
   xForMs,
 } from "./plot.js";
@@ -31,7 +30,6 @@ import { graphRequested } from "./field-state.js";
 import {
   readLearnerDurationMsForVisualizer,
   setLearnerDurationMsForVisualizer,
-  setPlaybackPassRuntime,
   setTargetDurationMsForVisualizer,
 } from "./visualizer-runtime-state.js";
 
@@ -58,13 +56,6 @@ export function renderGraphRequested(visualizer: VisualizerElement, options: Lea
   writeFieldState(ord, graphRequested(readFieldState(ord)));
   setTargetDurationMsForVisualizer(visualizer, 0);
   if (!preserveLearnerOverlay) setLearnerDurationMsForVisualizer(visualizer, 0);
-  setPlaybackPassRuntime(visualizer, {
-    endMs: 0,
-    loop: false,
-    regionMode: "full",
-    resetCursorMs: 0,
-    startMs: 0,
-  });
   resetVisualizerTimeViewport(visualizer, 0);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
@@ -102,8 +93,8 @@ export function renderVisualizerTrack(
     delete visualizer.__aqeLearnerTrack;
   }
   visualizer.__aqeTrack = track;
-  const plot = syncVisualizerViewBox(visualizer);
-  resetVisualizerTimeViewport(visualizer, track.durationMs || 0, plotWidth(plot));
+  syncVisualizerViewBox(visualizer);
+  resetVisualizerTimeViewport(visualizer, track.durationMs || 0);
   renderProsodyTracks(visualizer);
 }
 

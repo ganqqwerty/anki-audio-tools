@@ -69,7 +69,7 @@ def test_standard_edit_plays_new_generated_audio(anki_mw, ffmpeg_config) -> None
         ("aqe:volume-up", "volume"),
     ],
 )
-def test_standard_edit_pulls_generated_audio_into_html_playback_before_metadata_event(
+def test_standard_edit_waits_for_generated_audio_metadata_before_html_playback(
     anki_mw,
     ffmpeg_config,
     command: str,
@@ -94,6 +94,28 @@ def test_standard_edit_pulls_generated_audio_into_html_playback_before_metadata_
         ) as playback:
             click_selector(editor.web, _button_selector(command), timeout=5.0)
             generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+            loading = wait_for_js_condition(
+                editor.web,
+                """
+                (() => {
+                  const audio = document.querySelector('[data-testid="aqe-audio-clock-0"]');
+                  const state = window.__aqeGraphStateForTest?.(0);
+                  return {
+                    playCount: window.__aqePostEditLoadingPlayCount || 0,
+                    readiness: state?.htmlAudioReadinessState || "",
+                    sourceFilename: state?.sourceFilename || "",
+                    src: audio?.getAttribute("src") || "",
+                  };
+                })()
+                """,
+                lambda value: value["sourceFilename"] == generated_name
+                and value["readiness"] == "loading_metadata"
+                and value["playCount"] == 0
+                and generated_name.replace(" ", "%20") in value["src"],
+                timeout=7.0,
+            )
+            assert loading["playCount"] == 0
+            run_js(editor.web, "window.__aqeReleasePostEditMetadata?.()")
             playing = wait_for_js_condition(
                 editor.web,
                 _graph_state_js(),
@@ -187,7 +209,7 @@ def test_post_edit_playback_ready_uses_the_rendered_graph_when_one_is_already_vi
         _install_post_edit_ready_probe_for_rendered_graph(editor, source.name)
 
         wait_for_condition(
-            lambda: any("post-edit playback ready dispatched" in record.message for record in caplog.records),
+            lambda: any("editor.intent_autoplay_accepted" in record.message for record in caplog.records),
             timeout=5.0,
             message="Post-edit ready notification was blocked even though the required graph was already rendered",
         )
@@ -281,6 +303,21 @@ def _install_post_edit_loading_audio_driver(editor) -> None:
         """
         (() => {
           window.__aqePostEditLoadingPlayCount = 0;
+          window.__aqePostEditMetadataReleased = false;
+          const markReady = (audio) => {
+            try {
+              Object.defineProperty(audio, "duration", {
+                configurable: true,
+                get: () => Math.max(
+                  0.001,
+                  Number(window.__aqeGraphStateForTest?.(0)?.durationMs || 1000) / 1000,
+                ),
+              });
+              Object.defineProperty(audio, "readyState", { configurable: true, value: 4 });
+            } catch (_error) {
+            }
+            audio.dispatchEvent(new Event("loadedmetadata"));
+          };
           const install = (audio) => {
             if (!audio || audio.__aqePostEditLoadingDriverInstalled) return;
             try {
@@ -288,7 +325,7 @@ def _install_post_edit_loading_audio_driver(editor) -> None:
             } catch (_error) {
             }
             audio.addEventListener("loadedmetadata", (event) => {
-              event.stopImmediatePropagation();
+              if (!window.__aqePostEditMetadataReleased) event.stopImmediatePropagation();
             }, true);
             audio.pause = () => undefined;
             audio.play = () => {
@@ -296,6 +333,7 @@ def _install_post_edit_loading_audio_driver(editor) -> None:
               return Promise.resolve();
             };
             audio.__aqePostEditLoadingDriverInstalled = true;
+            if (window.__aqePostEditMetadataReleased) markReady(audio);
           };
           const installAll = () => {
             for (const audio of document.querySelectorAll('[data-testid^="aqe-audio-clock-"]')) {
@@ -309,6 +347,12 @@ def _install_post_edit_loading_audio_driver(editor) -> None:
               subtree: true,
             });
           }
+          window.__aqeReleasePostEditMetadata = () => {
+            window.__aqePostEditMetadataReleased = true;
+            for (const audio of document.querySelectorAll('[data-testid^="aqe-audio-clock-"]')) {
+              markReady(audio);
+            }
+          };
           installAll();
           return true;
         })()
@@ -332,12 +376,25 @@ def _install_post_edit_ready_probe_for_rendered_graph(editor, source_name: str) 
         editor.web,
         f"""
         (() => {{
-          window.__AQE_EDITOR_CONFIG__.pendingPostEditPlayback = {{
-            fieldOrd: 0,
-            generation: 99,
-            requireGraphRedraw: true,
+          const backend = window.__AQE_EDITOR_CONFIG__.backendEditorContext;
+          window.__AQE_EDITOR_CONFIG__.pendingEditorIntent = {{
+            autoplay: {{
+              expectedDurationMs: 1000,
+              kind: "once",
+              repeatPauseMs: 0,
+              requireGraphRedraw: true,
+            }},
+            deliveryId: "e2e-rendered-graph",
+            expiresAtEpochMs: Date.now() + 10_000,
+            schemaVersion: 1,
             sourceKind: "generated_edit",
-            sourceFilename: {source_name!r},
+            target: {{
+              backendMediaGeneration: backend?.mediaTargetsByField?.[0]?.backendMediaGeneration || 0,
+              editorSessionId: backend?.editorSessionId || 0,
+              fieldOrd: 0,
+              noteId: backend?.noteId ?? null,
+              sourceFilename: {source_name!r},
+            }},
           }};
           window.__aqeSetBusy(0, false);
           return true;

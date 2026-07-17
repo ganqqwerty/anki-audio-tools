@@ -306,8 +306,3 @@
   min-height: 26px;
   min-width: 62px;
 }
-
-.aqe-repeat-toggle-button {
-  justify-content: flex-start;
-  width: fit-content;
-}

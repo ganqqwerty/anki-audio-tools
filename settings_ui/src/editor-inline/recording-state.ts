@@ -1,23 +1,10 @@
-export type LearnerRecordingStatus =
-  | "idle"
-  | "countdown"
-  | "recording"
-  | "stopping"
-  | "analyzing"
-  | "ready"
-  | "failed";
+import { Status, type RecorderSnapshot } from "../lib/generated/contracts.js";
+
+export type LearnerRecordingStatus = `${Status}`;
 
 export type LearnerPlaybackStatus = "stopped" | "playing" | "paused";
 
-export interface LearnerRecordingStatePayload {
+export interface LearnerRecordingStatePayload extends Partial<Omit<RecorderSnapshot, "status">> {
   countdownSeconds?: number | null;
-  failureMessage?: string | null;
-  fieldOrd?: number | null;
-  generation?: number | null;
-  mediaFilename?: string | null;
-  playbackStatus?: LearnerPlaybackStatus | null;
-  recordingDurationMs?: number | null;
-  startCursorMs?: number | null;
   status: LearnerRecordingStatus;
-  targetDurationMs?: number | null;
 }

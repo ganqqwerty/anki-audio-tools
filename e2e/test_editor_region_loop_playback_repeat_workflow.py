@@ -147,7 +147,7 @@ def test_selected_repeat_restarts_from_segment_start_after_repositioned_paused_c
                 editor,
                 lambda state: abs(state["playbackStartMs"] - expected_restart_ms)
                 <= PLAYBACK_INTERVAL_TOLERANCE_MS
-                and abs(state["cursorMs"] - expected_restart_ms)
+                and abs(state["progressMs"] - expected_restart_ms)
                 <= PLAYBACK_INTERVAL_TOLERANCE_MS
                 and state["playbackEndMs"] == 1300,
                 timeout=5.0,
@@ -158,6 +158,7 @@ def test_selected_repeat_restarts_from_segment_start_after_repositioned_paused_c
         assert repositioned["selectionStartMs"] == 500
         assert repositioned["selectionEndMs"] == 1300
         assert restarted["playbackRegionMode"] == "selection"
+        assert restarted["cursorMs"] == repositioned["cursorMs"]
     finally:
         editor.set_note(None)
         parent.close()

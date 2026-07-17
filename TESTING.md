@@ -17,13 +17,13 @@ python3 scripts/dev.py test-e2e-parallel
 
 ## What Gets Tested
 
-- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, unified Silencedetect/Silero pause-removal planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
+- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, unified Silencedetect/Silero pause-removal planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, generated lifecycle bridges, application-scoped recorder model/service behavior, editor bridge wiring, and settings command/state logic.
 - `anki_api_contract/` discovers the Anki API surface from production add-on code and checks it against the real installed Anki Python runtime without launching a full Anki app.
-- `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
+- `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, DB access isolation, frontend transport/practice ownership, recorder handle ownership, generated lifecycle contracts, deleted playback-mirror tombstones, and invariant-validator wiring.
 - `tests/test_runtime_package_imports.py` and the runtime-import architecture rule guard against hard-coded lazy imports of the friendly source package name, which would fail when Anki loads the add-on as a numeric package.
 - `tests/test_anki_api_contract_mocks.py` checks the mocked unit-test Anki surface against the same generated contract so mocks cannot hide a missing real API.
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
-- `settings_ui/tests/` covers bridge envelopes, async job plumbing, logging, frontend independence guardrails, the settings UI, Browser batch UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the ignored generated frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
+- `settings_ui/tests/` covers bridge envelopes, async job plumbing, logging, frontend independence guardrails, the settings UI, Browser batch UI, HTML-audio transport transition/identity/resource behavior, pure practice programs, recorder snapshot projection, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the ignored generated frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, dependency-cruiser, and Vitest coverage thresholds.
 - `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
 - `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage, fails below 80% aggregate coverage, and enforces conservative per-file floors for critical runtime, region-delete, and Reviewer orchestration modules.
 - `python3 scripts/dev.py qodana` runs JetBrains Qodana with `qodana.yaml` and fails on any reported problem.
@@ -115,10 +115,13 @@ Qodana uses `qodana-python-community` in native mode and `failThreshold: 0`, so 
 The file-length policy warns above 400 physical lines and fails above 500 physical lines for hand-maintained Python, TypeScript, and Svelte files. Generated contract output and committed webview bundle output are excluded by explicit generated-file predicates, and contract freshness remains covered by `python3 scripts/dev.py contracts-check`.
 
 Python coverage uses branch coverage and fails below 80% overall, then applies
-the risk-file floors declared in `scripts/dev_tasks/coverage.py`. Frontend
-coverage thresholds are enforced by Vitest both globally and for named
-high-risk editor/settings state modules; these are ratchets, not target quality
-levels, and should increase as focused behavioral coverage lands.
+the risk-file floors declared in `scripts/dev_tasks/coverage.py`. Recorder
+model and service floors are 95% and 90% respectively. Frontend coverage
+thresholds are enforced by Vitest both globally and for named high-risk
+modules: the HTML-audio reducer and pure practice programs require at least
+95% lines/functions and 90% branches, while the transport package has a 90%
+lines/functions and 85% branch ratchet. These floors protect lifecycle
+semantics; aggregate coverage remains a secondary signal.
 
 SonarQube is opt-in because it needs `sonar-scanner` and `SONAR_TOKEN`, but when run it is a hard gate: coverage reports must be freshly generated and the scanner waits for the server quality gate. Generated contracts are excluded from Sonar issue and coverage accounting. The inline editor bundle intentionally keeps the browser `window.__aqe*` bridge contract, so Sonar's `typescript:S7764` global-object preference is ignored only under `settings_ui/src/editor-inline/**`.
 
@@ -152,6 +155,7 @@ Test files are named by subsystem. To find tests for a given area:
 | Real Anki API compatibility | `anki_api_contract/*.py`, `tests/test_anki_api_contract_mocks.py` |
 | Audio processing (operations, pipeline, denoise, pitch hum, rendering, recording) | [`tests/test_audio_*.py`](tests/) |
 | Editor (actions, bridge, playback, recording, status, sharing, integration) | [`tests/test_editor_*.py`](tests/) |
+| Playback/practice/recorder lifecycle | `settings_ui/tests/html-audio-session-*.test.ts`, `settings_ui/tests/practice-program*.test.ts`, `settings_ui/tests/editor-inline.recording.integration.test.ts`, `tests/test_recorder_model.py`, `tests/test_recorder_service.py`, `tests/test_editor_lifecycle_bridge.py` |
 | Browser batch operations | [`tests/test_browser_*.py`](tests/), [`tests/test_batch_*.py`](tests/) |
 | Config & migration | [`tests/test_config_*.py`](tests/) |
 | Prosody (analyzer, cache, fallback, SVG, settings) | [`tests/test_prosody_*.py`](tests/) |
@@ -180,10 +184,12 @@ Full mutation execution remains scheduled/advisory because of its cost.
 
 Python mutation uses the dedicated `mutmut-pyproject.toml` configuration with a
 fixed random seed. Focused groups cover architecture detectors, config,
-region deletion, release, runtime, and prosody. The HTML-audio session reducer
-uses Stryker with the real Vitest transition matrix. Scheduled jobs publish all
-mutmut outcome categories and `mutation-diff.json`, which compares the current
-counts with the previous successful workflow artifact when one exists.
+region deletion, release, runtime, prosody, and recorder model/service
+lifecycle. Stryker mutates the HTML-audio reducer, transport identity/
+validation policy, and pure practice programs against their real Vitest
+transition matrices. Scheduled jobs publish all mutmut outcome categories and
+`mutation-diff.json`, which compares the current counts with the previous
+successful workflow artifact when one exists.
 
 Useful commands:
 
@@ -192,7 +198,7 @@ python3 scripts/dev.py muttest run
 python3 scripts/dev.py muttest smoke
 python3 scripts/dev.py muttest group architecture
 python3 scripts/dev.py muttest group runtime
-python3 scripts/dev.py muttest html-audio
+python3 scripts/dev.py muttest state-management
 python3 scripts/dev.py muttest results
 python3 scripts/dev.py muttest show <mutant>
 python3 scripts/dev.py muttest tests-for-mutant <mutant>
@@ -221,6 +227,7 @@ Recommended workflow:
 | Settings/backend isolation | Settings backend modules do not import UI modules; the settings shell remains thin. |
 | DB access restriction | Direct collection/database access remains isolated to approved helpers. |
 | Broad exception allowlist | `except Exception` handlers are limited to documented boundary functions with a reason. |
+| Rules 39-50: playback/recording ownership | Dependency direction, direct media capability ownership, sole transport writes, pure practice programs, DOM tombstones, exhaustive identities, recorder package/handle ownership, generated lifecycle contracts, deleted mirror tombstones, public APIs, and validator wiring stay enforced together. |
 
 ## Architecture Workflow
 
@@ -323,13 +330,16 @@ with a real silence gap and terminal stop. These tests prove the WebView
 media signal, not the final operating-system output device; device loopback
 remains outside the default gate.
 
-Real microphone permission prompts, physical input-device enumeration, and
-operating-system loopback belong to an opt-in hardware recorder lane on each
-supported platform. They are not permitted to skip inside PR jobs. The default
-gate instead uses deterministic fake recorders for permission, start/stop,
-timeout, replacement, and failure behavior; a release candidate that changes
-native recording must additionally record the hardware-lane OS, device,
-permission state, and emitted file probe results.
+Real microphone permission prompts, physical input-device enumeration, device
+loss, and operating-system loopback belong to an opt-in hardware recorder lane
+on each supported platform. They are not permitted to skip inside PR jobs. The
+required deterministic gate uses fake native adapters against the same
+application-scoped recorder service for permission, start/stop, cancellation,
+timeout, duplicate completion, replacement, probe, and failure behavior. A
+release candidate that changes native recording must additionally record the
+hardware-lane OS, device, permission state, cancellation/stop result, and
+emitted file probe metadata. Unavailable hardware is release evidence to note,
+not a reason to replace the deterministic merge gate with optional skips.
 
 ### When addressable audio is required
 

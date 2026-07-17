@@ -2,8 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
-import { bridgeCommands, muteConsole, peekPendingCommandPayload, renderFields, track } from "./editor-inline.integration.helpers.js";
-import { updateFieldState } from "../src/editor-inline/field-state-store.js";
+import {
+  bridgeCommands,
+  consumePendingCommandPayload,
+  muteConsole,
+  peekPendingCommandPayload,
+  prepareHtmlAudio,
+  renderFields,
+  track,
+} from "./editor-inline.integration.helpers.js";
+import { pycmdMock } from "./setup.js";
 
 describe("editor inline denoise integration", () => {
   let restoreConsole: () => void;
@@ -70,6 +78,7 @@ describe("editor inline denoise integration", () => {
       voiceLock: "stable",
       voiceRange: "child",
     });
+    consumePendingCommandPayload();
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-pitch-hum-menu"]')!.click();
@@ -93,6 +102,7 @@ describe("editor inline denoise integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
     expect(peekPendingCommandPayload()?.command).toBe("aqe:pitch-hum");
     expect(peekPendingCommandPayload()?.overrides?.pitchHumMode).toBe("pitch_tier");
+    consumePendingCommandPayload();
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
@@ -100,6 +110,7 @@ describe("editor inline denoise integration", () => {
     expect(peekPendingCommandPayload()?.command).toBe("aqe:denoise-standard");
     expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
     expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("standard");
+    consumePendingCommandPayload();
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
@@ -147,19 +158,23 @@ describe("editor inline denoise integration", () => {
     scan(config);
     await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 250);
-    updateFieldState(0, (state) => ({
-      ...state,
-      playback: { ...state.playback, clockMode: "manual", engine: "html", state: "playing" },
-    }));
+    const audio = prepareHtmlAudio(0);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    await Promise.resolve();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     await Promise.resolve();
 
-    const commands = bridgeCommands();
-    const stopIndex = commands.indexOf("aqe:stop-playback");
-    const payloadIndex = commands.indexOf("aqe:command-payload");
-    expect(stopIndex).toBeGreaterThanOrEqual(0);
-    expect(payloadIndex).toBeGreaterThan(stopIndex);
+    const payloadIndex = pycmdMock.mock.calls.findIndex(([command]) => command === "aqe:command-payload");
+    const pauseCallOrder = vi.mocked(audio.pause).mock.invocationCallOrder.at(-1);
+    const payloadCallOrder = pycmdMock.mock.invocationCallOrder[payloadIndex];
+    expect(payloadIndex).toBeGreaterThanOrEqual(0);
+    if (pauseCallOrder === undefined || payloadCallOrder === undefined) {
+      throw new Error("Expected transport pause and command payload calls");
+    }
+    expect(pauseCallOrder).toBeLessThan(payloadCallOrder);
+    expect(bridgeCommands()).not.toContain("aqe:stop-playback");
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
   });
 });

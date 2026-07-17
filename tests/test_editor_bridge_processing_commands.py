@@ -6,11 +6,11 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
+from anki_audio_quick_editor.contracts_generated import AutoplayKind
 from anki_audio_quick_editor.editor_callbacks import handle_bridge_command
 from anki_audio_quick_editor.editor_session import (
     AnalysisState,
     EditorSession,
-    PlaybackState,
     ProcessingState,
 )
 from tests.editor_bridge_command_fixtures import attach_clip_session, make_editor
@@ -44,6 +44,29 @@ def test_bridge_accepts_processing_json_payload(tmp_path: Path, monkeypatch) -> 
 
     assert rendered["state"] == AudioEditState("clip.mp3", volume_db=6)
     assert rendered["current_field"] == 1
+
+
+def test_bridge_retains_post_edit_program_for_matching_result(tmp_path: Path, monkeypatch) -> None:
+    editor = make_editor()
+    session, source = attach_clip_session(editor, tmp_path)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_runtime.session_and_source",
+        lambda _editor: (session, source),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._render_and_replace_async",
+        lambda *_args: None,
+    )
+
+    handle_bridge_command(
+        editor,
+        '{"command":"aqe:faster","fieldOrd":0,'
+        '"postEditAutoplay":{"kind":"repeat","repeatPauseMs":750}}',
+    )
+
+    preference = session.post_edit_autoplay_by_field[0]
+    assert preference.kind.value == AutoplayKind.REPEAT.value
+    assert preference.repeat_pause_ms == 750
 
 
 def test_bridge_passes_local_pause_aggressiveness_to_renderer(
@@ -152,12 +175,11 @@ def test_busy_session_rejects_processing_command(tmp_path: Path, monkeypatch) ->
     assert any("Still processing. Please wait." in call.args[0] for call in editor.web.eval.call_args_list)
 
 
-def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeypatch) -> None:
+def test_processing_command_starts_without_backend_playback_state(tmp_path: Path, monkeypatch) -> None:
     editor = make_editor()
     session = EditorSession(
         state=AudioEditState("clip.mp3"),
         field_index=0,
-        playback=PlaybackState(active=True, preparing=True, generation=7),
     )
     session, source = attach_clip_session(editor, tmp_path, session=session)
     rendered: dict[str, AudioEditState] = {}
@@ -167,7 +189,6 @@ def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeyp
         lambda _editor: (session, source),
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.config", lambda _editor: {"speed_step": 2})
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._render_and_replace_async",
         lambda _editor, _session, _source_path, updated_state, _config: rendered.update(state=updated_state),
@@ -176,9 +197,7 @@ def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeyp
     handle_bridge_command(editor, "aqe:faster")
 
     assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
-    assert session.playback.preparing is False
-    assert session.playback.active is False
-    assert session.playback.generation == 8
+    assert not hasattr(session, "playback")
 
 
 def test_processing_command_cancels_graph_analysis_busy_state(

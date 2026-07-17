@@ -16,12 +16,6 @@ const request = {
   regionMode: "full" as const,
   source: "user" as const,
 };
-const postEditRequest = { ...request, source: "post_edit" as const };
-const postEditIntent = {
-  fieldOrd: 0, generation: 1, requireGraphRedraw: false,
-  sourceFilename: source.sourceFilename, sourceKind: "existing_media" as const,
-};
-
 const states = {
   empty: initialHtmlAudioSessionState(0),
   loading: { cursorMs: 125, kind: "loading", ord: 0, pendingStart: null, source } as const,
@@ -29,13 +23,6 @@ const states = {
   starting: { durationMs: 1000, kind: "starting", ord: 0, request, source } as const,
   playing: { durationMs: 1000, kind: "playing", ord: 0, request, source, startedAtMs: 10 } as const,
   paused: { durationMs: 1000, kind: "paused", ord: 0, pausedAtMs: 375, request, source } as const,
-  repeat_waiting: {
-    durationMs: 1000, kind: "repeat_waiting", ord: 0, request: { ...request, loop: true }, resumeAtMs: 0, source,
-  } as const,
-  post_edit_waiting: {
-    cursorMs: 100, graphDurationMs: null, kind: "post_edit_waiting", ord: 0,
-    postEdit: postEditIntent, readyDispatched: false, request: postEditRequest, source,
-  } as const,
   failed: {
     cursorMs: 0,
     kind: "failed",
@@ -43,6 +30,7 @@ const states = {
     mediaResponseStatus: null,
     ord: 0,
     reason: "audio_error",
+    recovery: "none",
     source,
   } as const,
 } satisfies Record<HtmlAudioSessionState["kind"], HtmlAudioSessionState>;
@@ -57,13 +45,6 @@ const eventInventory = [
   { durationMs: 1000, type: "MetadataLoaded" },
   { type: "MetadataTimeout" },
   { request, type: "StartRequested" },
-  {
-    intent: { fieldOrd: 0, generation: 1, requireGraphRedraw: false, sourceFilename: source.sourceFilename, sourceKind: "existing_media" },
-    request: { ...request, source: "post_edit" },
-    type: "PostEditAutoplayRequested",
-  },
-  { durationMs: 1000, sourceFilename: source.sourceFilename, type: "GraphRenderedForSource" },
-  { durationMs: 1000, sourceFilename: source.sourceFilename, type: "PostEditReadyConfirmed" },
   { nowMs: 1, sourceFilename: source.sourceFilename, type: "PlayResolved" },
   { reason: "audio_play_rejected", sourceFilename: source.sourceFilename, type: "PlayRejected" },
   { cursorMs: 0, reason: "audio_seek_failed", type: "SeekFailed" },
@@ -71,18 +52,18 @@ const eventInventory = [
   { type: "ResumeRequested" },
   { cursorMs: 0, type: "StopRequested" },
   { cursorMs: 1000, type: "BoundaryReached" },
-  { type: "RepeatDelayElapsed" },
   { cursorMs: 0, mediaErrorCode: null, mediaResponseStatus: null, reason: "audio_error", type: "AudioError" },
+  { type: "RecoveryClaimed" },
   { type: "RuntimeDisposed" },
 ] satisfies HtmlAudioSessionEvent[];
 
 describe("html audio session transition matrix", () => {
   it("keeps a typed sample for every declared event", () => {
     expect(new Set(eventInventory.map((event) => event.type))).toEqual(new Set([
-      "AudioError", "BoundaryReached", "GraphRenderedForSource", "MetadataLoaded", "MetadataTimeout",
-      "PauseRequested", "PlayRejected", "PlayResolved", "PostEditAutoplayRequested", "PostEditReadyConfirmed",
-      "RepeatDelayElapsed", "ResumeRequested", "RuntimeDisposed", "SeekFailed", "SourceCleared", "SourceConfigured",
-      "StartRequested", "StopRequested",
+      "AudioError", "BoundaryReached", "MetadataLoaded", "MetadataTimeout",
+      "PauseRequested", "PlayRejected", "PlayResolved",
+      "ResumeRequested", "RuntimeDisposed", "SeekFailed", "SourceCleared", "SourceConfigured",
+      "StartRequested", "StopRequested", "RecoveryClaimed",
     ]));
   });
 
@@ -104,6 +85,7 @@ describe("html audio session transition matrix", () => {
         mediaResponseStatus: null,
         ord: 0,
         reason: "audio_error",
+        recovery: "none",
         source,
       } as const,
     ]) {
@@ -116,7 +98,7 @@ describe("html audio session transition matrix", () => {
     const timedOut = transitionHtmlAudioSession(loading, { type: "MetadataTimeout" });
     expect(timedOut.state).toMatchObject({ cursorMs: 125, kind: "failed", reason: "metadata_timeout" });
     expect(timedOut.effects.map((effect) => effect.type)).toEqual([
-      "ClearProgressFrame", "ClearRepeatTimer", "ClearMetadataTimer", "PauseAudio", "PublishPlaybackState",
+      "ClearProgressFrame", "ClearMetadataTimer", "PauseAudio", "PublishPlaybackState",
       "ShowPlaybackStatus", "LogPlaybackTelemetry",
     ]);
 
@@ -125,36 +107,82 @@ describe("html audio session transition matrix", () => {
   });
 
   it.each(["SourceCleared", "RuntimeDisposed"] as const)("%s disposes every active resource", (type) => {
-    const active: HtmlAudioSessionState = {
-      durationMs: 1000, kind: "repeat_waiting", ord: 0, request: { ...request, loop: true }, resumeAtMs: 0, source,
-    };
+    const active: HtmlAudioSessionState = states.playing;
     const transition = transitionHtmlAudioSession(active, { type });
     expect(transition.state).toEqual(initialHtmlAudioSessionState(0));
     expect(transition.effects.map((effect) => effect.type)).toEqual([
-      "PauseAudio", "ClearAudioSource", "ClearProgressFrame", "ClearMetadataTimer", "ClearRepeatTimer",
+      "ClearAudioSource", "ClearProgressFrame", "ClearMetadataTimer",
       "PublishPlaybackState",
     ]);
   });
 
   it("source clearing is idempotent while runtime disposal preserves an empty no-op", () => {
     const empty = initialHtmlAudioSessionState(0);
-    expect(transitionHtmlAudioSession(empty, { type: "SourceCleared" }).effects).toHaveLength(6);
+    expect(transitionHtmlAudioSession(empty, { type: "SourceCleared" }).effects).toHaveLength(4);
     expect(transitionHtmlAudioSession(empty, { type: "RuntimeDisposed" })).toEqual({ state: empty, effects: [] });
   });
 
   it("configures a source from every state and cancels only active resources", () => {
     for (const [kind, state] of Object.entries(states)) {
-      const result = transitionHtmlAudioSession(state, { cursorMs: 44, source, type: "SourceConfigured" });
+      const result = transitionHtmlAudioSession(state, { cursorMs: 44, replace: true, source, type: "SourceConfigured" });
       expect(result.state, kind).toEqual({ cursorMs: 44, kind: "loading", ord: 0, pendingStart: null, source });
       expect(result.effects, kind).toEqual([
-        ...(["loading", "starting", "playing", "paused", "repeat_waiting", "post_edit_waiting"].includes(kind)
-          ? [{ type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" }, { type: "ClearMetadataTimer" }, { type: "PauseAudio" }]
+        ...(["loading", "starting", "playing", "paused"].includes(kind)
+          ? [{ type: "ClearProgressFrame" }, { type: "ClearMetadataTimer" }]
           : []),
         { sourceFilename: source.sourceFilename, type: "ConfigureAudioSource" },
         { timeoutMs: 5000, type: "StartMetadataTimer" },
         { status: "stopped", type: "PublishPlaybackState" },
       ]);
     }
+  });
+
+  it("keeps an identical source binding and distinguishes learner recording attempts", () => {
+    expect(transitionHtmlAudioSession(states.ready, {
+      cursorMs: 999,
+      source,
+      type: "SourceConfigured",
+    })).toEqual({ state: states.ready, effects: [] });
+
+    const firstLearnerSource = {
+      attemptId: 1,
+      kind: "learner_recording" as const,
+      sourceFilename: "learner.wav",
+      startCursorMs: 125,
+    };
+    const learnerReady: HtmlAudioSessionState = {
+      cursorMs: 0,
+      durationMs: 1000,
+      kind: "ready",
+      ord: 0,
+      source: firstLearnerSource,
+    };
+    expect(transitionHtmlAudioSession(learnerReady, {
+      cursorMs: 50,
+      source: firstLearnerSource,
+      type: "SourceConfigured",
+    })).toEqual({ state: learnerReady, effects: [] });
+    expect(transitionHtmlAudioSession(learnerReady, {
+      cursorMs: 50,
+      source: { ...firstLearnerSource, attemptId: 2 },
+      type: "SourceConfigured",
+    }).state).toEqual({
+      cursorMs: 50,
+      kind: "loading",
+      ord: 0,
+      pendingStart: null,
+      source: { ...firstLearnerSource, attemptId: 2 },
+    });
+    expect(transitionHtmlAudioSession(learnerReady, {
+      cursorMs: 50,
+      source: { kind: "source", sourceFilename: firstLearnerSource.sourceFilename },
+      type: "SourceConfigured",
+    }).state).toMatchObject({ kind: "loading", source: { kind: "source" } });
+    expect(transitionHtmlAudioSession(states.failed, {
+      cursorMs: 50,
+      source,
+      type: "SourceConfigured",
+    }).state).toMatchObject({ kind: "loading" });
   });
 
   it("loads metadata with and without a deferred start", () => {
@@ -185,12 +213,20 @@ describe("html audio session transition matrix", () => {
       state: { durationMs: 1000, kind: "starting", ord: 0, request: nextRequest, source },
       effects: [{ cursorMs: 222, type: "SeekAudio" }, { type: "PlayAudio" }],
     });
-    for (const kind of ["starting", "playing", "paused", "repeat_waiting"] as const) {
-      expect(effectTypes(states[kind], { request: nextRequest, type: "StartRequested" }), kind).toEqual([
-        "ClearRepeatTimer", "ClearProgressFrame", "SeekAudio", "PlayAudio",
-      ]);
+    for (const kind of ["starting", "playing", "paused"] as const) {
+      expect(transitionHtmlAudioSession(states[kind], {
+        request: nextRequest,
+        type: "StartRequested",
+      }), kind).toEqual({
+        state: { durationMs: 1000, kind: "starting", ord: 0, request: nextRequest, source },
+        effects: [
+          { type: "ClearProgressFrame" },
+          { cursorMs: 222, type: "SeekAudio" },
+          { type: "PlayAudio" },
+        ],
+      });
     }
-    for (const kind of ["empty", "post_edit_waiting", "failed"] as const) {
+    for (const kind of ["empty", "failed"] as const) {
       expect(transitionHtmlAudioSession(states[kind], { request: nextRequest, type: "StartRequested" }))
         .toEqual({ state: states[kind], effects: [] });
     }
@@ -211,16 +247,22 @@ describe("html audio session transition matrix", () => {
       mediaResponseStatus: null,
       ord: 0,
       reason: "audio_play_rejected",
+      recovery: "none",
       source,
     });
     expect(effectTypes(states.starting, { reason: "audio_play_rejected", sourceFilename: source.sourceFilename, type: "PlayRejected" }))
-      .toEqual(["ClearProgressFrame", "ClearRepeatTimer", "ClearMetadataTimer", "PauseAudio", "PublishPlaybackState", "ShowPlaybackStatus", "LogPlaybackTelemetry"]);
+      .toEqual(["ClearProgressFrame", "ClearMetadataTimer", "PauseAudio", "PublishPlaybackState", "ShowPlaybackStatus", "LogPlaybackTelemetry"]);
     for (const event of [
       { nowMs: 55, sourceFilename: "other.mp3", type: "PlayResolved" } as const,
       { reason: "audio_play_rejected", sourceFilename: "other.mp3", type: "PlayRejected" } as const,
     ]) expect(transitionHtmlAudioSession(states.starting, event)).toEqual({ state: states.starting, effects: [] });
     expect(transitionHtmlAudioSession(states.ready, { nowMs: 55, sourceFilename: source.sourceFilename, type: "PlayResolved" }))
       .toEqual({ state: states.ready, effects: [] });
+    expect(transitionHtmlAudioSession(states.ready, {
+      reason: "audio_play_rejected",
+      sourceFilename: source.sourceFilename,
+      type: "PlayRejected",
+    })).toEqual({ state: states.ready, effects: [] });
   });
 
   it("implements pause and stop semantics for every state category", () => {
@@ -233,81 +275,84 @@ describe("html audio session transition matrix", () => {
       expect(result.state, kind).toEqual({ durationMs: 1000, kind: "paused", ord: 0, pausedAtMs: 9, request, source });
       expect(result.effects).toEqual([{ type: "PauseAudio" }, { type: "ClearProgressFrame" }, { cursorMs: 9, status: "paused", type: "PublishPlaybackState" }]);
     }
-    for (const kind of ["empty", "paused", "repeat_waiting", "post_edit_waiting", "failed"] as const) {
+    for (const kind of ["empty", "paused", "failed"] as const) {
       expect(transitionHtmlAudioSession(states[kind], { cursorMs: 9, type: "PauseRequested" }), kind)
         .toEqual({ state: states[kind], effects: [] });
     }
     expect(effectTypes(states.loading, { cursorMs: 9, type: "StopRequested" })).toEqual([
-      "PauseAudio", "ClearProgressFrame", "ClearRepeatTimer", "ClearMetadataTimer", "PublishPlaybackState",
+      "PauseAudio", "ClearProgressFrame", "ClearMetadataTimer", "PublishPlaybackState",
     ]);
     expect(transitionHtmlAudioSession(states.ready, { cursorMs: 9, type: "StopRequested" })).toEqual({
       state: states.ready,
       effects: [
-        { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" },
+        { type: "PauseAudio" }, { type: "ClearProgressFrame" },
         { cursorMs: 9, status: "stopped", type: "PublishPlaybackState" },
       ],
     });
-    for (const kind of ["starting", "playing", "paused", "repeat_waiting"] as const) {
-      expect(transitionHtmlAudioSession(states[kind], { cursorMs: 9, type: "StopRequested" }).state, kind)
-        .toEqual({ cursorMs: 9, durationMs: 1000, kind: "ready", ord: 0, source });
+    for (const kind of ["starting", "playing", "paused"] as const) {
+      expect(transitionHtmlAudioSession(states[kind], { cursorMs: 9, type: "StopRequested" }), kind)
+        .toEqual({
+          state: { cursorMs: 9, durationMs: 1000, kind: "ready", ord: 0, source },
+          effects: [
+            { type: "PauseAudio" },
+            { type: "ClearProgressFrame" },
+            { cursorMs: 9, status: "stopped", type: "PublishPlaybackState" },
+          ],
+        });
     }
-    for (const kind of ["empty", "post_edit_waiting", "failed"] as const) {
+    for (const kind of ["empty", "failed"] as const) {
       expect(transitionHtmlAudioSession(states[kind], { cursorMs: 9, type: "StopRequested" }), kind)
         .toEqual({ state: states[kind], effects: [] });
     }
   });
 
-  it("handles boundary completion, immediate repeat, delayed repeat, and cancellation", () => {
-    expect(transitionHtmlAudioSession(states.playing, { cursorMs: 1000, type: "BoundaryReached" })).toEqual({
-      state: { cursorMs: 0, durationMs: 1000, kind: "ready", ord: 0, source },
-      effects: [{ type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" }, { cursorMs: 0, type: "CompletePlayback" }],
-    });
-    const looping = { ...states.playing, request: { ...request, cursorMs: 200, loop: true, resetCursorMs: 100 } };
-    expect(effectTypes(looping, { cursorMs: 1000, restartAudio: true, type: "BoundaryReached" })).toEqual([
-      "ClearRepeatTimer", "ClearProgressFrame", "SeekAudio", "PlayAudio",
-    ]);
-    const waiting = transitionHtmlAudioSession(looping, { cursorMs: 1000, repeatPauseMs: 250, type: "BoundaryReached" });
-    expect(waiting.state).toEqual({ durationMs: 1000, kind: "repeat_waiting", ord: 0, request: looping.request, resumeAtMs: 100, source });
-    expect(waiting.effects).toEqual([
-      { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { pauseMs: 250, type: "StartRepeatTimer" },
-      { cursorMs: 100, type: "PublishRepeatWaitingState" },
-    ]);
-    expect(effectTypes(waiting.state, { type: "RepeatDelayElapsed" })).toEqual([
-      "ClearRepeatTimer", "ClearProgressFrame", "SeekAudio", "PlayAudio",
-    ]);
-    expect(transitionHtmlAudioSession(waiting.state, { repeatEnabled: false, type: "RepeatDelayElapsed" })).toEqual({
-      state: { cursorMs: 100, durationMs: 1000, kind: "ready", ord: 0, source },
-      effects: [{ type: "ClearRepeatTimer" }, { cursorMs: 100, type: "CompletePlayback" }],
-    });
-    expect(transitionHtmlAudioSession(states.ready, {
-      cursorMs: 1000, repeatEnabled: true, repeatPauseMs: 250, request: { ...request, loop: false },
-      resetCursorMs: 33, type: "BoundaryReached",
-    })).toEqual({
-      state: {
-        durationMs: 1000, kind: "repeat_waiting", ord: 0, request: { ...request, loop: false },
-        resumeAtMs: 0, source,
-      },
+  it("completes boundaries and reports the immutable pass", () => {
+    const exhausted = transitionHtmlAudioSession(states.playing, { cursorMs: 1000, type: "BoundaryReached" });
+    expect(exhausted).toEqual({
+      state: { cursorMs: 0, durationMs: 1000, kind: "ready", mediaExhausted: true, ord: 0, source },
       effects: [
-        { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { pauseMs: 250, type: "StartRepeatTimer" },
-        { cursorMs: 0, type: "PublishRepeatWaitingState" },
+        { type: "PauseAudio" }, { type: "ClearProgressFrame" },
+        { request, type: "ReportPassCompleted" }, { cursorMs: 0, type: "CompletePlayback" },
       ],
     });
-    expect(transitionHtmlAudioSession(states.ready, { cursorMs: 1000, request, resetCursorMs: 33, type: "BoundaryReached" })).toEqual({
-      state: { cursorMs: 33, durationMs: 1000, kind: "ready", ord: 0, source },
+    expect(transitionHtmlAudioSession(exhausted.state, { request, type: "StartRequested" }).effects).toEqual([
+      { type: "ReloadAudioSource" },
+      { cursorMs: 0, type: "SeekAudio" },
+      { type: "PlayAudio" },
+    ]);
+    const partial = transitionHtmlAudioSession(states.playing, { cursorMs: 750, type: "BoundaryReached" });
+    expect(partial.state).not.toHaveProperty("mediaExhausted");
+    expect(transitionHtmlAudioSession(partial.state, { request, type: "StartRequested" }).effects)
+      .not.toContainEqual({ type: "ReloadAudioSource" });
+    expect(transitionHtmlAudioSession(states.starting, {
+      cursorMs: 1000,
+      resetCursorMs: 33,
+      type: "BoundaryReached",
+    })).toEqual({
+      state: { cursorMs: 33, durationMs: 1000, kind: "ready", mediaExhausted: true, ord: 0, source },
       effects: [
-        { type: "PauseAudio" }, { type: "ClearProgressFrame" }, { type: "ClearRepeatTimer" },
+        { type: "PauseAudio" },
+        { type: "ClearProgressFrame" },
+        { request, type: "ReportPassCompleted" },
         { cursorMs: 33, type: "CompletePlayback" },
       ],
     });
+    expect(transitionHtmlAudioSession(states.ready, { cursorMs: 1000, resetCursorMs: 33, type: "BoundaryReached" }))
+      .toEqual({ state: states.ready, effects: [] });
     expect(transitionHtmlAudioSession(states.empty, { cursorMs: 1, type: "BoundaryReached" })).toEqual({ state: states.empty, effects: [] });
   });
 
   it("fails seek and audio errors only while a source is active", () => {
-    for (const kind of ["loading", "ready", "starting", "playing", "paused", "repeat_waiting", "post_edit_waiting"] as const) {
+    for (const kind of ["loading", "ready", "starting", "playing", "paused"] as const) {
       const result = transitionHtmlAudioSession(states[kind], { cursorMs: 88, reason: "audio_seek_failed", type: "SeekFailed" });
       expect(result.state, kind).toMatchObject({ cursorMs: 88, kind: "failed", reason: "audio_seek_failed" });
     }
     for (const kind of ["empty", "failed"] as const) {
+      expect(transitionHtmlAudioSession(states[kind], {
+        cursorMs: 88,
+        reason: "audio_seek_failed",
+        type: "SeekFailed",
+      })).toEqual({ state: states[kind], effects: [] });
       expect(transitionHtmlAudioSession(states[kind], {
         cursorMs: 88,
         mediaErrorCode: null,
@@ -319,67 +364,20 @@ describe("html audio session transition matrix", () => {
     }
   });
 
-  it("gates post-edit autoplay by state, source, duplicate request, and readiness", () => {
-    for (const kind of ["empty", "failed"] as const) {
-      expect(transitionHtmlAudioSession(states[kind], { intent: postEditIntent, request: postEditRequest, type: "PostEditAutoplayRequested" }))
-        .toEqual({ state: states[kind], effects: [] });
-    }
-    expect(transitionHtmlAudioSession(states.ready, {
-      intent: { ...postEditIntent, sourceFilename: "other.mp3" }, request: postEditRequest, type: "PostEditAutoplayRequested",
-    })).toEqual({ state: states.ready, effects: [] });
-    const accepted = transitionHtmlAudioSession(states.ready, { intent: postEditIntent, request: postEditRequest, type: "PostEditAutoplayRequested" });
-    expect(accepted.state).toEqual({
-      cursorMs: 125, graphDurationMs: null, kind: "post_edit_waiting", ord: 0, postEdit: postEditIntent,
-      readyDispatched: false, request: postEditRequest, source,
-    });
-    const expectedCursors: Partial<Record<keyof typeof states, number>> = {
-      loading: 125, playing: 0, post_edit_waiting: 100, ready: 125, repeat_waiting: 0, starting: 0,
+  it("claims an available recovery exactly once", () => {
+    const recoverable: HtmlAudioSessionState = {
+      ...states.failed,
+      recovery: "available",
     };
-    for (const kind of ["loading", "ready", "starting", "playing", "paused", "repeat_waiting", "post_edit_waiting"] as const) {
-      const activeState = states[kind];
-      const nonDuplicateRequest = kind === "starting" || kind === "playing" || kind === "paused" || kind === "repeat_waiting"
-        ? { ...postEditRequest, cursorMs: 2 }
-        : postEditRequest;
-      const result = transitionHtmlAudioSession(activeState, {
-        intent: postEditIntent, request: nonDuplicateRequest, type: "PostEditAutoplayRequested",
-      });
-      expect(result.state, kind).toMatchObject({
-        cursorMs: kind === "paused" ? 375 : expectedCursors[kind], kind: "post_edit_waiting",
-        postEdit: postEditIntent, readyDispatched: false, request: nonDuplicateRequest,
-      });
-      expect(result.effects, kind).toEqual([]);
-    }
-    expect(transitionHtmlAudioSession(accepted.state, {
-      durationMs: 777, sourceFilename: "other.mp3", type: "GraphRenderedForSource",
-    })).toEqual({ state: accepted.state, effects: [] });
-    for (const type of ["GraphRenderedForSource", "PostEditReadyConfirmed"] as const) {
-      expect(transitionHtmlAudioSession(accepted.state, { durationMs: 777, sourceFilename: source.sourceFilename, type })).toEqual({
-        state: { cursorMs: 0, durationMs: 777, kind: "ready", ord: 0, source },
-        effects: [{ type: "ClearMetadataTimer" }, { generation: 1, ord: 0, sourceFilename: source.sourceFilename, type: "DispatchPostEditReady" }],
-      });
-    }
-    const dispatched = { ...accepted.state, graphDurationMs: 500, readyDispatched: true } as HtmlAudioSessionState;
-    expect(transitionHtmlAudioSession(dispatched, {
-      durationMs: 777, sourceFilename: source.sourceFilename, type: "PostEditReadyConfirmed",
-    })).toEqual({ state: { ...dispatched, graphDurationMs: 777 }, effects: [] });
+    const claimed = transitionHtmlAudioSession(recoverable, { type: "RecoveryClaimed" });
+    expect(claimed).toEqual({
+      effects: [],
+      state: { ...recoverable, recovery: "claimed" },
+    });
+    expect(transitionHtmlAudioSession(claimed.state, { type: "RecoveryClaimed" }))
+      .toEqual({ effects: [], state: claimed.state });
+    expect(transitionHtmlAudioSession(states.ready, { type: "RecoveryClaimed" }))
+      .toEqual({ effects: [], state: states.ready });
   });
 
-  it("treats only field-for-field identical active post-edit requests as duplicates", () => {
-    const event = { intent: postEditIntent, request: postEditRequest, type: "PostEditAutoplayRequested" } as const;
-    for (const kind of ["starting", "playing", "paused", "repeat_waiting"] as const) {
-      const active = { ...states[kind], request: postEditRequest } as HtmlAudioSessionState;
-      expect(transitionHtmlAudioSession(active, event), kind).toEqual({ state: active, effects: [] });
-    }
-    const active: HtmlAudioSessionState = { ...states.starting, request: postEditRequest };
-    const variants = [
-      { ...postEditRequest, source: "user" as const }, { ...postEditRequest, cursorMs: 1 },
-      { ...postEditRequest, endMs: 999 }, { ...postEditRequest, loop: true }, { ...postEditRequest, ord: 1 },
-      { ...postEditRequest, regionMode: "selection" as const }, { ...postEditRequest, resetCursorMs: 4 },
-    ];
-    for (const changed of variants) {
-      expect(transitionHtmlAudioSession(active, { ...event, request: changed }).state.kind, JSON.stringify(changed))
-        .toBe("post_edit_waiting");
-    }
-    expect(transitionHtmlAudioSession({ ...states.starting, request }, event).state.kind).toBe("post_edit_waiting");
-  });
 });

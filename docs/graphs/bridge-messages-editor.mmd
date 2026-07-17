@@ -10,9 +10,6 @@ flowchart TD
     end
 
     subgraph NonProcessingCommands["Non-Processing Commands"]
-        aqe_play["aqe:play"]
-        aqe_stop_playback["aqe:stop-playback"]
-        aqe_play_ended["aqe:play-ended"]
         aqe_undo["aqe:undo"]
         aqe_redo["aqe:redo"]
         aqe_scan["aqe:scan"]
@@ -27,9 +24,6 @@ flowchart TD
     end
 
     subgraph RecordingCommands["Recording Commands"]
-        aqe_record_voice["aqe:record-voice"]
-        aqe_stop_recording["aqe:stop-recording"]
-        aqe_play_recording["aqe:play-recording"]
         aqe_show_recording_file["aqe:show-recording-file"]
         aqe_share_recording["aqe:share-recording"]
     end
@@ -46,7 +40,6 @@ flowchart TD
         aqe_reduce_size["aqe:reduce-size"]
         aqe_pitch_hum["aqe:pitch-hum"]
         aqe_share["aqe:share"]
-        aqe_post_edit_playback_ready["aqe:post-edit-playback-ready"]
         aqe_delete_selection["aqe:delete-selection"]
         aqe_delete_rest["aqe:delete-rest"]
         aqe_save_split_defaults["aqe:save-split-defaults"]
@@ -54,7 +47,6 @@ flowchart TD
     end
 
     subgraph ChorusCommands["Chorusing Commands"]
-        aqe_chorusing_practice["aqe:chorusing-practice"]
         aqe_chorusing_previous["aqe:chorusing-previous"]
         aqe_chorusing_next["aqe:chorusing-next"]
     end
@@ -72,8 +64,6 @@ flowchart TD
     aqe_volume_up --> update
     aqe_remove_pauses --> update
 
-    aqe_play --> non_proc
-    aqe_stop_playback --> non_proc
     aqe_denoise_standard --> non_proc
     aqe_convert --> payload_handler
 ```

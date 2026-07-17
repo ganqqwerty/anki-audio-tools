@@ -1,8 +1,14 @@
-import type { PlaybackRecoveryAction } from "./playback-recovery-types.js";
+import type { PlaybackRecoveryProposal } from "./playback-recovery-types.js";
 
 export type HtmlAudioSource =
   | { kind: "source"; sourceFilename: string }
-  | { kind: "learner_recording"; sourceFilename: string; startCursorMs: number; generation: number };
+  | { kind: "learner_recording"; sourceFilename: string; startCursorMs: number; attemptId: number };
+
+export function htmlAudioSourceBindingKey(source: HtmlAudioSource): string {
+  return source.kind === "learner_recording"
+    ? `${source.kind}\u0000${source.sourceFilename}\u0000${String(source.attemptId)}`
+    : `${source.kind}\u0000${source.sourceFilename}`;
+}
 
 export type HtmlAudioFailureReason =
   | "audio_error"
@@ -20,15 +26,6 @@ export interface HtmlAudioStartRequest {
   source: "user" | "post_edit" | "learner_recording";
 }
 
-export interface PostEditAutoplayIntent {
-  fieldOrd: number;
-  generation: number;
-  sourceFilename: string;
-  sourceKind: "generated_edit" | "existing_media";
-  requireGraphRedraw: boolean;
-  expectedDurationMs?: number;
-}
-
 export type HtmlAudioSessionState =
   | { kind: "empty"; ord: number; cursorMs: number }
   | {
@@ -38,7 +35,14 @@ export type HtmlAudioSessionState =
       cursorMs: number;
       pendingStart: HtmlAudioStartRequest | null;
     }
-  | { kind: "ready"; ord: number; source: HtmlAudioSource; durationMs: number; cursorMs: number }
+  | {
+      kind: "ready";
+      ord: number;
+      source: HtmlAudioSource;
+      durationMs: number;
+      cursorMs: number;
+      mediaExhausted?: true;
+    }
   | { kind: "starting"; ord: number; source: HtmlAudioSource; request: HtmlAudioStartRequest; durationMs: number }
   | {
       kind: "playing";
@@ -57,24 +61,6 @@ export type HtmlAudioSessionState =
       pausedAtMs: number;
     }
   | {
-      kind: "repeat_waiting";
-      ord: number;
-      source: HtmlAudioSource;
-      request: HtmlAudioStartRequest;
-      durationMs: number;
-      resumeAtMs: number;
-    }
-  | {
-      kind: "post_edit_waiting";
-      ord: number;
-      source: HtmlAudioSource;
-      postEdit: PostEditAutoplayIntent;
-      request: HtmlAudioStartRequest;
-      cursorMs: number;
-      graphDurationMs: number | null;
-      readyDispatched: boolean;
-    }
-  | {
       kind: "failed";
       ord: number;
       source: HtmlAudioSource | null;
@@ -82,17 +68,22 @@ export type HtmlAudioSessionState =
       reason: HtmlAudioFailureReason;
       mediaErrorCode: number | null;
       mediaResponseStatus: number | null;
+      recovery: "available" | "claimed" | "none";
     };
 
+export function htmlAudioSessionPosition(state: HtmlAudioSessionState): number {
+  if (state.kind === "paused") return state.pausedAtMs;
+  if ("request" in state) return state.request.cursorMs;
+  if ("cursorMs" in state) return state.cursorMs;
+  return 0;
+}
+
 export type HtmlAudioSessionEvent =
-  | { type: "SourceConfigured"; source: HtmlAudioSource; cursorMs: number }
+  | { type: "SourceConfigured"; source: HtmlAudioSource; cursorMs: number; replace?: boolean }
   | { type: "SourceCleared" }
   | { type: "MetadataLoaded"; durationMs: number }
   | { type: "MetadataTimeout" }
   | { type: "StartRequested"; request: HtmlAudioStartRequest }
-  | { type: "PostEditAutoplayRequested"; intent: PostEditAutoplayIntent; request: HtmlAudioStartRequest }
-  | { type: "GraphRenderedForSource"; sourceFilename: string; durationMs: number }
-  | { type: "PostEditReadyConfirmed"; sourceFilename: string; durationMs: number }
   | { type: "PlayResolved"; nowMs: number; sourceFilename: string }
   | { type: "PlayRejected"; reason: "audio_play_rejected"; sourceFilename: string }
   | { type: "SeekFailed"; reason: "audio_seek_failed"; cursorMs: number }
@@ -102,13 +93,8 @@ export type HtmlAudioSessionEvent =
   | {
       type: "BoundaryReached";
       cursorMs: number;
-      repeatPauseMs?: number;
-      request?: HtmlAudioStartRequest;
       resetCursorMs?: number;
-      restartAudio?: boolean;
-      repeatEnabled?: boolean;
     }
-  | { type: "RepeatDelayElapsed"; repeatEnabled?: boolean }
   | {
       type: "AudioError";
       reason: "audio_error";
@@ -116,7 +102,8 @@ export type HtmlAudioSessionEvent =
       mediaErrorCode: number | null;
       mediaResponseStatus: number | null;
     }
-  | { type: "RuntimeDisposed" };
+  | { type: "RuntimeDisposed" }
+  | { type: "RecoveryClaimed" };
 
 export type HtmlAudioSessionEffect =
   | { type: "ConfigureAudioSource"; sourceFilename: string }
@@ -129,25 +116,22 @@ export type HtmlAudioSessionEffect =
   | { type: "ClearProgressFrame" }
   | { type: "StartMetadataTimer"; timeoutMs: number }
   | { type: "ClearMetadataTimer" }
-  | { type: "StartRepeatTimer"; pauseMs: number }
-  | { type: "ClearRepeatTimer" }
-  | { type: "RequestGraphForSource"; ord: number; sourceFilename: string }
-  | { type: "DispatchPostEditReady"; ord: number; generation: number; sourceFilename: string }
   | { type: "PublishPlaybackState"; status: "stopped" | "playing" | "paused"; cursorMs?: number }
-  | { type: "PublishRepeatWaitingState"; cursorMs: number }
   | { type: "CompletePlayback"; cursorMs: number }
+  | { type: "ReportPassCompleted"; request: HtmlAudioStartRequest }
   | {
       type: "ShowPlaybackStatus";
       kind?: "error" | "warning";
+      preserveStableError?: boolean;
       statusCode?: string;
       statusKey: string;
-      recovery?: PlaybackRecoveryAction;
+      recovery?: PlaybackRecoveryProposal;
     }
   | {
       type: "ShowPostEditPlaybackWarning";
       statusKey: string;
       statusCode?: string;
-      recovery?: PlaybackRecoveryAction;
+      recovery?: PlaybackRecoveryProposal;
     }
   | { type: "LogPlaybackTelemetry"; event: string; data: Record<string, unknown> };
 

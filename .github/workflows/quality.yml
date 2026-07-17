@@ -157,7 +157,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [architecture, config, region-delete, release, runtime, prosody]
+        group: [architecture, config, region-delete, release, runtime, prosody, recorder]
     env:
       ANKI_PYTHON: python
     steps:
@@ -221,8 +221,8 @@ jobs:
             mutants/mutmut-stats.json
             mutants/*.json
 
-  html-audio-mutation:
-    name: HTML audio reducer mutation
+  state-management-mutation:
+    name: Frontend state-management mutation
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -239,14 +239,14 @@ jobs:
         working-directory: settings_ui
         run: npm ci
 
-      - name: Mutate HTML audio reducer
+      - name: Mutate transport and practice reducers
         working-directory: settings_ui
-        run: npm run test:mutation:html-audio
+        run: npm run test:mutation:state-management
 
       - name: Upload reducer mutation report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mutation-html-audio
+          name: mutation-state-management
           if-no-files-found: error
-          path: settings_ui/reports/mutation/html-audio.json
+          path: settings_ui/reports/mutation/state-management.json

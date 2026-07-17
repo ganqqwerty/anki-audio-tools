@@ -18,8 +18,9 @@ workspace {
                 editor_bridge = component "Editor Bridge" "" "editor_bridge.py + editor_actions.py — command decode/dispatch"
                 editor_callbacks = component "Editor Callbacks" "" "editor_callbacks.py + editor_dependencies.py — DI callbacks"
                 editor_processing = component "Editor Processing" "" "editor_processing.py + editor_analysis + editor_conversion"
-                editor_playback = component "Editor Playback" "" "editor_playback.py + playback_request + playback_bounds"
-                editor_recording = component "Editor Recording" "" "editor_recording.py + recording_analysis + recording_frontend"
+                editor_lifecycle = component "Editor Lifecycle Delivery" "" "editor_lifecycle_bridge.py + editor_pending_intent.py + editor_cursor_bridge.py"
+                editor_recording = component "Editor Recording Adapter" "" "editor_recording.py + recording_analysis + recording_frontend"
+                recorder_service = component "Recorder Service" "" "recorder/ — model, service, native adapters, application-scoped handle ownership"
                 editor_region_delete = component "Editor Region Delete" "" "editor_region_delete.py + request + worker"
                 editor_special_transforms = component "Editor Special Transforms" "" "editor_special_transforms.py"
                 editor_history = component "Editor History" "" "editor_history.py + editor_persistent_undo.py"
@@ -84,7 +85,9 @@ workspace {
                 editor_controls = component "Editor Controls" "" "EditorControls.svelte — per-field root"
                 editor_toolbar = component "Editor Toolbar" "" "EditorToolbarButton/Panel.svelte + CommandIcon + SplitButton"
                 editor_graph = component "Graph Visualizer" "" "GraphVisualizer.svelte + split options + promoted defaults"
-                editor_playback_ctrl = component "Playback Controller" "" "playback-controller.ts + state + progress clock"
+                editor_transport = component "HTML Audio Transport" "" "html-audio-session-* + transport/ — reducer, identity, ports, resources"
+                editor_practice = component "Practice Programs" "" "practice/ — once, repeat, chorusing, record-once, runtime"
+                editor_command_coordinator = component "Editor Command Coordinator" "" "editor-command-coordinator.ts — cross-domain arbitration"
                 editor_selection = component "Selection Controller" "" "selection-controller.ts + gestures + marker shift"
                 editor_recording_ui = component "Recording UI" "" "recording-state.ts + actions + lifecycle"
                 editor_region_del = component "Region Delete UI" "" "region-delete.ts + state"
@@ -127,14 +130,14 @@ workspace {
         editor_integration -> editor_bridge "wires _links[]"
         editor_bridge -> editor_callbacks "dispatches commands"
         editor_callbacks -> editor_processing "update_state_and_render()"
-        editor_callbacks -> editor_playback "play/stop"
         editor_callbacks -> editor_recording "record/stop"
         editor_callbacks -> editor_region_delete "delete"
         editor_callbacks -> editor_special_transforms "denoise/convert"
         editor_callbacks -> editor_history "undo/redo"
         editor_callbacks -> editor_misc "share/settings/source_metadata"
         editor_processing -> audio_processor "processes audio"
-        editor_playback -> editor_session "updates state"
+        editor_processing -> editor_lifecycle "publishes retryable source/autoplay intent"
+        editor_recording -> recorder_service "commands application-scoped recorder"
         editor_session -> editor_frontend_bridge "evalWithCallback"
         editor_frontend_bridge -> editor_bridge_ts "window.__aqe*"
         editor_bridge_ts -> editor_controls "mounts controls"
@@ -142,12 +145,15 @@ workspace {
         editor_inline -> editor_controls "renders"
         editor_inline -> editor_toolbar "toolbar"
         editor_inline -> editor_graph "visualizer"
-        editor_inline -> editor_playback_ctrl "playback"
+        editor_inline -> editor_transport "playback"
+        editor_inline -> editor_practice "mode sequencing"
+        editor_inline -> editor_command_coordinator "commands"
 
         editor_integration -> editor_ui "injects on note load"
         editor_bridge -> editor_frontend_bridge "bridge callbacks"
         editor_callbacks -> editor_session "reads/writes state"
-        editor_recording -> editor_frontend_bridge "recording state"
+        recorder_service -> editor_frontend_bridge "generated recorder snapshots"
+        editor_lifecycle -> editor_frontend_bridge "generated bootstrap intent/receipt"
         editor_processing -> audio_artifacts "artifact dir"
         editor_special_transforms -> audio_noise_reduction "denoise"
         editor_special_transforms -> audio_rendering "convert"
@@ -205,7 +211,7 @@ workspace {
 
         editor_controls -> editor_toolbar "toolbar"
         editor_controls -> editor_graph "visualizer"
-        editor_controls -> editor_playback_ctrl "playback"
+        editor_controls -> editor_command_coordinator "playback/record/mutation actions"
         editor_controls -> editor_selection "selection"
         editor_controls -> editor_recording_ui "recording"
         editor_controls -> editor_region_del "region delete"
@@ -216,7 +222,9 @@ workspace {
         editor_controls -> editor_bridge_ts "bridge"
         editor_split_state -> editor_bridge_ts "save defaults"
         editor_graph -> editor_split_state "split options"
-        editor_playback_ctrl -> editor_bridge_ts "playback requests"
+        editor_command_coordinator -> editor_practice "starts/cancels programs"
+        editor_practice -> editor_transport "typed playback commands/facts"
+        editor_command_coordinator -> editor_bridge_ts "recording/source mutation commands"
 
         batch_app -> batch_state "state"
         batch_app -> shared_bridge "bridge"
@@ -258,7 +266,7 @@ workspace {
 
         component python_addon "4-PythonModules-Editor" {
             include entry_point editor_integration editor_bridge editor_callbacks
-            include editor_processing editor_playback editor_recording editor_region_delete
+            include editor_processing editor_lifecycle editor_recording recorder_service editor_region_delete
             include editor_special_transforms editor_history editor_session
             include editor_frontend_bridge editor_ui editor_misc
             include audio_processor audio_rendering audio_noise_reduction audio_operations
@@ -290,7 +298,7 @@ workspace {
 
         component svelte_webviews "8-SvelteModules-Editor" {
             include editor_controls editor_toolbar editor_graph
-            include editor_playback_ctrl editor_selection editor_recording_ui
+            include editor_transport editor_practice editor_command_coordinator editor_selection editor_recording_ui
             include editor_region_del editor_chorusing editor_split_state
             include editor_field_state editor_viewport editor_runtime
             include editor_bridge_ts

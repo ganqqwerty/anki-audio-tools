@@ -13,7 +13,12 @@ from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_actions import BRIDGE_COMMANDS
 from anki_audio_quick_editor.editor_bridge_hooks import on_editor_did_init
 from anki_audio_quick_editor.editor_callbacks import _set_busy, handle_bridge_command
-from anki_audio_quick_editor.editor_integration import register_editor_hooks
+from anki_audio_quick_editor.editor_integration import (
+    on_collection_will_temporarily_close,
+    on_profile_will_close,
+    register_editor_hooks,
+)
+from anki_audio_quick_editor.editor_lifecycle_bridge import on_editor_lifecycle_message
 from anki_audio_quick_editor.editor_media import audio_field_indices
 from anki_audio_quick_editor.editor_note_load_hooks import on_editor_will_load_note
 from anki_audio_quick_editor.editor_runtime import SESSIONS
@@ -21,7 +26,6 @@ from anki_audio_quick_editor.editor_session import (
     AnalysisState,
     EditorSession,
     PendingEditorStatus,
-    PlaybackState,
     UndoHistory,
 )
 from anki_audio_quick_editor.editor_webview_injection import (
@@ -31,7 +35,13 @@ from anki_audio_quick_editor.editor_webview_injection import (
 
 
 def test_register_editor_hooks() -> None:
-    hooks = SimpleNamespace(editor_did_init=MagicMock(), editor_will_load_note=MagicMock())
+    hooks = SimpleNamespace(
+        editor_did_init=MagicMock(),
+        editor_will_load_note=MagicMock(),
+        webview_did_receive_js_message=MagicMock(),
+        collection_will_temporarily_close=MagicMock(),
+        profile_will_close=MagicMock(),
+    )
 
     register_editor_hooks(hooks)
 
@@ -39,6 +49,13 @@ def test_register_editor_hooks() -> None:
     hooks.editor_will_load_note.append.assert_called_once()
     assert hooks.editor_did_init.append.call_args.args == (on_editor_did_init,)
     assert hooks.editor_will_load_note.append.call_args.args == (on_editor_will_load_note,)
+    assert hooks.webview_did_receive_js_message.append.call_args.args == (
+        on_editor_lifecycle_message,
+    )
+    assert hooks.collection_will_temporarily_close.append.call_args.args == (
+        on_collection_will_temporarily_close,
+    )
+    assert hooks.profile_will_close.append.call_args.args == (on_profile_will_close,)
 
 
 def test_entrypoint_registers_editor_startup_hook() -> None:
@@ -192,7 +209,6 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     session.undo_history.push(AudioEditState("clip.mp3"), "clip.mp3", status_summary="Original audio.")
     SESSIONS[editor] = session
 
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     handle_bridge_command(editor, "aqe:undo")
@@ -221,9 +237,9 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": false' in call and '"canRedo": true' in call for call in evals)
     assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": true' in call and '"canRedo": false' in call for call in evals)
-    assert session.post_edit_playback.pending_field_index == 0
-    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
-    assert session.post_edit_playback.pending_source_filename == "clip__aqe_first.mp3"
+    assert session.pending_editor_intent is not None
+    assert session.pending_editor_intent.target.field_ord == 0
+    assert session.pending_editor_intent.target.source_filename == "clip__aqe_first.mp3"
 
 
 def test_editor_settings_command_opens_settings_and_refreshes_after_save(
@@ -248,7 +264,6 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
         field_index=0,
         current_filename="clip.mp3",
         analysis=AnalysisState(busy=True),
-        playback=PlaybackState(active=True, paused=True, preparing=True),
     )
     editor.loadNote = MagicMock(side_effect=lambda **_kwargs: reload_statuses.append(_initial_status_by_field(session)))
     SESSIONS[editor] = session
@@ -257,7 +272,6 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
         callbacks.append(callback)
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.SETTINGS_OPENER", fake_settings_opener)
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
     handle_bridge_command(editor, "aqe:settings")
 
@@ -269,9 +283,6 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     assert session.analysis.generation == 1
     assert session.processing.active is False
     assert session.analysis.busy is False
-    assert session.playback.active is False
-    assert session.playback.paused is False
-    assert session.playback.preparing is False
     assert reload_statuses == [{0: {"kind": "info", "message": "Closed settings."}}]
     assert session.pending_status == PendingEditorStatus(0, message="Closed settings.")
     assert editor.loadNote.call_args.args == ()

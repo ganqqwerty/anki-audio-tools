@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import {
+  bridgeEnvelopes,
   bridgeCommands,
   muteConsole,
   peekPendingCommandPayload,
+  publishRecorderSnapshot,
   renderFields,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -20,6 +22,7 @@ import { updateFieldState } from "../src/editor-inline/field-state-store.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 import { syncRecordingControls } from "../src/editor-inline/recording-actions.js";
+import { readEditorPracticeSnapshot } from "../src/editor-inline/editor-practice-controller.js";
 
 describe("editor inline learner recording integration", () => {
   let restoreConsole: () => void;
@@ -138,13 +141,15 @@ describe("editor inline learner recording integration", () => {
     expect(overlay).not.toBeNull();
     expect(overlay.hidden).toBe(true);
     expect(window.__aqeGraphStateForTest?.(0)?.learnerRecordingStatus).toBe("idle");
-    expect(bridgeCommands()).toContain("focus:0");
-    expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(peekPendingCommandPayload()).toMatchObject({
-      command: "aqe:record-voice",
-      fieldOrd: 0,
-      graphSettings: { smoothness: expect.any(String) },
-      startCursorMs: 400,
+    expect(bridgeEnvelopes("editor.recorder-command")).toContainEqual({
+      command: "editor.recorder-command",
+      payload: expect.objectContaining({
+        fieldOrd: 0,
+        graphSettings: expect.objectContaining({ smoothness: expect.any(String) }),
+        kind: "start",
+        schemaVersion: 1,
+        startCursorMs: 400,
+      }),
     });
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       cursorMs: 400,
@@ -166,7 +171,7 @@ describe("editor inline learner recording integration", () => {
     expect(overlay.hidden).toBe(false);
     expect(overlay).toHaveTextContent("3");
     expect(overlay).toHaveAttribute("aria-label", "Recording starts in 3s");
-    expect(bridgeCommands()).not.toContain("aqe:command-payload");
+    expect(bridgeEnvelopes("editor.recorder-command")).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(1000);
     await Promise.resolve();
@@ -184,11 +189,9 @@ describe("editor inline learner recording integration", () => {
     await Promise.resolve();
     overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
     expect(overlay.hidden).toBe(true);
-    expect(bridgeCommands()).toContain("focus:0");
-    expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(peekPendingCommandPayload()).toMatchObject({
-      command: "aqe:record-voice",
-      fieldOrd: 0,
+    expect(bridgeEnvelopes("editor.recorder-command")).toContainEqual({
+      command: "editor.recorder-command",
+      payload: expect.objectContaining({ fieldOrd: 0, kind: "start", schemaVersion: 1 }),
     });
   });
 
@@ -216,9 +219,9 @@ describe("editor inline learner recording integration", () => {
     const shareYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share-recording"]')!;
     const showYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-show-recording-file"]')!;
 
-    window.__aqeSetLearnerRecordingState?.({
+    publishRecorderSnapshot({
+      attemptId: 1,
       fieldOrd: 0,
-      generation: 1,
       status: "recording",
       targetDurationMs: track.durationMs,
     });
@@ -231,13 +234,15 @@ describe("editor inline learner recording integration", () => {
     expect(showYoursButton.disabled).toBe(true);
 
     recordButton.click();
-    expect(bridgeCommands()).toContain("aqe:stop-recording");
+    expect(bridgeEnvelopes("editor.recorder-command")).toContainEqual({
+      command: "editor.recorder-command",
+      payload: { fieldOrd: 0, kind: "stop", schemaVersion: 1 },
+    });
 
-    window.__aqeSetLearnerRecordingState?.({
+    publishRecorderSnapshot({
+      attemptId: 1,
       fieldOrd: 0,
-      generation: 1,
       mediaFilename: "target__aqe_voice.wav",
-      playbackStatus: "stopped",
       recordingDurationMs: 500,
       status: "ready",
       targetDurationMs: track.durationMs,
@@ -276,6 +281,33 @@ describe("editor inline learner recording integration", () => {
     });
   });
 
+  it("advances record-once only from snapshots for its bound backend attempt", async () => {
+    initAndScan(recordingConfig());
+    await setupAudioTrack();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!.click();
+    expect(readEditorPracticeSnapshot()?.state).toMatchObject({
+      kind: "record_once",
+      phase: "starting_recorder",
+    });
+
+    publishRecorderSnapshot({ attemptId: 11, fieldOrd: 0, status: "starting" });
+    publishRecorderSnapshot({ attemptId: 11, fieldOrd: 0, status: "recording" });
+    expect(readEditorPracticeSnapshot()?.state).toMatchObject({
+      kind: "record_once",
+      phase: "recording",
+    });
+
+    publishRecorderSnapshot({ attemptId: 10, fieldOrd: 0, status: "analyzing" });
+    expect(readEditorPracticeSnapshot()?.state).toMatchObject({
+      kind: "record_once",
+      phase: "recording",
+    });
+
+    publishRecorderSnapshot({ attemptId: 11, fieldOrd: 0, status: "analyzing" });
+    expect(readEditorPracticeSnapshot()).toBeNull();
+  });
+
   it("keeps recording and graph behavior tied to typed state after legacy attributes are corrupted", async () => {
     initAndScan(recordingConfig());
     await setupAudioTrack();
@@ -284,11 +316,10 @@ describe("editor inline learner recording integration", () => {
     const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
 
-    window.__aqeSetLearnerRecordingState?.({
+    publishRecorderSnapshot({
+      attemptId: 1,
       fieldOrd: 0,
-      generation: 1,
       mediaFilename: "target__aqe_voice.wav",
-      playbackStatus: "stopped",
       startCursorMs: 400,
       status: "ready",
       targetDurationMs: track.durationMs,
@@ -321,9 +352,9 @@ describe("editor inline learner recording integration", () => {
     expect(initialScrollbar.hidden).toBe(true);
     setScrollbarDimensions();
 
-    window.__aqeSetLearnerRecordingState?.({
+    publishRecorderSnapshot({
+      attemptId: 1,
       fieldOrd: 0,
-      generation: 1,
       recordingDurationMs: 1200,
       startCursorMs: 900,
       status: "recording",
@@ -357,9 +388,9 @@ describe("editor inline learner recording integration", () => {
     await setupAudioTrack();
     const scroller = setScrollbarDimensions();
 
-    window.__aqeSetLearnerRecordingState?.({
+    publishRecorderSnapshot({
+      attemptId: 1,
       fieldOrd: 0,
-      generation: 1,
       startCursorMs: 900,
       status: "recording",
       targetDurationMs: track.durationMs,
@@ -386,9 +417,9 @@ describe("editor inline learner recording integration", () => {
     initAndScan(recordingConfig());
     await setupAudioTrack();
 
-    window.__aqeSetLearnerRecordingState?.({
+    publishRecorderSnapshot({
+      attemptId: 1,
       fieldOrd: 0,
-      generation: 1,
       startCursorMs: 400,
       status: "ready",
       targetDurationMs: track.durationMs,

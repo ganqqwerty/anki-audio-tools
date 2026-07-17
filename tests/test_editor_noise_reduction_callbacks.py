@@ -69,7 +69,6 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
         "anki_audio_quick_editor.editor_dependencies.render_noise_reduced_audio",
         fake_render_noise_reduced_audio,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     handle_bridge_command(editor, "aqe:denoise-standard")
@@ -89,9 +88,9 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
         "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list
     )
-    assert session.post_edit_playback.pending_field_index == 0
-    assert session.post_edit_playback.pending_generation == session.post_edit_playback.generation
-    assert session.post_edit_playback.pending_source_filename == saved_name
+    assert session.pending_editor_intent is not None
+    assert session.pending_editor_intent.target.field_ord == 0
+    assert session.pending_editor_intent.target.source_filename == saved_name
 
 
 def test_special_transform_graph_redraw_preserves_learner_overlay(tmp_path: Path) -> None:
@@ -120,7 +119,6 @@ def test_special_transform_graph_redraw_preserves_learner_overlay(tmp_path: Path
         current_field_audio_missing="missing",
         dispose_editor_frontend_controls=MagicMock(),
         eval_history_availability=MagicMock(),
-        eval_playback_state=MagicMock(),
         request_graph_redraw=MagicMock(),
         request_history_availability_after_edit=MagicMock(),
         request_playback_after_edit=MagicMock(),
@@ -185,7 +183,6 @@ def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
         "anki_audio_quick_editor.editor_dependencies.render_rnnoise_audio",
         fake_render_rnnoise_audio,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
     handle_bridge_command(editor, "aqe:rnnoise")
 
@@ -252,7 +249,6 @@ def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monk
         "anki_audio_quick_editor.editor_dependencies.render_voice_only_audio",
         fake_render_voice_only_audio,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
 
     handle_bridge_command(editor, "aqe:voice-only")
 

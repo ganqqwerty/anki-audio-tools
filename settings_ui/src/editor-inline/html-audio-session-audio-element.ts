@@ -1,176 +1,230 @@
-import { audioClockFor, mediaUrlForFilename, resetAudioClockState } from "./audio-clock.js";
-import { markHtmlAudioFailure, publishAudioReadinessChange } from "./audio-readiness.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { installLearnerAudioHandlers } from "./html-audio-session-learner-projection.js";
 import { logger } from "./logger.js";
-import type { HtmlAudioSessionEvent, HtmlAudioSessionState } from "./html-audio-session-types.js";
+import type {
+  TransportAttemptIdentity,
+  TransportSourceIdentity,
+} from "./transport/index.js";
 
-type ReadHtmlAudioSessionState = (ord: number) => HtmlAudioSessionState;
-type DispatchHtmlAudioSessionEvent = (ord: number, event: HtmlAudioSessionEvent) => void;
+interface AudioRegistration {
+  readonly audio: HTMLAudioElement;
+  attemptIdentity: TransportAttemptIdentity | null;
+  readonly sourceIdentity: TransportSourceIdentity;
+}
+
+interface InstalledAudioHandlers {
+  readonly audio: HTMLAudioElement;
+  readonly ended: () => void;
+  readonly error: () => void;
+  readonly loadedmetadata: () => void;
+}
+
+export interface HtmlAudioPortCallbacks {
+  currentAttemptIdentity: (ord: number) => TransportAttemptIdentity | null;
+  onAudioError: (
+    ord: number,
+    identity: TransportSourceIdentity | TransportAttemptIdentity,
+    cursorMs: number,
+    mediaErrorCode: number | null,
+    mediaResponseStatus: number | null,
+  ) => void;
+  onEnded: (ord: number, identity: TransportAttemptIdentity, cursorMs: number) => void;
+  onMetadataLoaded: (ord: number, identity: TransportSourceIdentity, durationMs: number) => void;
+  onPlayRejected: (ord: number, identity: TransportAttemptIdentity) => void;
+  onPlayResolved: (ord: number, identity: TransportAttemptIdentity, nowMs: number) => void;
+  onSeekFailed: (ord: number, identity: TransportAttemptIdentity, cursorMs: number) => void;
+}
 
 export interface HtmlAudioElementOperations {
   clearAudioSource: (ord: number) => void;
-  configureAudioSource: (ord: number, sourceFilename: string) => void;
+  configureAudioSource: (
+    ord: number,
+    sourceFilename: string,
+    identity: TransportSourceIdentity,
+  ) => void;
+  dispose: (ord: number) => void;
   pauseAudio: (ord: number) => void;
-  playAudio: (ord: number) => void;
-  reloadAudioSource: (ord: number) => void;
-  seekAudio: (ord: number, cursorMs: number) => void;
+  playAudio: (ord: number, identity: TransportAttemptIdentity) => void;
+  previewPosition: (ord: number, cursorMs: number, durationMs: number) => boolean;
+  readSnapshot: (ord: number) => HtmlAudioPortSnapshot;
+  reloadAudioSource: (ord: number, identity: TransportAttemptIdentity) => void;
+  seekAudio: (ord: number, cursorMs: number, identity: TransportAttemptIdentity) => void;
 }
 
+export interface HtmlAudioPortSnapshot {
+  currentTimeMs: number;
+  hasSource: boolean;
+  paused: boolean;
+  present: boolean;
+  readyState: number | null;
+  sourceUrl: string;
+}
+
+const registrations = new Map<number, AudioRegistration>();
+const installedHandlers = new Map<number, InstalledAudioHandlers>();
+
 export function createHtmlAudioElementOperations(
-  readState: ReadHtmlAudioSessionState,
-  dispatch: DispatchHtmlAudioSessionEvent,
+  callbacks: HtmlAudioPortCallbacks,
 ): HtmlAudioElementOperations {
   return {
-    clearAudioSource: (ord) => clearAudioSource(ord),
-    configureAudioSource: (ord, sourceFilename) => configureAudioSource(ord, sourceFilename, readState, dispatch),
-    pauseAudio: (ord) => pauseAudio(ord),
-    playAudio: (ord) => playAudio(ord, readState, dispatch),
-    reloadAudioSource: (ord) => reloadAudioSource(ord),
-    seekAudio: (ord, cursorMs) => seekAudio(ord, cursorMs, dispatch),
+    clearAudioSource,
+    configureAudioSource: (ord, sourceFilename, identity) => configureAudioSource(
+      ord,
+      sourceFilename,
+      identity,
+      callbacks,
+    ),
+    dispose: (ord) => disposeAudioPort(ord),
+    pauseAudio: (ord) => pauseAudio(ord, callbacks),
+    playAudio: (ord, identity) => playAudio(ord, identity, callbacks),
+    previewPosition,
+    readSnapshot: audioPortSnapshot,
+    reloadAudioSource: (ord, identity) => reloadAudioSource(ord, identity),
+    seekAudio: (ord, cursorMs, identity) => seekAudio(ord, cursorMs, identity, callbacks),
   };
 }
 
-export function audioForOrd(ord: number): HTMLAudioElement | null {
+function audioForOrd(ord: number): HTMLAudioElement | null {
   const visualizer = visualizerForOrd(ord);
-  return document.querySelector<HTMLAudioElement>(`[data-testid="aqe-audio-clock-${ord}"]`) ?? audioClockFor(visualizer);
+  return document.querySelector<HTMLAudioElement>(`[data-testid="aqe-audio-clock-${ord}"]`)
+    ?? visualizer?.querySelector<HTMLAudioElement>(".aqe-audio-clock")
+    ?? null;
 }
 
 export function audioProgressMsForOrd(ord: number): number {
   const audio = audioForOrd(ord);
-  return audio ? Math.round((Number(audio.currentTime) || 0) * 1000) : 0;
+  return audio ? audioCurrentTimeMs(audio) : 0;
 }
 
 function configureAudioSource(
   ord: number,
   sourceFilename: string,
-  readState: ReadHtmlAudioSessionState,
-  dispatch: DispatchHtmlAudioSessionEvent,
+  identity: TransportSourceIdentity,
+  callbacks: HtmlAudioPortCallbacks,
 ): void {
-  const visualizer = visualizerForOrd(ord);
-  if (visualizer) resetAudioClockState(visualizer);
   const audio = audioForOrd(ord);
-  if (!audio) {
-    if (visualizer) {
-      visualizer.__aqeAudioClockFallback = true;
-      publishAudioReadinessChange(visualizer);
-    }
-    return;
-  }
-  installLearnerAudioHandlers(ord, audio, readState, dispatch);
-  pauseAudio(ord);
+  if (!audio) return;
+  installStableAudioHandlers(ord, audio, callbacks);
+  registrations.set(ord, { audio, attemptIdentity: null, sourceIdentity: identity });
+  pauseAudio(ord, callbacks, false);
   audio.loop = false;
   audio.setAttribute("src", mediaUrlForFilename(sourceFilename));
-  logger.debug("html_audio_element.configure_source", {
+  logger.debug("html_audio_port.configure_source", {
+    fieldInstanceId: identity.fieldInstanceId,
     ord,
     readyState: audio.readyState,
+    runtimeId: identity.runtimeId,
     sourceFilename,
+    sourceInstanceId: identity.sourceInstanceId,
     src: audio.getAttribute("src") || "",
   });
   try {
     audio.load();
   } catch {
-    if (visualizer) markHtmlAudioFailure(visualizer, "audio_load_failed");
-    logger.debug("html audio session source load failed", { ord, sourceFilename });
+    callbacks.onAudioError(ord, identity, 0, audio.error?.code ?? null, null);
   }
-  if (visualizer) publishAudioReadinessChange(visualizer);
 }
 
-function seekAudio(ord: number, cursorMs: number, dispatch: DispatchHtmlAudioSessionEvent): void {
+function seekAudio(
+  ord: number,
+  cursorMs: number,
+  identity: TransportAttemptIdentity,
+  callbacks: HtmlAudioPortCallbacks,
+): void {
   const audio = audioForOrd(ord);
   if (!audio) return;
+  ensureAttemptRegistration(ord, audio, identity, callbacks);
   try {
     audio.currentTime = Math.max(0, cursorMs) / 1000;
   } catch {
-    dispatch(ord, {
-      cursorMs,
-      reason: "audio_seek_failed",
-      type: "SeekFailed",
-    });
+    callbacks.onSeekFailed(ord, identity, cursorMs);
   }
 }
 
-function reloadAudioSource(ord: number): void {
-  const visualizer = visualizerForOrd(ord);
+function reloadAudioSource(ord: number, identity: TransportAttemptIdentity): void {
   const audio = audioForOrd(ord);
   if (!audio) return;
+  const registration = registrations.get(ord);
+  if (registration) registration.attemptIdentity = identity;
   audio.loop = false;
   try {
     audio.load();
   } catch {
-    if (visualizer) markHtmlAudioFailure(visualizer, "audio_load_failed");
     logger.debug("html audio session source reload failed", { ord });
   }
-  if (visualizer) publishAudioReadinessChange(visualizer);
 }
 
 function playAudio(
   ord: number,
-  readState: ReadHtmlAudioSessionState,
-  dispatch: DispatchHtmlAudioSessionEvent,
+  identity: TransportAttemptIdentity,
+  callbacks: HtmlAudioPortCallbacks,
 ): void {
-  const sourceFilename = sourceFilenameForCurrentSession(ord, readState);
   const audio = audioForOrd(ord);
   if (!audio) {
-    dispatch(ord, { reason: "audio_play_rejected", sourceFilename, type: "PlayRejected" });
+    callbacks.onPlayRejected(ord, identity);
     return;
   }
-  const state = readState(ord);
-  if (state.kind !== "empty" && state.kind !== "failed" && state.source.kind === "learner_recording") {
-    installLearnerAudioHandlers(ord, audio, readState, dispatch);
-  }
-  logger.debug("html_audio_element.play_requested", {
-    currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
+  ensureAttemptRegistration(ord, audio, identity, callbacks);
+  logger.debug("html_audio_port.play_requested", {
+    attemptId: identity.attemptId,
+    currentTimeMs: audioCurrentTimeMs(audio),
+    fieldInstanceId: identity.fieldInstanceId,
     ord,
     readyState: audio.readyState,
-    sourceFilename,
+    runtimeId: identity.runtimeId,
+    sourceInstanceId: identity.sourceInstanceId,
     src: audio.getAttribute("src") || "",
-    stateKind: state.kind,
   });
   Promise.resolve(audio.play())
-    .then(() => {
-      logger.debug("html_audio_element.play_resolved", {
-        currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
-        ord,
-        readyState: audio.readyState,
-        sourceFilename,
-        src: audio.getAttribute("src") || "",
-      });
-      dispatch(ord, { nowMs: Date.now(), sourceFilename, type: "PlayResolved" });
-    })
-    .catch(() => {
-      logger.debug("html_audio_element.play_rejected", {
-        currentTimeMs: Math.round((Number(audio.currentTime) || 0) * 1000),
-        ord,
-        readyState: audio.readyState,
-        sourceFilename,
-        src: audio.getAttribute("src") || "",
-      });
-      dispatch(ord, { reason: "audio_play_rejected", sourceFilename, type: "PlayRejected" });
-    });
+    .then(() => callbacks.onPlayResolved(ord, identity, Date.now()))
+    .catch(() => callbacks.onPlayRejected(ord, identity));
 }
 
-function pauseAudio(ord: number): void {
-  const visualizer = visualizerForOrd(ord);
+function ensureAttemptRegistration(
+  ord: number,
+  audio: HTMLAudioElement,
+  identity: TransportAttemptIdentity,
+  callbacks: HtmlAudioPortCallbacks,
+): void {
+  const registration = registrations.get(ord);
+  if (!registration || registration.audio !== audio) {
+    installStableAudioHandlers(ord, audio, callbacks);
+    registrations.set(ord, {
+      attemptIdentity: identity,
+      audio,
+      sourceIdentity: identity,
+    });
+    return;
+  }
+  registration.attemptIdentity = identity;
+}
+
+function pauseAudio(ord: number, callbacks: HtmlAudioPortCallbacks, reportFailure = true): void {
   const audio = audioForOrd(ord);
   if (!audio) return;
   try {
     audio.pause();
   } catch {
-    if (visualizer) markHtmlAudioFailure(visualizer, "audio_pause_failed");
     logger.debug("html audio session pause failed", { ord });
+    const registration = currentRegistration(ord, audio);
+    if (reportFailure && registration) {
+      callbacks.onAudioError(
+        ord,
+        registration.sourceIdentity,
+        audioCurrentTimeMs(audio),
+        audio.error?.code ?? null,
+        null,
+      );
+    }
   }
 }
 
 function clearAudioSource(ord: number): void {
-  const visualizer = visualizerForOrd(ord);
-  if (visualizer) resetAudioClockState(visualizer);
   const audio = audioForOrd(ord);
+  registrations.delete(ord);
   if (!audio) return;
   try {
     audio.pause();
   } catch {
-    if (visualizer) markHtmlAudioFailure(visualizer, "audio_pause_failed");
     logger.debug("html audio session pause during clear failed", { ord });
   }
   audio.src = "";
@@ -178,13 +232,125 @@ function clearAudioSource(ord: number): void {
   try {
     audio.load();
   } catch {
-    if (visualizer) markHtmlAudioFailure(visualizer, "audio_load_failed");
     logger.debug("html audio session source clear load failed", { ord });
   }
-  if (visualizer) publishAudioReadinessChange(visualizer);
 }
 
-function sourceFilenameForCurrentSession(ord: number, readState: ReadHtmlAudioSessionState): string {
-  const state = readState(ord);
-  return state.kind === "empty" || state.kind === "failed" ? "" : state.source.sourceFilename;
+function installStableAudioHandlers(
+  ord: number,
+  audio: HTMLAudioElement,
+  callbacks: HtmlAudioPortCallbacks,
+): void {
+  const existing = installedHandlers.get(ord);
+  if (existing?.audio === audio) return;
+  if (existing) removeInstalledHandlers(existing);
+
+  const loadedmetadata = (): void => {
+    const registration = currentRegistration(ord, audio);
+    if (!registration || !audio.getAttribute("src")) return;
+    const durationMs = audioDurationMs(audio);
+    if (durationMs <= 0) return;
+    callbacks.onMetadataLoaded(ord, registration.sourceIdentity, durationMs);
+  };
+  const ended = (): void => {
+    const registration = currentRegistration(ord, audio);
+    const attemptIdentity = callbacks.currentAttemptIdentity(ord);
+    if (!registration || !attemptIdentity) return;
+    callbacks.onEnded(ord, attemptIdentity, audioBoundaryDurationMs(audio));
+  };
+  const error = (): void => {
+    const registration = currentRegistration(ord, audio);
+    if (!registration) return;
+    const identity = registration.attemptIdentity ?? registration.sourceIdentity;
+    const mediaErrorCode = audio.error?.code ?? null;
+    const failedSrc = audio.getAttribute("src") || "";
+    const report = (mediaResponseStatus: number | null): void => {
+      if (audio.getAttribute("src") !== failedSrc) return;
+      callbacks.onAudioError(ord, identity, audioCurrentTimeMs(audio), mediaErrorCode, mediaResponseStatus);
+    };
+    if (mediaErrorCode === 3 || mediaErrorCode === 4) {
+      void mediaResponseStatusFor(failedSrc).then(report);
+    } else {
+      report(null);
+    }
+  };
+  const handlers = { audio, ended, error, loadedmetadata };
+  audio.addEventListener("loadedmetadata", loadedmetadata);
+  audio.addEventListener("ended", ended);
+  audio.addEventListener("error", error);
+  installedHandlers.set(ord, handlers);
+}
+
+function disposeAudioPort(ord: number): void {
+  registrations.delete(ord);
+  const handlers = installedHandlers.get(ord);
+  if (handlers) {
+    removeInstalledHandlers(handlers);
+    installedHandlers.delete(ord);
+  }
+}
+
+function previewPosition(ord: number, cursorMs: number, durationMs: number): boolean {
+  const audio = audioForOrd(ord);
+  if (!audio) return false;
+  const clamped = Math.max(0, Math.min(Number(cursorMs) || 0, durationMs || 0));
+  try {
+    audio.currentTime = clamped / 1000;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function audioPortSnapshot(ord: number): HtmlAudioPortSnapshot {
+  const audio = audioForOrd(ord);
+  return {
+    currentTimeMs: audio ? audioCurrentTimeMs(audio) : 0,
+    hasSource: !!audio?.getAttribute("src"),
+    paused: audio?.paused ?? true,
+    present: audio !== null,
+    readyState: typeof audio?.readyState === "number" ? audio.readyState : null,
+    sourceUrl: audio?.getAttribute("src") || "",
+  };
+}
+
+export function mediaUrlForFilename(filename: string): string {
+  return encodeURIComponent(filename || "").replaceAll("%2F", "/");
+}
+
+function removeInstalledHandlers(handlers: InstalledAudioHandlers): void {
+  handlers.audio.removeEventListener("loadedmetadata", handlers.loadedmetadata);
+  handlers.audio.removeEventListener("ended", handlers.ended);
+  handlers.audio.removeEventListener("error", handlers.error);
+}
+
+function currentRegistration(ord: number, audio: HTMLAudioElement): AudioRegistration | null {
+  const registration = registrations.get(ord);
+  return registration?.audio === audio ? registration : null;
+}
+
+async function mediaResponseStatusFor(src: string): Promise<number | null> {
+  if (!src) return null;
+  try {
+    const response = await fetch(src, { cache: "no-store", method: "HEAD" });
+    return response.status;
+  } catch {
+    return null;
+  }
+}
+
+function audioBoundaryDurationMs(audio: HTMLAudioElement): number {
+  return Math.max(audioDurationMs(audio), audioCurrentTimeMs(audio));
+}
+
+function audioDurationMs(audio: HTMLAudioElement): number {
+  const durationSeconds = Number(audio.duration);
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0;
+  return Math.round(durationSeconds * 1000);
+}
+
+function audioCurrentTimeMs(audio: HTMLAudioElement): number {
+  const currentSeconds = Number(audio.currentTime);
+  if (!Number.isFinite(currentSeconds) || currentSeconds <= 0) return 0;
+  return Math.round(currentSeconds * 1000);
 }

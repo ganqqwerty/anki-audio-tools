@@ -2,18 +2,15 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   clearPendingNoteScopedBridgeRequests,
   popPendingGraphAnalysisRequest,
-  popPendingPlaybackRequest,
   popPendingRegionDeleteRequest,
   popPendingSplitDefaultSaveRequest,
   sendGraphAnalysisRequest,
   sendSplitDefaultSaveRequest,
-  setPendingPlaybackRequest,
   setPendingRegionDeleteRequest,
 } from "../src/editor-inline/bridge.js";
 import type { SplitDefaultSaveRequest } from "../src/editor-inline/split-default-save-types.js";
 import type {
   GraphAnalysisRequest,
-  PlaybackRequest,
   RegionDeleteRequest,
 } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";
@@ -29,7 +26,6 @@ afterEach(() => {
   drainPending(popPendingGraphAnalysisRequest);
   drainPending(popPendingRegionDeleteRequest);
   drainPending(popPendingSplitDefaultSaveRequest);
-  drainPending(popPendingPlaybackRequest);
 });
 
 describe("editor bridge pending request queues", () => {
@@ -91,28 +87,8 @@ describe("editor bridge pending request queues", () => {
     expect(popPendingSplitDefaultSaveRequest()).toBeNull();
   });
 
-  it("keeps playback requests in FIFO order while preserving the last request", () => {
-    const first: PlaybackRequest = { action: "start", cursorMs: 0, ord: 0 };
-    const second: PlaybackRequest = {
-      action: "start",
-      cursorMs: 500,
-      endMs: 900,
-      ord: 0,
-      regionMode: "selection",
-    };
-
-    setPendingPlaybackRequest(first);
-    setPendingPlaybackRequest(second);
-
-    expect(window.__aqeLastPlaybackRequest).toEqual(second);
-    expect(popPendingPlaybackRequest()).toEqual(first);
-    expect(popPendingPlaybackRequest()).toEqual(second);
-    expect(popPendingPlaybackRequest()).toBeNull();
-  });
-
   it("clears note-scoped pending requests when the editor moves to a new note", () => {
     const graph: GraphAnalysisRequest = { ord: 0, sourceFilename: "a.mp3" };
-    const playback: PlaybackRequest = { action: "start", cursorMs: 0, ord: 0 };
     const regionDelete: RegionDeleteRequest = {
       ord: 0,
       sourceFilename: "a.mp3",
@@ -126,14 +102,10 @@ describe("editor bridge pending request queues", () => {
     };
 
     sendGraphAnalysisRequest(graph);
-    setPendingPlaybackRequest(playback);
     setPendingRegionDeleteRequest(regionDelete);
     clearPendingNoteScopedBridgeRequests();
 
     expect(popPendingGraphAnalysisRequest()).toBeNull();
-    expect(popPendingPlaybackRequest()).toBeNull();
     expect(popPendingRegionDeleteRequest()).toBeNull();
-    expect(window.__aqePendingPlaybackRequest).toBeNull();
-    expect(window.__aqeLastPlaybackRequest).toBeNull();
   });
 });

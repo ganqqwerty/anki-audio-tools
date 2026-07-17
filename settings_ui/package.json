@@ -13,12 +13,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --pool=threads --maxWorkers=2 --testTimeout=15000",
-    "test:mutation:html-audio": "stryker run stryker.html-audio.conf.json",
+    "test:mutation:state-management": "stryker run stryker.state-management.conf.json",
+    "architecture": "cd .. && depcruise -c .dependency-cruiser.js settings_ui/src",
     "lint": "eslint . && npm run lint:max-lines",
     "lint:max-lines": "eslint . --config eslint.max-lines.config.js",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run check && npm run lint && npm run typecheck && npm run test:coverage"
+    "validate": "npm run check && npm run lint && npm run typecheck && npm run architecture && npm run test:coverage"
   },
   "dependencies": {
     "@lucide/svelte": "^1.3.0",

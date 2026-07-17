@@ -4,6 +4,8 @@ import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/edit
 import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 import {
   muteConsole,
+  publishRecorderSnapshot,
+  prepareHtmlAudio,
   renderFields,
   setFullGraphViewport,
   setGraphBounds,
@@ -58,7 +60,8 @@ describe("editor inline graph-area controls", () => {
     await Promise.resolve();
 
     window.__aqeSetVisualizer?.(0, track, 0);
-    window.__aqeSetPlaybackState?.(0, "playing", 0);
+    prepareHtmlAudio(0);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
 
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-graph-play-0"]')).toHaveAttribute(
@@ -80,11 +83,10 @@ describe("editor inline graph-area controls", () => {
     expect(document.querySelector('[data-testid="aqe-graph-play-recording-0"]')).toBeNull();
 
     await setupAudioTrack();
-    window.__aqeSetLearnerRecordingState?.({
+    publishRecorderSnapshot({
+      attemptId: 1,
       fieldOrd: 0,
-      generation: 1,
       mediaFilename: "target__aqe_voice.wav",
-      playbackStatus: "stopped",
       status: "ready",
       targetDurationMs: track.durationMs,
     });

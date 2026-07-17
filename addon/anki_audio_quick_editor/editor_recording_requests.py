@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .editor_recording_state import LearnerRecordingState
 from .editor_session import EditorSession
 from .errors import AudioProcessingError
 from .i18n import t
+from .recorder.model import RecordingAttempt
 from .sound_refs import safe_media_basename
 
 _FILENAME_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
@@ -40,9 +40,14 @@ def learner_recording_request(
     graph_settings: dict[str, object] | None,
     start_cursor_ms: int | None,
     deps: RecordingDeps,
+    requested_field_index: int | None = None,
 ) -> LearnerRecordingRequest:
     """Validate that the current field still matches a target graph."""
-    field_index = deps.current_field_index(editor)
+    field_index = (
+        int(requested_field_index)
+        if requested_field_index is not None
+        else deps.current_field_index(editor)
+    )
     source_filename = session.graph.filenames_by_field.get(field_index)
     target_duration_ms = session.graph.durations_by_field.get(field_index)
     if not source_filename or target_duration_ms is None or target_duration_ms <= 0:
@@ -52,7 +57,7 @@ def learner_recording_request(
         raise AudioProcessingError(t("editor.status.graph_audio_mismatch"))
     filename, source_path = resolved
     media_dir = Path(editor.mw.col.media.dir())
-    generation = session.learner_recording.generation + 1
+    generation = session.backend_media_generation + 1
     output_filename = make_learner_recording_filename(filename, generation)
     return LearnerRecordingRequest(
         field_index=field_index,
@@ -66,28 +71,20 @@ def learner_recording_request(
     )
 
 
-def learner_recording_request_from_state(
+def learner_recording_request_from_attempt(
     editor: Any,
-    state: LearnerRecordingState,
-) -> LearnerRecordingRequest | None:
-    """Rebuild the active request from persisted session state."""
-    if (
-        state.field_index is None
-        or not state.source_filename
-        or not state.media_filename
-        or state.media_path is None
-        or state.target_duration_ms is None
-    ):
-        return None
+    attempt: RecordingAttempt,
+) -> LearnerRecordingRequest:
+    """Rebuild the active request from the service-owned attempt."""
     return LearnerRecordingRequest(
-        field_index=state.field_index,
-        source_filename=state.source_filename,
-        source_path=Path(editor.mw.col.media.dir()) / state.source_filename,
-        target_duration_ms=state.target_duration_ms,
-        start_cursor_ms=state.start_cursor_ms,
-        output_filename=state.media_filename,
-        output_path=state.media_path,
-        graph_settings=state.graph_settings,
+        field_index=attempt.target.field_index,
+        source_filename=attempt.target.source_filename,
+        source_path=Path(editor.mw.col.media.dir()) / attempt.target.source_filename,
+        target_duration_ms=attempt.capture.target_duration_ms,
+        start_cursor_ms=attempt.capture.timeline_anchor_ms,
+        output_filename=attempt.capture.output_filename,
+        output_path=attempt.capture.output_path,
+        graph_settings=attempt.capture.graph_settings,
     )
 
 

@@ -3,25 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
 
-@dataclass
-class PlaybackState:
-    active: bool = False
-    paused: bool = False
-    preparing: bool = False
-    generation: int = 0
-    temp_path: Path | None = None
-    preserve_status: bool = False
+@dataclass(frozen=True)
+class BackendMediaTarget:
+    """One backend-observed field source with its immutable generation identity."""
 
-    def stop(self) -> None:
-        """Stop playback and bump generation."""
-        self.generation += 1
-        self.preparing = False
-        self.active = False
-        self.paused = False
-        self.preserve_status = False
+    field_index: int
+    source_filename: str
+    source_mtime_ns: int | None
+    generation: int
 
 
 @dataclass
@@ -83,45 +74,3 @@ class GraphVisualizationState:
         self.visualized_duration_ms = None
         self.filenames_by_field.clear()
         self.durations_by_field.clear()
-
-
-@dataclass
-class PostEditPlaybackState:
-    generation: int = 0
-    pending_field_index: int | None = None
-    pending_generation: int | None = None
-    pending_requires_graph_redraw: bool = False
-    pending_source_filename: str | None = None
-    pending_source_kind: str = "generated_edit"
-    pending_expected_duration_ms: int | None = None
-
-    def bump(self) -> None:
-        self.generation += 1
-
-    def request(
-        self,
-        field_index: int,
-        source_filename: str | None,
-        *,
-        require_graph_redraw: bool = False,
-        source_kind: str = "generated_edit",
-        expected_duration_ms: int | None = None,
-    ) -> None:
-        self.pending_field_index = int(field_index)
-        self.pending_generation = self.generation
-        self.pending_requires_graph_redraw = bool(require_graph_redraw)
-        self.pending_source_filename = source_filename
-        self.pending_source_kind = source_kind if source_kind == "existing_media" else "generated_edit"
-        self.pending_expected_duration_ms = expected_duration_ms
-
-    def clear_pending(self) -> None:
-        self.pending_field_index = None
-        self.pending_generation = None
-        self.pending_requires_graph_redraw = False
-        self.pending_source_filename = None
-        self.pending_source_kind = "generated_edit"
-        self.pending_expected_duration_ms = None
-
-    def reset(self) -> None:
-        self.generation += 1
-        self.clear_pending()

@@ -109,5 +109,8 @@ def test_release_smoke_accepts_thin_runtime_manifest(tmp_path: Path, monkeypatch
 
     monkeypatch.setattr(release_smoke, "_run_tool", lambda _path, _args: pytest.fail("unexpected tool run"))
     monkeypatch.setattr(release_smoke, "_install_anki_stubs", lambda: None)
+    original_path = os.environ.get("PATH")
 
     release_smoke.smoke_archive(archive)
+
+    assert os.environ.get("PATH") == original_path

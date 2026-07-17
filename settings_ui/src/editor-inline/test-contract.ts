@@ -1,12 +1,11 @@
 import { COMMAND_SLUGS } from "./commands.js";
-import { audioClockFor } from "./audio-clock.js";
-import { clearHtmlAudioFailure, htmlAudioReadinessFor } from "./audio-readiness.js";
+import { htmlAudioReadinessFor } from "./audio-readiness.js";
 import {
   allButtons,
   controlsForOrd,
   graphButton,
   playButton,
-  repeatButtonForOrd,
+  repeatControlForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
 import {
@@ -23,13 +22,14 @@ import { getSplitButtonState } from "./split-button-state.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
 import { readLearnerRecordingState } from "./recording-state-store.js";
+import { readEditorPracticeSnapshot } from "./editor-practice-controller.js";
 import {
-  isRepeatPauseWaitingRuntime,
   readLearnerDurationMsForVisualizer,
   readRepeatPauseSecondsRuntime,
 } from "./visualizer-runtime-state.js";
 import type { EditorFieldState } from "./field-state.js";
 import type {
+  AudioClockElement,
   CursorPositionForTest,
   EditorCommand,
   GraphStateForTest,
@@ -71,8 +71,9 @@ export function installEditorTestWindowContract(): void {
 
 export function installAudioPlaybackTestDriver(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
-  const audio = audioClockFor(visualizer);
-  if (!visualizer || !audio) return false;
+  if (!visualizer) return false;
+  const audio = testAudioFor(visualizer);
+  if (!audio) return false;
   const markReady = (): void => {
     try {
       Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
@@ -83,11 +84,6 @@ export function installAudioPlaybackTestDriver(ord: number): boolean {
     } catch {
       // Some browser engines expose media properties as non-configurable.
     }
-    visualizer.__aqeAudioClockAvailable = true;
-    visualizer.__aqeAudioClockFallback = false;
-    visualizer.__aqeHtmlAudioMediaErrorCode = null;
-    visualizer.__aqeHtmlAudioMediaResponseStatus = null;
-    clearHtmlAudioFailure(visualizer);
   };
   audio.__aqeTestDriverInstalled = true;
   markReady();
@@ -196,7 +192,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const buttonIcons = allButtons().flatMap((button) => (
     Array.from(button.querySelectorAll<SVGElement>(".aqe-button-icon svg"))
   ));
-  const audio = audioClockFor(visualizer);
+  const audio = testAudioFor(visualizer);
   const readiness = htmlAudioReadinessFor(visualizer);
   const selection = selectionForVisualizer(visualizer);
   const draftSelection = draftSelectionForVisualizer(visualizer);
@@ -216,6 +212,12 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const chorusing = chorusingControlsForVisualizer(visualizer);
   const splitState = getSplitButtonState(ord);
   const learnerRecording = readLearnerRecordingState(ord);
+  const practiceSnapshot = readEditorPracticeSnapshot();
+  const practiceState = practiceSnapshot?.state ?? null;
+  const fieldPracticeState = practiceState && (
+    ("pass" in practiceState && practiceState.pass.ord === ord)
+    || ("spec" in practiceState && practiceState.spec.fieldOrd === ord)
+  ) ? practiceState : null;
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -231,6 +233,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     learnerRecordingStatus: learnerRecording.recordingStatus,
     learnerPlaybackStatus: learnerRecording.playbackStatus,
     learnerStartCursorMs: learnerRecording.startCursorMs,
+    practiceProgramKind: fieldPracticeState?.kind ?? null,
+    practiceProgramPhase: fieldPracticeState?.phase ?? null,
     anchorMs: Number(visualizer.dataset.anchorMs || "0"),
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
     progressMs: Math.round(currentProgressMs(visualizer) ?? Number(visualizer.dataset.progressMs || "0")),
@@ -253,8 +257,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionEndHandleX: selectionHandleLeftPx(plot, "--aqe-selection-end-edge-px"),
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
     repeatPauseSeconds: readRepeatPauseSecondsRuntime(visualizer),
-    repeatPauseWaiting: isRepeatPauseWaitingRuntime(visualizer),
-    repeatControlDisabled: !!(repeatMenu?.disabled || repeatButtonForOrd(ord)?.disabled),
+    repeatControlDisabled: !!(repeatMenu?.disabled || repeatControlForOrd(ord)?.disabled),
     regionDeleteButtonDisabled: !!regionDelete?.disabled,
     regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,
     regionDeleteRestButtonDisabled: !!regionDeleteRest?.disabled,
@@ -294,7 +297,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     audioClockSrc: audio ? (audio.getAttribute("src") || "") : "",
     audioClockCurrentMs: audio ? Math.round((Number(audio.currentTime) || 0) * 1000) : 0,
     audioClockReady: readiness.ready,
-    audioClockFallback: !!visualizer.__aqeAudioClockFallback,
+    audioClockFallback: readiness.failed,
     audioClockMuted: !!(audio && audio.muted),
     audioPlaybackTestDriver: !!(audio && audio.__aqeTestDriverInstalled),
     playbackEngine: playbackEngineFor(visualizer),
@@ -327,6 +330,10 @@ export function commandSlugsForTest(): Readonly<Record<EditorCommand, string>> {
 function playbackStateFor(visualizer: VisualizerElement): PlaybackState {
   const state = visualizer.dataset.playbackState;
   return isPlaybackState(state) ? state : "stopped";
+}
+
+function testAudioFor(visualizer: VisualizerElement): AudioClockElement | null {
+  return visualizer.querySelector<AudioClockElement>(".aqe-audio-clock");
 }
 
 function progressClockModeFor(visualizer: VisualizerElement): ProgressClockMode {

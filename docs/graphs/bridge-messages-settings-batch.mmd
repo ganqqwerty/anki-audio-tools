@@ -30,7 +30,7 @@ flowchart TD
 
     subgraph BatchHandlers["Python: browser_dialog.py"]
         bh_batch_cancel["self._cancel_or_close"]
-        bh_batch_close["self._dialog.reject"]
+        bh_batch_close["self._close_dialog"]
         bh_batch_copy_log["_clipboard_set_text"]
         bh_batch_start["self._handle_batch_start"]
         bh_frontend_log["_handle_frontend_log"]

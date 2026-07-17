@@ -30,6 +30,8 @@ COVERAGE_XML = ROOT / "coverage.xml"
 COVERAGE_JSON = ROOT / "coverage.json"
 SETTINGS_UI_LCOV = SETTINGS_UI_DIR / "coverage" / "lcov.info"
 RISK_COVERAGE_FLOORS = {
+    "addon/anki_audio_quick_editor/recorder/model.py": 95.0,
+    "addon/anki_audio_quick_editor/recorder/service.py": 90.0,
     "addon/anki_audio_quick_editor/editor_region_delete.py": 55.0,
     "addon/anki_audio_quick_editor/editor_region_delete_worker.py": 60.0,
     "addon/anki_audio_quick_editor/reviewer_template_filter_integration.py": 60.0,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+import wave
 from pathlib import Path
 
 import pytest
@@ -53,6 +54,13 @@ class _FakeRecordingController:
             on_completed(
                 recording_result_from_path(self.output_path, generation=self.generation)
             )
+
+    def cancel(self, reason: str) -> None:
+        del reason
+        self.generation = None
+
+    def dispose(self) -> None:
+        self.cancel("dispose")
 
 
 def test_fake_recording_controller_completes_with_generation_and_wav_path(
@@ -129,6 +137,19 @@ def test_recording_result_from_path_includes_elapsed_duration(tmp_path: Path) ->
     )
 
     assert result == RecordingResult(path=wav_path, generation=3, duration_ms=1250)
+
+
+def test_recording_result_duration_comes_from_finalized_wav_metadata(tmp_path: Path) -> None:
+    wav_path = tmp_path / "capture.wav"
+    with wave.open(str(wav_path), "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(8000)
+        wav_file.writeframes(b"\x00\x00" * 4000)
+
+    result = recording_result_from_path(wav_path, generation=9)
+
+    assert result.duration_ms == 500
 
 
 def test_audio_recording_import_does_not_load_qt_multimedia_or_macos_helper() -> None:

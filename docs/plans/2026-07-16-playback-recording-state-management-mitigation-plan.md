@@ -4,7 +4,61 @@ Date: 2026-07-16
 
 Source audit: [`docs/reviews/2026-07-16-playback-recording-state-management-audit.md`](../reviews/2026-07-16-playback-recording-state-management-audit.md)
 
-Status: proposed
+Status: implemented
+
+## Implementation completion
+
+- The frontend now has one identity-guarded HTML-audio transport authority and pure practice programs for repeat, chorusing, countdown, recording, and review sequencing.
+- The backend recorder package owns its native handle, terminal-result suppression, artifact cleanup, source-mutation exclusion, and finalized-take metadata; the legacy optional recording/playback state bundle is retired.
+- Generated lifecycle contracts carry the required runtime, field, source, attempt, program, recording, delivery, and backend-media identities. The legacy Python playback mirror, readiness handshake, global boundary/recovery dispatch, and manual playback controller paths are deleted.
+- Rules 39 through 50 enforce the `SM-A01` through `SM-A12` ownership, identity, public-API, tombstone, cycle, and invariant-validator boundaries. The architecture archive and canonical documentation were regenerated from the implemented tree.
+- Frontend state-management mutation coverage killed 1,206 of 1,284 covered mutants (93.93%); recorder mutation coverage killed 467 of 470 covered mutants (99.36%). The three recorder survivors are equivalent or presentation-only mutations in a redundant cancel reason, disposal branch selection with identical cleanup, and invariant-message delimiter text.
+- The repository check passed every available local preflight, static-analysis, architecture, unit, Anki API, coverage, risk-floor, and release-smoke phase. Qodana was excluded because the project trial/license has expired and is no longer an executable quality gate.
+- Full parallel E2E passed 238 tests across three shards with zero failures or errors. Full canonical serial E2E also passed, including independent PCM assertions for unsupported-source silence, recovered-source playback, repeat, seek, replacement, pause/resume, and stale-audio cleanup.
+
+## Implementation baseline (M-1)
+
+Reconciled on 2026-07-16 immediately before implementation:
+
+- repository `HEAD`: `63ee2bc644a622f1e87d3e019100d65c72cbc684` (`plans`), with no dirty paths before the baseline run;
+- the only commit after the plan's previously revalidated `24f175a` baseline contains planning documents, so no production playback, recording, bridge, test, or contract delta landed after that review;
+- CodeGraph was initialized for this worktree and indexed 1,003 files, 14,544 symbols, and 36,657 edges;
+- `python3 scripts/dev.py check` passed;
+- Python branch coverage passed the 80% aggregate gate at 85.74% total coverage (88.56% statements and 72.64% branches), and all six existing risk-tier file floors passed;
+- frontend coverage passed at 93.46% lines, 91.36% functions, and 85.88% branches. The existing HTML-audio machine/controller/progress floors were respectively 99.26%/95.52%/100% lines, with the audio-element adapter at 92.81% lines;
+- `python3 scripts/dev.py test-e2e-parallel` passed after installing the verified managed runtime pack;
+- `test_aac_full_repeat_stops_with_warning_when_browser_audio_rejects_after_graph` and `test_audible_transform_during_repeat_stops_old_audio_and_autoplays_new_source` passed alone, together, and together under fixed hash seeds 1, 7, and 19;
+- the largest hand-maintained migration hotspots are `html-audio-session-controller.ts` (496 lines), `html-audio-session-machine.ts` (420), `playback-controller.ts` (383), and `audio_recording.py` (358). They remain explicit M3/M4/M5 split targets;
+- dependency-cruiser is installed but is not wired into `settings_ui/package.json` or `scripts/dev.py check`. Its current configuration discovers 228 frontend modules and 843 dependency edges, with 77 edges participating in legacy cycles;
+- the existing `no-pycmd-outside-bridge` dependency-cruiser entry has no `to` constraint and therefore reports 823 unrelated dependency violations if enabled. M0 must remove that invalid pseudo-global rule and leave raw-global enforcement to ESLint/architecture tests before wiring dependency-cruiser into QC;
+- repository architecture Rules 37 and 38 are the current highest numbered rules. Rule 37 is the native-editor-playback tombstone. Rule 38 is the temporary frontend playback ownership ratchet and does not yet reject unused allowances.
+
+The stable capability-to-repository mapping established by this checkpoint is:
+
+| Capability | Repository rule |
+|---|---|
+| SM-A01 | Rule 39 — frontend state-management package boundaries |
+| SM-A02 | Rule 40 — HTML audio/readiness/clock capability ownership |
+| SM-A03 | Rule 41 — transport writer and projection ownership |
+| SM-A04 | Rule 42 — practice-program purity |
+| SM-A05 | Rule 43 — DOM projection/cache-only state |
+| SM-A06 | Rule 44 — exhaustive async transport identity |
+| SM-A07 | Rule 45 — recorder package and side-effect ownership |
+| SM-A08 | Rule 46 — active recorder handle ownership and teardown |
+| SM-A09 | Rule 47 — generated lifecycle bridge contracts |
+| SM-A10 | Rule 48 — deleted playback mirror/handshake tombstones |
+| SM-A11 | Rule 49 — public APIs, private internals, and cycles |
+| SM-A12 | Rule 50 — invariant-validator wiring |
+
+Reconciliation classification:
+
+| Classification | Current-tree result |
+|---|---|
+| Already solved/retained asset | typed HTML-audio reducer, high reducer/controller coverage, independent PCM oracle, Rule 37 native-playback tombstone, generated-contract pipeline, generic bridge transport, and typed unsupported-codec classification/recovery UI |
+| Still present | ordinal-keyed per-field session authority, filename-correlated callbacks, nested effect dispatch, wall-time boundary authority, graph-duration readiness, DOM `__aqe*` behavior, global source-boundary/recovery handlers, visualizer-owned countdown timer, droppable recorder handle, optional recording/playback bundle, backend playback mirror/readiness handshake, and unwired frontend dependency policy |
+| Newly introduced after review | none; the tree advanced only by the plan commit |
+
+No material model change was discovered at M-1. The identities, state vocabularies, cross-domain arbitration, and milestone order below remain the implementation contract.
 
 Revalidated against repository `HEAD` `24f175a14dcc4171c2e0abbc1405441fa94e45b7` and the working tree inspected on 2026-07-16. The final pass includes commit `24f175a` (`Offer explicit MP3 recovery for unsupported browser audio`), which landed during this review. The source audit was written against `8f25fb39c0c0a3808ee950eb21f2edeca3a02b35` plus an earlier working tree. Because playback work is actively changing, M-1 below is a mandatory implementation-time reconciliation gate; this document is not evidence that the tree is frozen at any of these commits.
 

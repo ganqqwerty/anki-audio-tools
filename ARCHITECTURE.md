@@ -49,9 +49,10 @@ This is a data structure, not documentation. When you add or move a module, upda
 
 ## Sub-Packages
 
-Two sub-packages contain groups of related modules:
+Three sub-packages contain groups of related modules:
 
 - [`editor_frontend/`](addon/anki_audio_quick_editor/editor_frontend/) — Python-side bridge to the Svelte editor-inline WebView (busy state, playback eval, graph refresh, status, types)
+- [`recorder/`](addon/anki_audio_quick_editor/recorder/) — application-scoped recorder model/service plus native capture adapters; the service is the only owner of live recorder handles
 - [`settings/`](addon/anki_audio_quick_editor/settings/) — Settings dialog backend commands, async operations, and initial state
 
 ## Bootstrap Hooks
@@ -79,10 +80,24 @@ Two sub-packages contain groups of related modules:
 6. Processing button presses update an `AudioEditState` for the current field, including speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
 7. Special transform controls call external cleanup tools through `audio_processor.py`, including DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction from the managed runtime or development fallback.
 8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
-9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
+9. Editor and learner-take playback use the WebView HTML-audio transport. The frontend command coordinator stops and quiesces that transport before processing, recording, undo, recovery conversion, or source replacement crosses into Python.
 10. Undo restores the previous generated reference and edit state without deleting generated media. Persistent undo survives editor close/reopen via `editor_persistent_undo.py`.
 
 The editor modification-button contract, quick-setting defaults, known exceptions, and e2e coverage map live in [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md).
+
+## Playback, Practice, And Recording Ownership
+
+Inline-editor media behavior has three explicit domains:
+
+- The transport model and identity policy live under [`settings_ui/src/editor-inline/transport/`](settings_ui/src/editor-inline/transport/). [`html-audio-session-controller.ts`](settings_ui/src/editor-inline/html-audio-session-controller.ts) is the sole transport transition/state writer; the audio-element adapter, event queue, resource registry, invariant recovery, logging, and field projection are narrow effect collaborators.
+- Pure once, repeat, chorusing, and record-once decisions live under [`settings_ui/src/editor-inline/practice/`](settings_ui/src/editor-inline/practice/). The practice runtime owns program IDs and wait/countdown timers and can request transport or recorder commands, but it cannot touch DOM, bridge, stores, or media elements.
+- Python recording lifecycle and live native handles live under [`addon/anki_audio_quick_editor/recorder/`](addon/anki_audio_quick_editor/recorder/). One application-scoped service owns start, stop, cancellation, finalization, analysis handoff, and finalized takes; editor adapters receive snapshots and commands, never the controller handle.
+
+An accepted transport failure receives a failure identity and is delivered once to the field-owning practice run, which decides the terminal program transition. Passive media-readiness failures do not replace a stable edit error; failures from an accepted playback request remain user-visible and may expose an identity-bound recovery action. Recorder commands carry an explicit field target, and frontend practice binds the backend attempt ID from generated recorder snapshots instead of relying on transient field focus.
+
+`editor-command-coordinator.ts` establishes cross-domain stop/cancel ordering before source-mutating commands. Python revalidates recorder exclusion and the authoritative editor/note/field/backend-media generation immediately before mutation, so a stale frontend request cannot gain authority.
+
+Lifecycle-bearing cross-language messages are schema-first in [`contracts/communication.schema.json`](contracts/communication.schema.json): pending editor intents and terminal receipts, recorder commands/snapshots, and source-mutation commands. Post-edit autoplay is a retryable bootstrap delivery owned by the Python adapter until its terminal receipt; its program is explicitly `once` or `repeat`, and repeat carries the configured pause across the WebView remount. Media readiness and playback state remain frontend transport facts. Python does not mirror HTML playback state.
 
 ## Batchable Operations
 
@@ -173,7 +188,7 @@ When you think you need to change boundaries, ask the user and provide justifica
 
 | Contract | Source modules | Forbidden modules |
 |----------|----------------|-------------------|
-| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, toolbar visibility normalization, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
+| `import-safe-no-upper-layers` | Import-safe helper modules, including recorder model/service leaf modules, batch visualization, Browser batch state, runtime asset management, toolbar visibility normalization, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
 | `settings-backend-no-ui` | Settings backend modules (`settings.commands`, async command/operation handlers, and initial state) | `editor_integration` |
 
 ## Enforced Rules
@@ -184,6 +199,8 @@ The enforced rules are located in [`tests/test_architecture/`](tests/test_archit
 - Editor TypeScript/Svelte source is part of that bridge-command sync check, not only Python injection code.
 - Editor panel command buttons must stay accepted by settings visibility/display-mode config.
 - Inline editor field, control, recording, and visualizer runtime state must stay canonical in typed frontend modules (`field-state-store.ts`, `editor-control-state.ts`, `recording-state-store.ts`, `visualizer-runtime-state.ts`). DOM `dataset` attributes are only a derived projection for CSS, compatibility, and tests, or an input for Anki DOM identity/discovery.
+- Rules 39-50 enforce the playback/recording ownership model: dependency direction, direct HTML-media capability ownership, sole transport writer, practice purity, DOM tombstones, exhaustive identities, recorder package/handle ownership, generated lifecycle contracts, deleted playback-mirror tombstones, public API boundaries, and production validator wiring.
+- Transport source, attempt, and failure identities are exhaustive and stale facts fail closed. Runtime, field, source, effect, timer, and recorder-handle resources must be released by their owning domain before identity changes.
 - Shared batch operations must stay free of editor bridge strings and editor-adapter imports.
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.

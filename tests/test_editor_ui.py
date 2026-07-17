@@ -27,7 +27,8 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["initialHistoryAvailabilityByField"] == {}
     assert config["initialHistorySnapshotsByField"] == {}
     assert config["editorHistorySize"] == 100
-    assert config["pendingPostEditPlayback"] is None
+    assert config["pendingEditorIntent"] is None
+    assert config["backendEditorContext"] is None
     assert config["repeatPlaybackByDefault"] is True
     assert config["selectionMarkerShiftButtonsEnabled"] is False
     assert config["showGraphByDefault"] is True
@@ -196,25 +197,32 @@ def test_injection_script_embeds_audio_field_metadata() -> None:
     }
 
 
-def test_injection_script_embeds_pending_post_edit_playback() -> None:
-    script = injection_script(
-        [0],
-        pending_post_edit_playback={
-            "fieldOrd": 0,
-            "generation": 4,
+def test_injection_script_embeds_pending_editor_intent() -> None:
+    pending = {
+        "autoplay": {
+            "expectedDurationMs": None,
+            "kind": "once",
+            "repeatPauseMs": 0,
             "requireGraphRedraw": True,
-            "sourceKind": "generated_edit",
+        },
+        "deliveryId": "delivery-4",
+        "expiresAtEpochMs": 123456,
+        "schemaVersion": 1,
+        "sourceKind": "generated_edit",
+        "target": {
+            "backendMediaGeneration": 4,
+            "editorSessionId": 7,
+            "fieldOrd": 0,
+            "noteId": 11,
             "sourceFilename": "clip__aqe.mp3",
         },
+    }
+    script = injection_script(
+        [0],
+        pending_editor_intent=pending,
     )
 
-    assert _embedded_config(script)["pendingPostEditPlayback"] == {
-        "fieldOrd": 0,
-        "generation": 4,
-        "requireGraphRedraw": True,
-        "sourceKind": "generated_edit",
-        "sourceFilename": "clip__aqe.mp3",
-    }
+    assert _embedded_config(script)["pendingEditorIntent"] == pending
 
 
 def test_injection_script_embeds_split_button_defaults() -> None:
@@ -270,7 +278,7 @@ def test_injection_script_keeps_python_window_contract() -> None:
     assert "__aqeSetLearnerRecordingState" in script
     assert "__aqeSetLearnerVisualizer" in script
     assert "__aqeSetVisualizerStatus" in script
-    assert "__aqeGetPlaybackRequest" in script
+    assert "__aqeGetPlaybackRequest" not in script
     assert "__aqeGetCursorIntent" in script
     assert "__aqePopFrontendLog" in script
     assert "__aqePopPendingGraphAnalysisRequest" in script
