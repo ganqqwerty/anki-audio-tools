@@ -169,6 +169,11 @@ def test_trigger_rules_parse_preset_rule() -> None:
     assert rule.parameters.speed_step is None
 
 
+def test_trigger_rules_require_existing_preset_by_default() -> None:
+    with pytest.raises(ValueError, match="Unknown processing preset"):
+        trigger_rules_from_raw([_preset_rule()])
+
+
 def test_trigger_rules_reject_duplicate_ids() -> None:
     duplicate = _operation_rule()
 

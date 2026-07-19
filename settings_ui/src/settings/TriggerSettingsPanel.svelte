@@ -2,7 +2,7 @@
   import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
   import { AudioTriggerActionType, AudioTriggerRuleOperation, TriggerEvent, type AudioTriggerRule, type Config, type TriggerNoteTypeOption, type TriggerSettingsMetadata } from "$lib/types.js";
-  import { TRIGGER_OPERATIONS, actionSummary, fieldsForRule, newTriggerRule, normalizeTriggerRule, presetRequiresGraph, validateTriggerRules } from "./trigger-settings-state.js";
+  import { TRIGGER_OPERATIONS, actionSummary, fieldsForRule, newTriggerRule, normalizeTriggerRule, parametersForTriggerOperation, presetRequiresGraph, validateTriggerRules } from "./trigger-settings-state.js";
 
   const {
     config = $bindable(),
@@ -232,11 +232,14 @@
                     class="settings-select"
                     data-testid="trigger-operation"
                     value={selectedRule.operation ?? AudioTriggerRuleOperation.Convert}
-                    onchange={(event) =>
+                    onchange={(event) => {
+                      const operation = event.currentTarget.value as AudioTriggerRuleOperation;
                       updateRule({
                         ...selectedRule,
-                        operation: event.currentTarget.value as AudioTriggerRuleOperation,
-                      })}
+                        operation,
+                        parameters: parametersForTriggerOperation(operation, config),
+                      });
+                    }}
                   >
                     {#each TRIGGER_OPERATIONS as operation}
                       <option value={operation}>{t(`operation.${operation}`)}</option>

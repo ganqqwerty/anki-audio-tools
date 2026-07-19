@@ -13,32 +13,46 @@ from .trigger_jobs import (
     TRIGGER_UPDATE_INITIATOR,
     TriggerExecutionResult,
     TriggerJob,
+    trigger_source_filename,
 )
 from .trigger_state import TriggerStateStore, mark_failed, mark_succeeded
 
 logger = logging.getLogger(__name__)
 
 
-def apply_trigger_result(col: Any, result: BatchNoteResult) -> TriggerExecutionResult:
+def apply_trigger_result(
+    col: Any,
+    job: TriggerJob,
+    result: BatchNoteResult,
+) -> TriggerExecutionResult:
     """Persist a written trigger result when the target fields are unchanged."""
     note = col.get_note(result.note_id)
+    if _note_source_filename(note, job.rule.source_field) != job.input_filename:
+        return TriggerExecutionResult(stale_trigger_result(job))
+    conflict = _apply_result_fields(note, result)
+    if conflict is not None:
+        return TriggerExecutionResult(conflict)
+    changes = col.update_note(note)
+    return TriggerExecutionResult(result, changes)
+
+
+def _apply_result_fields(note: Any, result: BatchNoteResult) -> BatchNoteResult | None:
     if result.field_updates is not None:
         for field_name, expected_html in (result.original_field_html or {}).items():
             if _note_field_value(note, field_name) != expected_html:
-                return TriggerExecutionResult(_conflict_result(result, field_name))
+                return _conflict_result(result, field_name)
         for field_name, html in result.field_updates.items():
             note[field_name] = html
-    else:
-        assert result.target_field is not None
-        assert result.target_html is not None
-        if (
-            result.original_target_html is not None
-            and _note_field_value(note, result.target_field) != result.original_target_html
-        ):
-            return TriggerExecutionResult(_conflict_result(result, result.target_field))
-        note[result.target_field] = result.target_html
-    changes = col.update_note(note)
-    return TriggerExecutionResult(result, changes)
+        return None
+    assert result.target_field is not None
+    assert result.target_html is not None
+    if (
+        result.original_target_html is not None
+        and _note_field_value(note, result.target_field) != result.original_target_html
+    ):
+        return _conflict_result(result, result.target_field)
+    note[result.target_field] = result.target_html
+    return None
 
 
 def complete_trigger_job(job: TriggerJob, result: BatchNoteResult) -> None:
@@ -49,7 +63,7 @@ def complete_trigger_job(job: TriggerJob, result: BatchNoteResult) -> None:
             store,
             job.state_key,
             job.generation_token,
-            result.audio_filename or job.input_filename,
+            _handled_source_filename(job, result),
             result.written_filename,
         )
     elif not is_stale_trigger_completion(result):
@@ -123,3 +137,21 @@ def _note_field_value(note: Any, field_name: str) -> str:
         return str(note[field_name])
     except (KeyError, TypeError, AttributeError):
         return ""
+
+
+def _note_source_filename(note: Any, source_field: str) -> str | None:
+    return trigger_source_filename(_note_field_value(note, source_field))
+
+
+def _handled_source_filename(job: TriggerJob, result: BatchNoteResult) -> str:
+    if result.written:
+        source_html = None
+        if result.field_updates is not None:
+            source_html = result.field_updates.get(job.rule.source_field)
+        elif result.target_field == job.rule.source_field:
+            source_html = result.target_html
+        if source_html is not None:
+            output_filename = trigger_source_filename(source_html)
+            if output_filename is not None:
+                return output_filename
+    return result.audio_filename or job.input_filename

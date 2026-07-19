@@ -12,6 +12,7 @@ import {
   type TriggerNoteTypeOption,
   type TriggerSettingsMetadata,
 } from "$lib/types.js";
+import { pauseDetectionAlgorithmOrDefault } from "$lib/audio-operation-parameters.js";
 
 export const TRIGGER_OPERATIONS = [
   AudioTriggerRuleOperation.Graph,
@@ -48,7 +49,7 @@ export function newTriggerRule(
       operation: AudioTriggerRuleOperation.Convert,
       preset_id: null,
       target_field: null,
-      parameters: { target_format: config.output_format },
+      parameters: parametersForTriggerOperation(AudioTriggerRuleOperation.Convert, config),
     },
     config,
   );
@@ -63,31 +64,99 @@ export function normalizeTriggerRule(rule: AudioTriggerRule, config: Config): Au
   if (next.action_type === AudioTriggerActionType.Preset) {
     next.operation = null;
     next.parameters = {};
+    const preset = config.audio_processing_presets.find((item) => item.id === next.preset_id);
+    if (!presetRequiresGraph(preset)) next.target_field = null;
     return next;
   }
 
   next.preset_id = null;
   if (next.operation !== AudioTriggerRuleOperation.Graph) next.target_field = null;
-  if (next.operation === AudioTriggerRuleOperation.Convert) {
-    next.parameters.target_format = next.parameters.target_format ?? config.output_format;
+  next.parameters = parametersForTriggerOperation(next.operation, config, next.parameters);
+  return next;
+}
+
+export function parametersForTriggerOperation(
+  operation: AudioTriggerRuleOperation | null,
+  config: Config,
+  current: AudioTriggerRule["parameters"] = {},
+): AudioTriggerRule["parameters"] {
+  if (operation === AudioTriggerRuleOperation.Convert) {
+    return { target_format: current.target_format ?? config.output_format };
   }
-  if (next.operation === AudioTriggerRuleOperation.Graph) {
-    next.parameters = {
-      ...next.parameters,
-      graph_voice_range: next.parameters.graph_voice_range ?? config.graph_voice_range ?? GraphVoiceRange.General,
-      graph_recording_condition:
-        next.parameters.graph_recording_condition ??
-        config.graph_recording_condition ??
-        GraphRecordingCondition.Auto,
-      graph_smoothness: next.parameters.graph_smoothness ?? config.graph_smoothness ?? GraphSmoothness.VerySmooth,
-      graph_connect_short_dropouts_ms:
-        next.parameters.graph_connect_short_dropouts_ms ??
-        config.graph_connect_short_dropouts_ms ??
-        240,
-      graph_voice_lock: next.parameters.graph_voice_lock ?? config.graph_voice_lock ?? GraphVoiceLock.Balanced,
+  if (operation === AudioTriggerRuleOperation.ReduceSize) {
+    return {
+      size_reduction_mode: current.size_reduction_mode ?? config.size_reduction_mode,
+      size_reduction_bitrate_kbps:
+        current.size_reduction_bitrate_kbps ?? config.size_reduction_bitrate_kbps,
+      size_reduction_sample_rate_hz:
+        current.size_reduction_sample_rate_hz ?? config.size_reduction_sample_rate_hz,
+      size_reduction_channels:
+        current.size_reduction_channels ?? config.size_reduction_channels,
     };
   }
-  return next;
+  if (operation === AudioTriggerRuleOperation.Denoise) {
+    return {
+      denoise_algorithm: current.denoise_algorithm ?? config.denoise_algorithm,
+      dpdfnet_attn_limit_db: current.dpdfnet_attn_limit_db ?? config.dpdfnet_attn_limit_db,
+    };
+  }
+  if (operation === AudioTriggerRuleOperation.RemovePauses) {
+    const algorithm = pauseDetectionAlgorithmOrDefault(
+      current.pause_detection_algorithm ?? config.pause_detection_algorithm,
+    ) as Config["pause_detection_algorithm"];
+    const silero = algorithm === "silero_vad";
+    return {
+      pause_aggressiveness: current.pause_aggressiveness ?? config.pause_aggressiveness,
+      pause_detection_algorithm: algorithm,
+      pause_threshold:
+        current.pause_threshold ??
+        (silero ? config.pause_silero_threshold : config.pause_silencedetect_threshold_db),
+      pause_min_silence_seconds:
+        current.pause_min_silence_seconds ??
+        (silero
+          ? config.pause_silero_min_silence_seconds
+          : config.pause_silencedetect_min_silence_seconds),
+      pause_min_speech_seconds:
+        current.pause_min_speech_seconds ??
+        (silero
+          ? config.pause_silero_min_speech_seconds
+          : config.pause_silencedetect_min_speech_seconds),
+      pause_preprocess_denoise:
+        current.pause_preprocess_denoise ??
+        (silero
+          ? config.pause_silero_preprocess_denoise
+          : config.pause_silencedetect_preprocess_denoise),
+    };
+  }
+  if (
+    operation === AudioTriggerRuleOperation.Slower ||
+    operation === AudioTriggerRuleOperation.Faster
+  ) {
+    return { speed_step: current.speed_step ?? config.speed_step };
+  }
+  if (
+    operation === AudioTriggerRuleOperation.VolumeDown ||
+    operation === AudioTriggerRuleOperation.VolumeUp
+  ) {
+    return { volume_step_db: current.volume_step_db ?? config.volume_step_db };
+  }
+  if (operation === AudioTriggerRuleOperation.Graph) {
+    return {
+      graph_voice_range:
+        current.graph_voice_range ?? config.graph_voice_range ?? GraphVoiceRange.General,
+      graph_recording_condition:
+        current.graph_recording_condition ??
+        config.graph_recording_condition ??
+        GraphRecordingCondition.Auto,
+      graph_smoothness:
+        current.graph_smoothness ?? config.graph_smoothness ?? GraphSmoothness.VerySmooth,
+      graph_connect_short_dropouts_ms:
+        current.graph_connect_short_dropouts_ms ?? config.graph_connect_short_dropouts_ms ?? 240,
+      graph_voice_lock:
+        current.graph_voice_lock ?? config.graph_voice_lock ?? GraphVoiceLock.Balanced,
+    };
+  }
+  return {};
 }
 
 export function fieldsForRule(
@@ -147,6 +216,22 @@ export function validateTriggerRules(
       !rule.target_field
     ) {
       messages.push({ ruleId: rule.id, message: `${label} needs a graph target field.` });
+    }
+    const emitsGraph =
+      (rule.action_type === AudioTriggerActionType.Operation &&
+        rule.operation === AudioTriggerRuleOperation.Graph) ||
+      (rule.action_type === AudioTriggerActionType.Preset &&
+        presetRequiresGraph(presets.find((item) => item.id === rule.preset_id)));
+    if (
+      emitsGraph &&
+      rule.target_field &&
+      noteType &&
+      !noteType.fields.includes(rule.target_field)
+    ) {
+      messages.push({
+        ruleId: rule.id,
+        message: `${label} graph target field is unavailable.`,
+      });
     }
   }
   return messages;

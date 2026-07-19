@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from .batch_operation_types import BatchNoteResult
-from .trigger_rules import AudioTriggerRule
+from .trigger_rules import AudioTriggerRule, first_supported_sound_filename
 from .trigger_state import TriggerStateKey
 
 TriggerEventName = Literal["add", "edit"]
@@ -34,3 +34,8 @@ class TriggerExecutionResult:
 
     result: BatchNoteResult
     changes: Any | None = None
+
+
+def trigger_source_filename(field_html: str) -> str | None:
+    """Return the supported source filename represented by trigger field HTML."""
+    return first_supported_sound_filename(field_html)

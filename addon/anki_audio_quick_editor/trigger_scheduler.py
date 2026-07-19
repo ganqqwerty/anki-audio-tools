@@ -44,6 +44,7 @@ def schedule_trigger_event(mw: Any, note: Any, event: TriggerEventName) -> int:
         rules = trigger_rules_from_raw(
             config_payload.get("audio_trigger_rules"),
             presets=presets,
+            allow_missing_presets=True,
         )
     except Exception as exc:
         _capture_scheduler_exception(exc, note_id=_note_id(note), event=event)
@@ -173,7 +174,11 @@ def _job_for_rule(
     filename = first_supported_sound_filename(field_html)
     if filename is None:
         return None
-    fingerprint = action_fingerprint(rule, presets)
+    try:
+        fingerprint = action_fingerprint(rule, presets)
+    except ValueError as exc:
+        logger.warning("Skipping trigger rule %s: %s", rule.id, exc)
+        return None
     key = TriggerStateKey(note_id=note_id, rule_id=rule.id, source_field=rule.source_field)
     if not should_schedule(store.get(key), filename, fingerprint):
         return None

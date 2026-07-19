@@ -64,13 +64,21 @@ def trigger_rules_from_raw(
     raw: Any,
     *,
     presets: tuple[AudioProcessingPreset, ...] = (),
+    allow_missing_presets: bool = False,
 ) -> tuple[AudioTriggerRule, ...]:
     """Parse and validate a raw config ``audio_trigger_rules`` value."""
     if raw is None:
         return ()
     if not isinstance(raw, list):
         raise ValueError("audio_trigger_rules must be a list")
-    rules = tuple(_rule_from_raw(item, presets=presets) for item in raw)
+    rules = tuple(
+        _rule_from_raw(
+            item,
+            presets=presets,
+            allow_missing_presets=allow_missing_presets,
+        )
+        for item in raw
+    )
     _validate_unique_rule_ids(rules)
     return rules
 
@@ -128,6 +136,7 @@ def _rule_from_raw(
     raw: Any,
     *,
     presets: tuple[AudioProcessingPreset, ...],
+    allow_missing_presets: bool,
 ) -> AudioTriggerRule:
     if not isinstance(raw, dict):
         raise ValueError("Trigger rule must be an object")
@@ -153,7 +162,12 @@ def _rule_from_raw(
         _none_value(operation, "Trigger operation")
         operation = None
         preset_id = _required_text(preset_id, "Trigger preset ID")
-        _validate_preset_target(preset_id, target_field, presets)
+        _validate_preset_target(
+            preset_id,
+            target_field,
+            presets,
+            allow_missing_presets=allow_missing_presets,
+        )
 
     return AudioTriggerRule(
         id=rule_id,
@@ -257,10 +271,15 @@ def _validate_preset_target(
     preset_id: str,
     target_field: str | None,
     presets: tuple[AudioProcessingPreset, ...],
+    *,
+    allow_missing_presets: bool,
 ) -> None:
-    if not presets:
-        return
-    preset = preset_by_id(presets, preset_id)
+    try:
+        preset = preset_by_id(presets, preset_id)
+    except ValueError:
+        if allow_missing_presets:
+            return
+        raise
     if preset.graph.enabled and target_field is None:
         raise ValueError("Preset trigger rules with Graph output require a target field")
     if not preset.graph.enabled and target_field is not None:

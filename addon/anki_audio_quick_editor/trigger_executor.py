@@ -58,7 +58,10 @@ def run_trigger_job(
                 artifact_root=artifact_root,
             )
         if result.written:
-            return apply_trigger_result(col, result)
+            latest_store = TriggerStateStore.load(job.state_path)
+            if not is_latest(latest_store.get(job.state_key), job.generation_token):
+                return TriggerExecutionResult(stale_trigger_result(job))
+            return apply_trigger_result(col, job, result)
         return TriggerExecutionResult(result)
     except Exception as exc:
         message = format_coded_message(AQE_BATCH_INVALID_REQUEST, str(exc) or "trigger failed")

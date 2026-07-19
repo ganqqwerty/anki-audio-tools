@@ -20,8 +20,11 @@ def register_trigger_hooks(gui_hooks: Any, *, mw_provider: Callable[[], Any]) ->
         _schedule(mw_provider(), note, "add")
 
     def on_operation_did_execute(changes: Any, handler: Any) -> None:
-        _ignore_operation_changes(changes)
-        if handler is TRIGGER_UPDATE_INITIATOR or not _is_editor_save_handler(handler):
+        if (
+            handler is TRIGGER_UPDATE_INITIATOR
+            or not _is_editor_save_handler(handler)
+            or not _note_content_changed(changes)
+        ):
             return
         note = getattr(handler, "note", None)
         if note is not None:
@@ -45,8 +48,8 @@ def _is_add_cards_editor(handler: Any) -> bool:
     return str(mode).endswith("ADD_CARDS")
 
 
-def _ignore_operation_changes(_changes: Any) -> None:
-    return None
+def _note_content_changed(changes: Any) -> bool:
+    return bool(getattr(changes, "note", False) or getattr(changes, "note_text", False))
 
 
 def _schedule(mw: Any, note: Any, event: str) -> None:

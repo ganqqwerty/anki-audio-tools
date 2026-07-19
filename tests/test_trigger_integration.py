@@ -33,7 +33,7 @@ def test_register_trigger_hooks_schedules_add_and_editor_edit(monkeypatch) -> No
 
     register_trigger_hooks(hooks, mw_provider=lambda: mw)
     hooks.add_cards_did_add_note[0](note)
-    hooks.operation_did_execute[0](object(), editor)
+    hooks.operation_did_execute[0](SimpleNamespace(note_text=True), editor)
 
     assert calls == [(mw, note, "add"), (mw, note, "edit")]
 
@@ -56,5 +56,21 @@ def test_operation_hook_ignores_trigger_and_add_cards_handlers(monkeypatch) -> N
     hooks.operation_did_execute[0](object(), TRIGGER_UPDATE_INITIATOR)
     hooks.operation_did_execute[0](object(), add_cards_editor)
     hooks.operation_did_execute[0](object(), None)
+
+    schedule.assert_not_called()
+
+
+def test_operation_hook_ignores_editor_operations_without_note_changes(monkeypatch) -> None:
+    schedule = MagicMock()
+    hooks = SimpleNamespace(add_cards_did_add_note=_Hook(), operation_did_execute=_Hook())
+    editor = SimpleNamespace(note=object(), _save_current_note=lambda: None)
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.trigger_integration.schedule_trigger_event",
+        schedule,
+    )
+
+    register_trigger_hooks(hooks, mw_provider=lambda: object())
+    hooks.operation_did_execute[0](SimpleNamespace(note=False, note_text=False), editor)
 
     schedule.assert_not_called()

@@ -112,7 +112,7 @@ class _Mw:
         self.undo_updates += 1
 
 
-def _config() -> dict[str, object]:
+def _config(*, event: str = "add") -> dict[str, object]:
     return {
         "audio_processing_presets": [],
         "audio_trigger_rules": [
@@ -120,7 +120,7 @@ def _config() -> dict[str, object]:
                 "id": "clean",
                 "name": "Clean",
                 "enabled": True,
-                "event": "add",
+                "event": event,
                 "note_type": {"id": 123, "name": "Basic"},
                 "source_field": "Audio",
                 "action_type": "operation",
@@ -167,7 +167,7 @@ def test_schedule_trigger_event_runs_matching_rule_and_updates_state(
     store = TriggerStateStore.load(state_files[0])
     entry = next(iter(store.entries.values()))
     assert entry.status == "succeeded"
-    assert entry.last_handled_field_filename == "clip.mp3"
+    assert entry.last_handled_field_filename == "clip.flac"
     assert entry.last_successful_output_filename == "clip.flac"
 
 
