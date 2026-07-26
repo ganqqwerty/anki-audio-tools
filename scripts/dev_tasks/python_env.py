@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import platform
+import shutil
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -113,6 +114,18 @@ def _validate_python(python: Path) -> bool:
         return False
 
 
+def _resolve_explicit_python(value: str) -> Path | None:
+    resolved = shutil.which(str(Path(value).expanduser()))
+    if resolved is None:
+        return None
+    candidate = Path(resolved)
+    try:
+        result = subprocess.run([str(candidate), "--version"], capture_output=True, timeout=15)
+        return candidate if result.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
 def _die(message: str) -> None:
     print(f"ERROR: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -122,8 +135,8 @@ def _find_anki_python() -> Path:
     dotenv = _load_dotenv()
     env_value = os.environ.get("ANKI_PYTHON") or dotenv.get("ANKI_PYTHON")
     if env_value:
-        candidate = Path(env_value).expanduser()
-        if _validate_python(candidate):
+        candidate = _resolve_explicit_python(env_value)
+        if candidate is not None:
             return candidate
         _die(f"ANKI_PYTHON is set to {env_value!r} but is not usable.")
     for candidate in _candidate_paths():

@@ -72,6 +72,29 @@ def test_candidate_paths_prefer_windows_local_appdata(monkeypatch) -> None:
     ]
 
 
+def test_explicit_anki_python_accepts_runnable_path_command(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(
+        command: list[str],
+        *,
+        capture_output: bool,
+        timeout: int,
+    ) -> SimpleNamespace:
+        assert capture_output is True
+        assert timeout == 15
+        calls.append(command)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setenv("ANKI_PYTHON", "python")
+    monkeypatch.setattr(python_env, "_load_dotenv", lambda: {})
+    monkeypatch.setattr(python_env.shutil, "which", lambda command: f"/opt/hosted/{command}")
+    monkeypatch.setattr(python_env.subprocess, "run", fake_run)
+
+    assert python_env._find_anki_python() == Path("/opt/hosted/python")
+    assert calls == [["/opt/hosted/python", "--version"]]
+
+
 def test_cmd_launch_anki_uses_launchservices_on_macos(monkeypatch, tmp_path) -> None:
     app = tmp_path / "Anki.app"
     app.mkdir()

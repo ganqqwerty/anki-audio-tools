@@ -1,5 +1,24 @@
 import "@testing-library/jest-dom";
 
+class ResizeObserverStub implements ResizeObserver {
+  disconnect(): void {
+    return undefined;
+  }
+
+  observe(): void {
+    return undefined;
+  }
+
+  unobserve(): void {
+    return undefined;
+  }
+}
+
+Object.defineProperty(globalThis, "ResizeObserver", {
+  configurable: true,
+  value: ResizeObserverStub,
+});
+
 // ---------------------------------------------------------------------------
 // Mock pycmd — Anki's WebView bridge function
 // ---------------------------------------------------------------------------
