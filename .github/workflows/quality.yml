@@ -1,12 +1,8 @@
 name: Quality gates
 
 on:
-  pull_request:
   push:
     branches: [main]
-  schedule:
-    - cron: "17 3 * * *"
-  workflow_dispatch:
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
@@ -119,7 +115,6 @@ jobs:
 
   real-anki-e2e:
     name: Real Anki E2E
-    if: github.event_name != 'pull_request'
     runs-on: [self-hosted, macOS, anki-25.09]
     timeout-minutes: 30
     steps:
@@ -151,7 +146,6 @@ jobs:
 
   focused-mutation:
     name: Mutation (${{ matrix.group }})
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -223,7 +217,6 @@ jobs:
 
   state-management-mutation:
     name: Frontend state-management mutation
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
